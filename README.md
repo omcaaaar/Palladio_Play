@@ -86,7 +86,6 @@ Palladio_Sports_App/
 │   │   ├── pages/          # Dashboard, Login, Referee UI, etc.
 │   │   └── App.jsx         # Main React application logic
 │   └── package.json        # Frontend dependencies
-└── idea.txt                # Initial project requirements and specifications
 ```
 
 ## ☁️ Deployment Strategy

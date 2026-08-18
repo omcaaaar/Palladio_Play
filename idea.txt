@@ -1,0 +1,104 @@
+Every year, we conduct various sports tournaments in our society such as Cricket, Badminton, Table Tennis, Pickleball etc.
+We rely 100% on manual scoring, counting, points table, tracking etc. using pen and paper. This is very difficult and has very high risk on human errors.
+To resolve this and have a better experience for the residents, I am planning to build a web application named 'Palladio Sports App'.
+
+For now, let's take an exmaple of Badminton tournament and build this app considering this. But ideally it should be applicable to other team event based sports as well.
+
+Here's how the badminton tournament is organized within our society:
+- We roll out a form and collect entries from interested players. (example: we got 70 entries)
+- Based on number of players, we form teams.. (10 teams having 7 players each)
+- We form 2 groups (example: Group A: 5 teams, Group B: 5 teams). And then we create a round robin fixture.
+- This is how each team vs team match looks like:
+   1. Men's singles 1 (2 points)
+   2. Men's doubles 1 (2 points)
+   3. Men's doubles 2 (3 points) - Bonus event
+   4. Men's doubles 3 (2 points)
+   5. Women's singles 1 (2 points)
+   6. Women's doubles 1 (2 points)
+   7. Mixed doubles 1 (2 points)
+- Two table toppers from each group will qualify and play semi finals
+- Winners of semi finals will play finals.
+
+Note: This is just a sample tournament format... things might change and are dynamic depending on various factors.
+
+Following are the termonologies we use:
+1. Match: A match is a team vs team fixture (example: Team A vs Team B)
+2. Event: Each match has multiple events. Example: Men's singles, Men's doubles, etc.
+
+
+Now, this is how I want to create a web app:
+- First screen, user should select one of the following roles: Admin, Refree, Viewer.
+- If user selects admn or refree, he should need credentials (username and password)
+- Following are the things admins should be doing:
+    1. Register a new tournament
+    2. Add teams for the tournament
+    3. Create groups if required (in some cases if number of teams are less, then group formation is not required)
+    4. If groups are formed, then assign teams to groups.
+    5. Add teams fixtures... team vs team matches
+    6. Add players in each team
+    7. Add event fixtures (what all events will happen for example Men's singles 1, men's doubles 1 etc.) and assign points to each event
+    8. Add tournament schedule
+
+- Following are the things Refree should be doing:
+    1. Select a particula team fixture
+    2. Set event fixture (who will play men's singles 1... who will play men's doubles 1 etc. )
+    3. Select a particular event (example men's singles 1)
+    4. Select number of sets and points in each set
+    5. Start an event
+    6. Record points as an even is proceeding (simply do +/- for each side) and the counting should progress automatically.
+
+- These are the details of the database structure:
+    I am planning to use MongoDB. Whenever an admin creates a new tournament, a json file specific for that tournament should be created (either josn file or a collection whatever).
+    The json should contain following infomation/ sub dictionaries:
+    1. Tournament DB: (This will have basic tournament info)
+        - Tournament id
+        - Tournament name
+        - Created at    
+    
+    2. Team DB: (This will have all the teams)
+        - Team id
+        - Team name
+        - Owners
+        - Group
+        - Players list
+
+    3. Fixtures DB: (This will have all the team vs team fixtures)
+        - Match id
+        - Team 1
+        - Team 2
+        - Match type (league/ quialifier 1/ eliminator 1/ qualifier 2/ semi final/ final)
+
+    4. Events DB: (This will have all the events)
+        - Event id
+        - Event name (Men's singles 1, men's doubles 1 etc.)
+        - points
+
+    5. Scorecard DB: (This will have all the scorecards)
+        - Match id
+        - Event id
+        - Team 1 player 1
+        - Team 1 player 2
+        - Team 2 player 1
+        - Team 2 player 2
+        - Set 1 team 1 score
+        - Set 1 team 2 score
+        - Set 2 team 1 score
+        - Set 2 team 2 score
+        - Set 3 team 1 score
+        - Set 3 team 2 score
+
+- Tournament Overview (Dashboard):
+    - Viewers role should by default land on this page
+    - This is like a dashboard which displays following things:
+        1. Users to select tournament from the dropdown First
+        2. Tournament schedule 
+        3. Standings
+        4. Live Scores / Current match updates
+        5. Past matches scorecards
+        6. Player event count (how many events each player has played)
+
+
+Initially, let's develop this app in local environment but eventually it will be deployed on Azure.
+Use Python for development.
+The web application should be easily viewable on mobile/ laptop/ tablet etc. and on both landscape and portrait mode.
+It should be developed in modular way such that future enhancements can be made easily.

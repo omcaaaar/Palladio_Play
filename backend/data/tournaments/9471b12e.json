@@ -1,0 +1,1587 @@
+{
+  "tournament": {
+    "id": "9471b12e",
+    "name": "Badminton Tournament 2025",
+    "created_at": "2026-08-17T10:57:52.936846"
+  },
+  "teams": [
+    {
+      "id": "118029a9",
+      "tournament_id": "9471b12e",
+      "name": "Net Warriors",
+      "owners": "Hema, Prakash",
+      "group": "A",
+      "players_list": [
+        {
+          "name": "Santosh Deshmukh",
+          "gender": "Male"
+        },
+        {
+          "name": "Aparna Bahuleyan",
+          "gender": "Female"
+        },
+        {
+          "name": "Koti Reddy",
+          "gender": "Male"
+        },
+        {
+          "name": "Sarang Moharil",
+          "gender": "Male"
+        },
+        {
+          "name": "Ritesh Patil",
+          "gender": "Male"
+        },
+        {
+          "name": "Pooja Godmare",
+          "gender": "Female"
+        },
+        {
+          "name": "Makarand Patil",
+          "gender": "Male"
+        }
+      ]
+    },
+    {
+      "id": "475b3fc7",
+      "tournament_id": "9471b12e",
+      "name": "Net Ninjas",
+      "owners": "Dinesh, Swapnil",
+      "group": "A",
+      "players_list": [
+        {
+          "name": "Swapnil Shirbhate",
+          "gender": "Male"
+        },
+        {
+          "name": "Soham Deshmukh",
+          "gender": "Male"
+        },
+        {
+          "name": "Nikhil Khandelwal",
+          "gender": "Male"
+        },
+        {
+          "name": "Deva",
+          "gender": "Male"
+        },
+        {
+          "name": "Ketaki Walekar",
+          "gender": "Female"
+        },
+        {
+          "name": "Rupali Thore",
+          "gender": "Female"
+        },
+        {
+          "name": "Nikhil Inamdar",
+          "gender": "Male"
+        }
+      ]
+    },
+    {
+      "id": "6de61eff",
+      "tournament_id": "9471b12e",
+      "name": "Speed Stars",
+      "owners": "Lalit, Sachin",
+      "group": "A",
+      "players_list": [
+        {
+          "name": "Lalit Khade",
+          "gender": "Male"
+        },
+        {
+          "name": "Krushal Patel",
+          "gender": "Male"
+        },
+        {
+          "name": "Shrutika Thore",
+          "gender": "Female"
+        },
+        {
+          "name": "Parth Pujara",
+          "gender": "Male"
+        },
+        {
+          "name": "Rahul Gavali",
+          "gender": "Male"
+        },
+        {
+          "name": "Ankit Jain",
+          "gender": "Male"
+        },
+        {
+          "name": "Ashwini",
+          "gender": "Female"
+        }
+      ]
+    },
+    {
+      "id": "f54c340f",
+      "tournament_id": "9471b12e",
+      "name": "Smash Bros",
+      "owners": "Leo",
+      "group": "A",
+      "players_list": [
+        {
+          "name": "Dipak Upwanshi",
+          "gender": "Male"
+        },
+        {
+          "name": "Kashyap Pandya",
+          "gender": "Male"
+        },
+        {
+          "name": "Shubham Singh",
+          "gender": "Male"
+        },
+        {
+          "name": "Anvita Satpathy",
+          "gender": "Female"
+        },
+        {
+          "name": "Nikhil Lawand",
+          "gender": "Male"
+        },
+        {
+          "name": "Rahul Dadhich",
+          "gender": "Male"
+        },
+        {
+          "name": "Saloni Khandelwal",
+          "gender": "Female"
+        }
+      ]
+    },
+    {
+      "id": "935295cc",
+      "tournament_id": "9471b12e",
+      "name": "Strikers",
+      "owners": "Swarada, Pahul",
+      "group": "A",
+      "players_list": [
+        {
+          "name": "Sneha Hood",
+          "gender": "Female"
+        },
+        {
+          "name": "Sachin Kumar",
+          "gender": "Male"
+        },
+        {
+          "name": "Darsh Aroya",
+          "gender": "Male"
+        },
+        {
+          "name": "Priyati Kothari",
+          "gender": "Female"
+        },
+        {
+          "name": "Kaustubh Shiledar",
+          "gender": "Male"
+        },
+        {
+          "name": "Tushar",
+          "gender": "Male"
+        },
+        {
+          "name": "Hemant",
+          "gender": "Male"
+        }
+      ]
+    },
+    {
+      "id": "cdbf98ba",
+      "tournament_id": "9471b12e",
+      "name": "Net Junkies",
+      "owners": "NJ, Nikhil D",
+      "group": "B",
+      "players_list": [
+        {
+          "name": "Nikhil Joshi",
+          "gender": "Male"
+        },
+        {
+          "name": "Sandeep Patil",
+          "gender": "Male"
+        },
+        {
+          "name": "Abhishek Gangrade",
+          "gender": "Male"
+        },
+        {
+          "name": "Harshal Chawda",
+          "gender": "Male"
+        },
+        {
+          "name": "Rahul Selokar",
+          "gender": "Male"
+        },
+        {
+          "name": "Aadishree",
+          "gender": "Female"
+        },
+        {
+          "name": "Amruta Selokar",
+          "gender": "Female"
+        }
+      ]
+    },
+    {
+      "id": "b4a348e0",
+      "tournament_id": "9471b12e",
+      "name": "Wing Warriors",
+      "owners": "Ankur",
+      "group": "B",
+      "players_list": [
+        {
+          "name": "Ankur Khandekar",
+          "gender": "Male"
+        },
+        {
+          "name": "Gaurav Kulkarni",
+          "gender": "Male"
+        },
+        {
+          "name": "Rashi Khandekar ",
+          "gender": "Female"
+        },
+        {
+          "name": "Dipali ",
+          "gender": "Female"
+        },
+        {
+          "name": "Ameya Patil",
+          "gender": "Male"
+        },
+        {
+          "name": "Sarthak",
+          "gender": "Male"
+        },
+        {
+          "name": "Krishna Kumar",
+          "gender": "Male"
+        }
+      ]
+    },
+    {
+      "id": "14b88b70",
+      "tournament_id": "9471b12e",
+      "name": "Eagles",
+      "owners": "Nitin",
+      "group": "B",
+      "players_list": [
+        {
+          "name": "Nitin Patil",
+          "gender": "Male"
+        },
+        {
+          "name": "Abhay Nigam",
+          "gender": "Male"
+        },
+        {
+          "name": "Digamber Dixit",
+          "gender": "Male"
+        },
+        {
+          "name": "Pooja Patil",
+          "gender": "Female"
+        },
+        {
+          "name": "Shreyash Thore",
+          "gender": "Male"
+        },
+        {
+          "name": "Manisha",
+          "gender": "Female"
+        },
+        {
+          "name": "Arvind Sharma",
+          "gender": "Male"
+        }
+      ]
+    },
+    {
+      "id": "9a23703e",
+      "tournament_id": "9471b12e",
+      "name": "Smashers",
+      "owners": "Nikhil, Mukund",
+      "group": "B",
+      "players_list": [
+        {
+          "name": "Nikhil Tembhare",
+          "gender": "Male"
+        },
+        {
+          "name": "Avinash Kale",
+          "gender": "Male"
+        },
+        {
+          "name": "Nishith Chitaliya",
+          "gender": "Male"
+        },
+        {
+          "name": "Ashish",
+          "gender": "Male"
+        },
+        {
+          "name": "Neelesh Kanyal",
+          "gender": "Male"
+        },
+        {
+          "name": "Prerna Dayama",
+          "gender": "Female"
+        },
+        {
+          "name": "Nikita",
+          "gender": "Female"
+        }
+      ]
+    }
+  ],
+  "fixtures": [
+    {
+      "id": "84b73576",
+      "tournament_id": "9471b12e",
+      "team1_id": "118029a9",
+      "team2_id": "6de61eff",
+      "match_type": "league",
+      "status": "pending",
+      "date_time": "2026-08-22T09:00"
+    },
+    {
+      "id": "ec6f9f8a",
+      "tournament_id": "9471b12e",
+      "team1_id": "118029a9",
+      "team2_id": "f54c340f",
+      "match_type": "league",
+      "status": "completed",
+      "date_time": "2026-08-22T10:00"
+    },
+    {
+      "id": "dc48bfc5",
+      "tournament_id": "9471b12e",
+      "team1_id": "118029a9",
+      "team2_id": "935295cc",
+      "match_type": "league",
+      "status": "on_hold",
+      "date_time": "2026-08-22T11:00"
+    },
+    {
+      "id": "f62278d2",
+      "tournament_id": "9471b12e",
+      "team1_id": "475b3fc7",
+      "team2_id": "6de61eff",
+      "match_type": "league",
+      "status": "pending",
+      "date_time": "2026-08-22T12:00"
+    },
+    {
+      "id": "6476c26c",
+      "tournament_id": "9471b12e",
+      "team1_id": "475b3fc7",
+      "team2_id": "f54c340f",
+      "match_type": "league",
+      "status": "on_hold",
+      "date_time": "2026-08-22T13:00"
+    },
+    {
+      "id": "33ab3a75",
+      "tournament_id": "9471b12e",
+      "team1_id": "475b3fc7",
+      "team2_id": "935295cc",
+      "match_type": "league",
+      "status": "completed",
+      "date_time": "2026-08-22T14:00"
+    },
+    {
+      "id": "23f85c33",
+      "tournament_id": "9471b12e",
+      "team1_id": "6de61eff",
+      "team2_id": "f54c340f",
+      "match_type": "league",
+      "status": "pending",
+      "date_time": "2026-08-22T15:00"
+    },
+    {
+      "id": "aeee8fca",
+      "tournament_id": "9471b12e",
+      "team1_id": "6de61eff",
+      "team2_id": "935295cc",
+      "match_type": "league",
+      "status": "completed",
+      "date_time": "2026-08-22T16:00"
+    },
+    {
+      "id": "f3e3cdac",
+      "tournament_id": "9471b12e",
+      "team1_id": "f54c340f",
+      "team2_id": "935295cc",
+      "match_type": "league",
+      "status": "pending",
+      "date_time": "2026-08-22T17:00"
+    },
+    {
+      "id": "610e41e5",
+      "tournament_id": "9471b12e",
+      "team1_id": "cdbf98ba",
+      "team2_id": "b4a348e0",
+      "match_type": "league",
+      "status": "pending",
+      "date_time": "2026-08-22T18:00"
+    },
+    {
+      "id": "542034d9",
+      "tournament_id": "9471b12e",
+      "team1_id": "cdbf98ba",
+      "team2_id": "14b88b70",
+      "match_type": "league",
+      "status": "pending",
+      "date_time": "2026-08-22T19:00"
+    },
+    {
+      "id": "94d99498",
+      "tournament_id": "9471b12e",
+      "team1_id": "cdbf98ba",
+      "team2_id": "9a23703e",
+      "match_type": "league",
+      "status": "pending",
+      "date_time": "2026-08-22T20:00"
+    },
+    {
+      "id": "3084c673",
+      "tournament_id": "9471b12e",
+      "team1_id": "cdbf98ba",
+      "team2_id": "74276e11",
+      "match_type": "league",
+      "status": "pending",
+      "date_time": "2026-08-21T08:00"
+    },
+    {
+      "id": "999b315d",
+      "tournament_id": "9471b12e",
+      "team1_id": "b4a348e0",
+      "team2_id": "14b88b70",
+      "match_type": "league",
+      "status": "pending",
+      "date_time": "2026-08-21T09:00"
+    },
+    {
+      "id": "26486a0f",
+      "tournament_id": "9471b12e",
+      "team1_id": "b4a348e0",
+      "team2_id": "9a23703e",
+      "match_type": "league",
+      "status": "pending",
+      "date_time": "2026-08-21T20:00"
+    },
+    {
+      "id": "09d35e31",
+      "tournament_id": "9471b12e",
+      "team1_id": "b4a348e0",
+      "team2_id": "74276e11",
+      "match_type": "league",
+      "status": "pending",
+      "date_time": "2026-08-21T21:00"
+    },
+    {
+      "id": "d40c144c",
+      "tournament_id": "9471b12e",
+      "team1_id": "14b88b70",
+      "team2_id": "9a23703e",
+      "match_type": "league",
+      "status": "pending",
+      "date_time": "2026-08-23T08:00"
+    },
+    {
+      "id": "9e07950e",
+      "tournament_id": "9471b12e",
+      "team1_id": "14b88b70",
+      "team2_id": "74276e11",
+      "match_type": "league",
+      "status": "pending",
+      "date_time": "2026-08-23T09:00"
+    },
+    {
+      "id": "28367c85",
+      "tournament_id": "9471b12e",
+      "team1_id": "9a23703e",
+      "team2_id": "74276e11",
+      "match_type": "league",
+      "status": "pending",
+      "date_time": "2026-08-23T10:00"
+    },
+    {
+      "id": "f4d72048",
+      "tournament_id": "9471b12e",
+      "team1_id": "118029a9",
+      "team2_id": "475b3fc7",
+      "match_type": "semi_final",
+      "status": "pending",
+      "date_time": null
+    },
+    {
+      "id": "6948b556",
+      "tournament_id": "9471b12e",
+      "team1_id": "6de61eff",
+      "team2_id": "f54c340f",
+      "match_type": "semi_final",
+      "status": "pending",
+      "date_time": null
+    }
+  ],
+  "events": [
+    {
+      "id": "84cc7e74",
+      "tournament_id": "9471b12e",
+      "name": "Men's Singles",
+      "points": 2
+    },
+    {
+      "id": "65b2a7cc",
+      "tournament_id": "9471b12e",
+      "name": "Men's Doubles 1",
+      "points": 2
+    },
+    {
+      "id": "9e9485f6",
+      "tournament_id": "9471b12e",
+      "name": "Men's Doubles 2",
+      "points": 3
+    },
+    {
+      "id": "ac2d387e",
+      "tournament_id": "9471b12e",
+      "name": "Men's Doubles 3",
+      "points": 2
+    },
+    {
+      "id": "6fb1a35b",
+      "tournament_id": "9471b12e",
+      "name": "Women's Singles",
+      "points": 2
+    },
+    {
+      "id": "f4b3beb2",
+      "tournament_id": "9471b12e",
+      "name": "Women's Doubles",
+      "points": 2
+    },
+    {
+      "id": "650fdcf5",
+      "tournament_id": "9471b12e",
+      "name": "Mixed Doubles",
+      "points": 2
+    }
+  ],
+  "scorecards": [
+    {
+      "id": "de6d38db",
+      "fixture_id": "30a53265",
+      "event_id": "645188b4",
+      "team1_player1": "Santosh Deshmukh",
+      "team1_player2": "",
+      "team2_player1": "Deva",
+      "team2_player2": "",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 21,
+          "team2_score": 5
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team1"
+    },
+    {
+      "id": "5484a36b",
+      "fixture_id": "84b73576",
+      "event_id": "645188b4",
+      "team1_player1": "Koti Reddy",
+      "team1_player2": "",
+      "team2_player1": "Lalit Khade",
+      "team2_player2": "",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "3b5c47f6",
+      "fixture_id": "84b73576",
+      "event_id": "fad7288c",
+      "team1_player1": "Santosh Deshmukh",
+      "team1_player2": "Koti Reddy",
+      "team2_player1": "Lalit Khade",
+      "team2_player2": "Krushal Patel",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "4eda43d4",
+      "fixture_id": "84b73576",
+      "event_id": "6980571f",
+      "team1_player1": "Koti Reddy",
+      "team1_player2": "Sarang Moharil",
+      "team2_player1": "Krushal Patel",
+      "team2_player2": "Parth Pujara",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "1058c1cd",
+      "fixture_id": "84b73576",
+      "event_id": "a732a1d9",
+      "team1_player1": "Sarang Moharil",
+      "team1_player2": "Ritesh Patil",
+      "team2_player1": "Parth Pujara",
+      "team2_player2": "Rahul Gavali",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "bc259e21",
+      "fixture_id": "84b73576",
+      "event_id": "8345995f",
+      "team1_player1": "Aparna Bahuleyan",
+      "team1_player2": "Ritesh Patil",
+      "team2_player1": "Shrutika Thore",
+      "team2_player2": "Rahul Gavali",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "5b532a92",
+      "fixture_id": "84b73576",
+      "event_id": "d7c9cb48",
+      "team1_player1": "Pooja Godmare",
+      "team1_player2": "",
+      "team2_player1": "Ashwini",
+      "team2_player2": "",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "d18c3d0b",
+      "fixture_id": "84b73576",
+      "event_id": "3a3bf6f5",
+      "team1_player1": "Aparna Bahuleyan",
+      "team1_player2": "Pooja Godmare",
+      "team2_player1": "Shrutika Thore",
+      "team2_player2": "Ashwini",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "a5bb58a8",
+      "fixture_id": "ec6f9f8a",
+      "event_id": "84cc7e74",
+      "team1_player1": "Santosh Deshmukh",
+      "team1_player2": "",
+      "team2_player1": "Dipak Upwanshi",
+      "team2_player2": "",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 7,
+          "team2_score": 6
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team2"
+    },
+    {
+      "id": "5d2d63d6",
+      "fixture_id": "ec6f9f8a",
+      "event_id": "65b2a7cc",
+      "team1_player1": "Koti Reddy",
+      "team1_player2": "Santosh Deshmukh",
+      "team2_player1": "Dipak Upwanshi",
+      "team2_player2": "Kashyap Pandya",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team2"
+    },
+    {
+      "id": "4ab89a8d",
+      "fixture_id": "ec6f9f8a",
+      "event_id": "9e9485f6",
+      "team1_player1": "Koti Reddy",
+      "team1_player2": "Sarang Moharil",
+      "team2_player1": "Kashyap Pandya",
+      "team2_player2": "Shubham Singh",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team1"
+    },
+    {
+      "id": "b003518e",
+      "fixture_id": "ec6f9f8a",
+      "event_id": "ac2d387e",
+      "team1_player1": "Sarang Moharil",
+      "team1_player2": "Ritesh Patil",
+      "team2_player1": "Shubham Singh",
+      "team2_player2": "Nikhil Lawand",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team1"
+    },
+    {
+      "id": "9a2971f8",
+      "fixture_id": "ec6f9f8a",
+      "event_id": "6fb1a35b",
+      "team1_player1": "Aparna Bahuleyan",
+      "team1_player2": "",
+      "team2_player1": "Anvita Satpathy",
+      "team2_player2": "",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team2"
+    },
+    {
+      "id": "898fd548",
+      "fixture_id": "ec6f9f8a",
+      "event_id": "f4b3beb2",
+      "team1_player1": "Aparna Bahuleyan",
+      "team1_player2": "Pooja Godmare",
+      "team2_player1": "Anvita Satpathy",
+      "team2_player2": "Saloni Khandelwal",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team1"
+    },
+    {
+      "id": "6182b36a",
+      "fixture_id": "ec6f9f8a",
+      "event_id": "650fdcf5",
+      "team1_player1": "Makarand Patil",
+      "team1_player2": "Pooja Godmare",
+      "team2_player1": "Rahul Dadhich",
+      "team2_player2": "Saloni Khandelwal",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team1"
+    },
+    {
+      "id": "3af2dc24",
+      "fixture_id": "6476c26c",
+      "event_id": "84cc7e74",
+      "team1_player1": "Swapnil Shirbhate",
+      "team1_player2": "",
+      "team2_player1": "Dipak Upwanshi",
+      "team2_player2": "",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 2,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "on_hold",
+      "winner": ""
+    },
+    {
+      "id": "2a91e3ee",
+      "fixture_id": "6476c26c",
+      "event_id": "65b2a7cc",
+      "team1_player1": "Swapnil Shirbhate",
+      "team1_player2": "Soham Deshmukh",
+      "team2_player1": "Dipak Upwanshi",
+      "team2_player2": "Kashyap Pandya",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 1,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "on_hold",
+      "winner": ""
+    },
+    {
+      "id": "b29e9ffb",
+      "fixture_id": "6476c26c",
+      "event_id": "9e9485f6",
+      "team1_player1": "Soham Deshmukh",
+      "team1_player2": "Nikhil Khandelwal",
+      "team2_player1": "Kashyap Pandya",
+      "team2_player2": "Shubham Singh",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 1,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "in_progress",
+      "winner": ""
+    },
+    {
+      "id": "7b07cc3c",
+      "fixture_id": "6476c26c",
+      "event_id": "ac2d387e",
+      "team1_player1": "Nikhil Khandelwal",
+      "team1_player2": "Deva",
+      "team2_player1": "Shubham Singh",
+      "team2_player2": "Nikhil Lawand",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "5266abd4",
+      "fixture_id": "6476c26c",
+      "event_id": "6fb1a35b",
+      "team1_player1": "Ketaki Walekar",
+      "team1_player2": "",
+      "team2_player1": "Anvita Satpathy",
+      "team2_player2": "",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "2e4a4b3c",
+      "fixture_id": "6476c26c",
+      "event_id": "f4b3beb2",
+      "team1_player1": "Ketaki Walekar",
+      "team1_player2": "Rupali Thore",
+      "team2_player1": "Anvita Satpathy",
+      "team2_player2": "Saloni Khandelwal",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "51393d71",
+      "fixture_id": "6476c26c",
+      "event_id": "650fdcf5",
+      "team1_player1": "Nikhil Khandelwal",
+      "team1_player2": "Rupali Thore",
+      "team2_player1": "Rahul Dadhich",
+      "team2_player2": "Saloni Khandelwal",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "8b0b1ebc",
+      "fixture_id": "dc48bfc5",
+      "event_id": "84cc7e74",
+      "team1_player1": "Santosh Deshmukh",
+      "team1_player2": "",
+      "team2_player1": "Sachin Kumar",
+      "team2_player2": "",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 11,
+          "team2_score": 21
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team2"
+    },
+    {
+      "id": "df3954b3",
+      "fixture_id": "dc48bfc5",
+      "event_id": "65b2a7cc",
+      "team1_player1": "Santosh Deshmukh",
+      "team1_player2": "Koti Reddy",
+      "team2_player1": "Sachin Kumar",
+      "team2_player2": "Darsh Aroya",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 21,
+          "team2_score": 15
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team1"
+    },
+    {
+      "id": "c8ad7bd7",
+      "fixture_id": "dc48bfc5",
+      "event_id": "9e9485f6",
+      "team1_player1": "Sarang Moharil",
+      "team1_player2": "Santosh Deshmukh",
+      "team2_player1": "Sachin Kumar",
+      "team2_player2": "Darsh Aroya",
+      "num_sets": 3,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 30,
+          "team2_score": 29
+        }
+      ],
+      "current_set": 1,
+      "status": "in_progress",
+      "winner": ""
+    },
+    {
+      "id": "a73db820",
+      "fixture_id": "dc48bfc5",
+      "event_id": "ac2d387e",
+      "team1_player1": "Santosh Deshmukh",
+      "team1_player2": "Koti Reddy",
+      "team2_player1": "Sachin Kumar",
+      "team2_player2": "Darsh Aroya",
+      "num_sets": 1,
+      "points_per_set": 15,
+      "sets": [
+        {
+          "team1_score": 21,
+          "team2_score": 20
+        }
+      ],
+      "current_set": 0,
+      "status": "in_progress",
+      "winner": ""
+    },
+    {
+      "id": "fe1f0cee",
+      "fixture_id": "dc48bfc5",
+      "event_id": "6fb1a35b",
+      "team1_player1": "Pooja Godmare",
+      "team1_player2": "",
+      "team2_player1": "Sneha Hood",
+      "team2_player2": "",
+      "num_sets": 1,
+      "points_per_set": 11,
+      "sets": [
+        {
+          "team1_score": 12,
+          "team2_score": 15
+        }
+      ],
+      "current_set": 0,
+      "status": "in_progress",
+      "winner": ""
+    },
+    {
+      "id": "bb750559",
+      "fixture_id": "dc48bfc5",
+      "event_id": "f4b3beb2",
+      "team1_player1": "Aparna Bahuleyan",
+      "team1_player2": "Pooja Godmare",
+      "team2_player1": "Sneha Hood",
+      "team2_player2": "Priyati Kothari",
+      "num_sets": 3,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 21,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 1,
+      "status": "in_progress",
+      "winner": null
+    },
+    {
+      "id": "c636a71f",
+      "fixture_id": "dc48bfc5",
+      "event_id": "650fdcf5",
+      "team1_player1": "Santosh Deshmukh",
+      "team1_player2": "Aparna Bahuleyan",
+      "team2_player1": "Sachin Kumar",
+      "team2_player2": "Sneha Hood",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "549754fd",
+      "fixture_id": "f62278d2",
+      "event_id": "84cc7e74",
+      "team1_player1": "Swapnil Shirbhate",
+      "team1_player2": "",
+      "team2_player1": "Lalit Khade",
+      "team2_player2": "",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "a1f898b9",
+      "fixture_id": "f62278d2",
+      "event_id": "65b2a7cc",
+      "team1_player1": "Soham Deshmukh",
+      "team1_player2": "Nikhil Khandelwal",
+      "team2_player1": "Parth Pujara",
+      "team2_player2": "Krushal Patel",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "663b168c",
+      "fixture_id": "f62278d2",
+      "event_id": "9e9485f6",
+      "team1_player1": "Nikhil Khandelwal",
+      "team1_player2": "Deva",
+      "team2_player1": "Parth Pujara",
+      "team2_player2": "Rahul Gavali",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "ebe528c1",
+      "fixture_id": "f62278d2",
+      "event_id": "ac2d387e",
+      "team1_player1": "Deva",
+      "team1_player2": "Nikhil Inamdar",
+      "team2_player1": "Parth Pujara",
+      "team2_player2": "Ankit Jain",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "12a1c641",
+      "fixture_id": "f62278d2",
+      "event_id": "6fb1a35b",
+      "team1_player1": "Rupali Thore",
+      "team1_player2": "",
+      "team2_player1": "Ashwini",
+      "team2_player2": "",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "35473b1b",
+      "fixture_id": "f62278d2",
+      "event_id": "f4b3beb2",
+      "team1_player1": "Rupali Thore",
+      "team1_player2": "Ketaki Walekar",
+      "team2_player1": "Ashwini",
+      "team2_player2": "Shrutika Thore",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "b0b42c23",
+      "fixture_id": "f62278d2",
+      "event_id": "650fdcf5",
+      "team1_player1": "Rupali Thore",
+      "team1_player2": "Deva",
+      "team2_player1": "Ankit Jain",
+      "team2_player2": "Ashwini",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "pending",
+      "winner": ""
+    },
+    {
+      "id": "2ff4b2fe",
+      "fixture_id": "33ab3a75",
+      "event_id": "84cc7e74",
+      "team1_player1": "Swapnil Shirbhate",
+      "team1_player2": "",
+      "team2_player1": "Sachin Kumar",
+      "team2_player2": "",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 21,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team1"
+    },
+    {
+      "id": "a3137645",
+      "fixture_id": "33ab3a75",
+      "event_id": "65b2a7cc",
+      "team1_player1": "Swapnil Shirbhate",
+      "team1_player2": "Soham Deshmukh",
+      "team2_player1": "Sachin Kumar",
+      "team2_player2": "Darsh Aroya",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 21,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team1"
+    },
+    {
+      "id": "c35a15f6",
+      "fixture_id": "33ab3a75",
+      "event_id": "9e9485f6",
+      "team1_player1": "Swapnil Shirbhate",
+      "team1_player2": "Soham Deshmukh",
+      "team2_player1": "Sachin Kumar",
+      "team2_player2": "Darsh Aroya",
+      "num_sets": 3,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 10,
+          "team2_score": 21
+        },
+        {
+          "team1_score": 21,
+          "team2_score": 0
+        },
+        {
+          "team1_score": 21,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 2,
+      "status": "completed",
+      "winner": "team1"
+    },
+    {
+      "id": "12a3bb55",
+      "fixture_id": "33ab3a75",
+      "event_id": "ac2d387e",
+      "team1_player1": "Swapnil Shirbhate",
+      "team1_player2": "Soham Deshmukh",
+      "team2_player1": "Sachin Kumar",
+      "team2_player2": "Darsh Aroya",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 21,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team1"
+    },
+    {
+      "id": "b4aed6f6",
+      "fixture_id": "33ab3a75",
+      "event_id": "6fb1a35b",
+      "team1_player1": "Ketaki Walekar",
+      "team1_player2": "",
+      "team2_player1": "Sneha Hood",
+      "team2_player2": "",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 21
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team2"
+    },
+    {
+      "id": "6c03b599",
+      "fixture_id": "33ab3a75",
+      "event_id": "f4b3beb2",
+      "team1_player1": "Ketaki Walekar",
+      "team1_player2": "Rupali Thore",
+      "team2_player1": "Sneha Hood",
+      "team2_player2": "Priyati Kothari",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 21
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team2"
+    },
+    {
+      "id": "0ebdb7c5",
+      "fixture_id": "33ab3a75",
+      "event_id": "650fdcf5",
+      "team1_player1": "Swapnil Shirbhate",
+      "team1_player2": "Ketaki Walekar",
+      "team2_player1": "Sachin Kumar",
+      "team2_player2": "Sneha Hood",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 21
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team2"
+    },
+    {
+      "id": "7a5051b2",
+      "fixture_id": "aeee8fca",
+      "event_id": "84cc7e74",
+      "team1_player1": "Lalit Khade",
+      "team1_player2": "",
+      "team2_player1": "Sachin Kumar",
+      "team2_player2": "",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 21,
+          "team2_score": 19
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team1"
+    },
+    {
+      "id": "b3a91cdf",
+      "fixture_id": "aeee8fca",
+      "event_id": "65b2a7cc",
+      "team1_player1": "Lalit Khade",
+      "team1_player2": "Krushal Patel",
+      "team2_player1": "Sachin Kumar",
+      "team2_player2": "Darsh Aroya",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 21,
+          "team2_score": 19
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team1"
+    },
+    {
+      "id": "69102b37",
+      "fixture_id": "aeee8fca",
+      "event_id": "9e9485f6",
+      "team1_player1": "Lalit Khade",
+      "team1_player2": "Krushal Patel",
+      "team2_player1": "Sachin Kumar",
+      "team2_player2": "Darsh Aroya",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 21,
+          "team2_score": 19
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team1"
+    },
+    {
+      "id": "6e261302",
+      "fixture_id": "aeee8fca",
+      "event_id": "ac2d387e",
+      "team1_player1": "Lalit Khade",
+      "team1_player2": "Krushal Patel",
+      "team2_player1": "Sachin Kumar",
+      "team2_player2": "Darsh Aroya",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 21,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team1"
+    },
+    {
+      "id": "3dafb737",
+      "fixture_id": "aeee8fca",
+      "event_id": "6fb1a35b",
+      "team1_player1": "Shrutika Thore",
+      "team1_player2": "",
+      "team2_player1": "Sneha Hood",
+      "team2_player2": "",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 21,
+          "team2_score": 0
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team1"
+    },
+    {
+      "id": "e721ac6f",
+      "fixture_id": "aeee8fca",
+      "event_id": "f4b3beb2",
+      "team1_player1": "Shrutika Thore",
+      "team1_player2": "Ashwini",
+      "team2_player1": "Sneha Hood",
+      "team2_player2": "Priyati Kothari",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 8,
+          "team2_score": 21
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team2"
+    },
+    {
+      "id": "c19d0da1",
+      "fixture_id": "aeee8fca",
+      "event_id": "650fdcf5",
+      "team1_player1": "Lalit Khade",
+      "team1_player2": "Shrutika Thore",
+      "team2_player1": "Sneha Hood",
+      "team2_player2": "Sachin Kumar",
+      "num_sets": 1,
+      "points_per_set": 21,
+      "sets": [
+        {
+          "team1_score": 0,
+          "team2_score": 21
+        }
+      ],
+      "current_set": 0,
+      "status": "completed",
+      "winner": "team2"
+    }
+  ]
+}

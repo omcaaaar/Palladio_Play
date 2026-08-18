@@ -74,18 +74,18 @@ You can also start both the backend and frontend simultaneously by running the p
 ## 📂 Project Structure
 
 ```
-Palladio_Sports_App/
+Palladio_Play/
 ├── backend/                # Python FastAPI backend
 │   ├── main.py             # FastAPI application and routes
 │   ├── models.py           # Pydantic data models
 │   ├── database.py         # Database connection and logic
 │   └── data/               # Local JSON database storage
 ├── frontend/               # React web application (Vite)
-│   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── pages/          # Dashboard, Login, Referee UI, etc.
-│   │   └── App.jsx         # Main React application logic
-│   └── package.json        # Frontend dependencies
+    ├── src/
+    │   ├── components/     # Reusable UI components
+    │   ├── pages/          # Dashboard, Login, Referee UI, etc.
+    │   └── App.jsx         # Main React application logic
+    └── package.json        # Frontend dependencies
 ```
 
 ## ☁️ Deployment Strategy

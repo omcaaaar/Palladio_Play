@@ -188,12 +188,26 @@ export default function Dashboard() {
           <h1>Tournament Dashboard</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Live updates, standings, and schedule</p>
         </div>
-        {liveScorecards.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-secondary)', padding: '0.5rem 1rem', borderRadius: 'var(--radius-full)' }}>
-            <Activity size={18} className="pulse" />
-            <span style={{ fontWeight: 500 }}>Live Match in Progress</span>
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          {(tournaments.find(t => t.id === selectedTid)?.youtube_link || import.meta.env.VITE_YOUTUBE_HANDLE) && (
+            <a 
+              href={`https://youtube.com/${tournaments.find(t => t.id === selectedTid)?.youtube_link || import.meta.env.VITE_YOUTUBE_HANDLE}/live`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="btn"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#ff0000', color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: 'var(--radius-full)', fontWeight: 600 }}
+            >
+              <Activity size={18} />
+              Watch Live
+            </a>
+          )}
+          {liveScorecards.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-secondary)', padding: '0.5rem 1rem', borderRadius: 'var(--radius-full)' }}>
+              <Activity size={18} className="pulse" />
+              <span style={{ fontWeight: 500 }}>Live Match in Progress</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tournament selector */}
@@ -340,6 +354,43 @@ export default function Dashboard() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── Squads ── */}
+      <div className="glass-card" style={{ marginBottom: '1.5rem' }}>
+        <h3>Squads</h3>
+        {teams.length === 0 ? (
+          <p style={{ color: 'var(--text-secondary)' }}>No teams added yet.</p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
+            {teams.map(team => (
+              <div key={team.id} className="glass-card" style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.03)' }}>
+                <h4 style={{ color: 'var(--accent-primary)', marginBottom: team.owners ? '0.25rem' : '0.75rem' }}>
+                  {team.name}
+                </h4>
+                {team.owners && (
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontStyle: 'italic', marginBottom: '0.75rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem' }}>
+                    Owner: {team.owners}
+                  </div>
+                )}
+                {!team.owners && (
+                  <div style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem', marginBottom: '0.75rem' }} />
+                )}
+                {(!team.players_list || team.players_list.length === 0) ? (
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>No players.</p>
+                ) : (
+                  <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
+                    {team.players_list.map((p, i) => (
+                      <li key={i} style={{ padding: '0.35rem 0', fontSize: '0.9rem', color: 'var(--text-primary)', borderBottom: i < team.players_list.length - 1 ? '1px dashed rgba(255, 255, 255, 0.1)' : 'none' }}>
+                        {typeof p === 'object' ? p.name : p}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>

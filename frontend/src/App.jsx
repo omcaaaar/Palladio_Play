@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import RefereeDashboard from './pages/RefereeDashboard';
+import BroadcasterDashboard from './pages/BroadcasterDashboard';
 
 function Navbar({ user, logout }) {
   const location = useLocation();
@@ -25,6 +26,9 @@ function Navbar({ user, logout }) {
         )}
         {user?.role === 'referee' && (
           <Link to="/referee" className={`nav-link ${location.pathname.startsWith('/referee') ? 'active' : ''}`}>Referee</Link>
+        )}
+        {user?.role === 'broadcaster' && (
+          <Link to="/broadcaster" className={`nav-link ${location.pathname.startsWith('/broadcaster') ? 'active' : ''}`}>Broadcaster</Link>
         )}
         
         {!user ? (
@@ -46,14 +50,10 @@ function App() {
   const navigate = useNavigate();
 
   const handleLogin = (username, role) => {
-    if (role === 'viewer') {
-      // Viewer doesn't need to be "logged in", just go to dashboard
-      navigate('/');
-      return;
-    }
     setUser({ username, role });
     if (role === 'admin') navigate('/admin');
-    else navigate('/referee');
+    else if (role === 'referee') navigate('/referee');
+    else if (role === 'broadcaster') navigate('/broadcaster');
   };
 
   const handleLogout = () => {
@@ -70,6 +70,7 @@ function App() {
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/admin/*" element={user?.role === 'admin' ? <AdminDashboard /> : <Login onLogin={handleLogin} />} />
           <Route path="/referee/*" element={user?.role === 'referee' ? <RefereeDashboard /> : <Login onLogin={handleLogin} />} />
+          <Route path="/broadcaster/*" element={user?.role === 'broadcaster' ? <BroadcasterDashboard /> : <Login onLogin={handleLogin} />} />
         </Routes>
       </main>
     </div>

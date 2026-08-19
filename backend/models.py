@@ -10,6 +10,7 @@ class Tournament(BaseModel):
     id: str = Field(default_factory=generate_id)
     name: str
     sport: str = "Badminton"
+    youtube_link: str = ""
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
 

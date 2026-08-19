@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogIn, Eye, ShieldAlert, Settings } from 'lucide-react';
+import { LogIn, Tv, ShieldAlert, Settings } from 'lucide-react';
 
 export default function Login({ onLogin }) {
   const [mode, setMode] = useState('select'); // 'select' | 'login'
@@ -8,9 +8,7 @@ export default function Login({ onLogin }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSelectViewer = () => {
-    onLogin('viewer', 'viewer');
-  };
+
 
   const handleSelectRole = (r) => {
     setRole(r);
@@ -20,10 +18,19 @@ export default function Login({ onLogin }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (role === 'admin' && username === 'admin' && password === 'admin') {
+    const adminUser = import.meta.env.VITE_ADMIN_USER || 'admin';
+    const adminPass = import.meta.env.VITE_ADMIN_PASS || 'admin';
+    const refUser = import.meta.env.VITE_REFEREE_USER || 'referee';
+    const refPass = import.meta.env.VITE_REFEREE_PASS || 'referee';
+    const broadUser = import.meta.env.VITE_BROADCASTER_USER || 'broadcaster';
+    const broadPass = import.meta.env.VITE_BROADCASTER_PASS || 'broadcaster';
+
+    if (role === 'admin' && username === adminUser && password === adminPass) {
       onLogin('admin', 'admin');
-    } else if (role === 'referee' && username === 'referee' && password === 'referee') {
+    } else if (role === 'referee' && username === refUser && password === refPass) {
       onLogin('referee', 'referee');
+    } else if (role === 'broadcaster' && username === broadUser && password === broadPass) {
+      onLogin('broadcaster', 'broadcaster');
     } else {
       setError('Invalid credentials. Please try again.');
     }
@@ -37,12 +44,12 @@ export default function Login({ onLogin }) {
           <p style={{ color: 'var(--text-secondary)' }}>Select your role to continue</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-          {/* Viewer */}
-          <button className="glass-card" onClick={handleSelectViewer}
+          {/* Broadcaster */}
+          <button className="glass-card" onClick={() => handleSelectRole('broadcaster')}
             style={{ cursor: 'pointer', textAlign: 'center', padding: '2rem 1rem', border: '1px solid var(--glass-border)', transition: 'all 0.2s' }}>
-            <Eye size={36} color="var(--accent-secondary)" style={{ marginBottom: '0.75rem' }} />
-            <h3 style={{ marginBottom: '0.5rem' }}>Viewer</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0 }}>Watch live scores and standings</p>
+            <Tv size={36} color="var(--accent-secondary)" style={{ marginBottom: '0.75rem' }} />
+            <h3 style={{ marginBottom: '0.5rem' }}>Broadcaster</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0 }}>YouTube live stream tools</p>
           </button>
 
           {/* Referee */}
@@ -69,10 +76,10 @@ export default function Login({ onLogin }) {
     <div style={{ maxWidth: '400px', margin: '4rem auto' }}>
       <div className="glass-card animate-fade-in">
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ display: 'inline-flex', padding: '1rem', background: role === 'admin' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(239, 68, 68, 0.1)', borderRadius: '50%', marginBottom: '1rem' }}>
-            {role === 'admin' ? <Settings size={32} color="var(--accent-primary)" /> : <ShieldAlert size={32} color="var(--accent-danger)" />}
+          <div style={{ display: 'inline-flex', padding: '1rem', background: role === 'admin' ? 'rgba(59, 130, 246, 0.1)' : role === 'broadcaster' ? 'rgba(167, 139, 250, 0.1)' : 'rgba(239, 68, 68, 0.1)', borderRadius: '50%', marginBottom: '1rem' }}>
+            {role === 'admin' ? <Settings size={32} color="var(--accent-primary)" /> : role === 'broadcaster' ? <Tv size={32} color="var(--accent-secondary)" /> : <ShieldAlert size={32} color="var(--accent-danger)" />}
           </div>
-          <h2>{role === 'admin' ? 'Admin' : 'Referee'} Login</h2>
+          <h2>{role === 'admin' ? 'Admin' : role === 'broadcaster' ? 'Broadcaster' : 'Referee'} Login</h2>
           <p style={{ color: 'var(--text-secondary)' }}>Enter your credentials to continue</p>
         </div>
 

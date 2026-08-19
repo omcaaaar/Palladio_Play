@@ -1,5 +1,5 @@
-const API_HOST = window.location.hostname;
-const API = `http://${API_HOST}:8000`;
+const isDev = import.meta.env.DEV;
+const API = isDev ? `http://${window.location.hostname}:8000` : '';
 
 async function request(path, options = {}) {
   const res = await fetch(`${API}${path}`, {
@@ -21,10 +21,10 @@ export const createTournament = (name, sport) =>
     method: 'POST',
     body: JSON.stringify({ name, sport }),
   });
-export const updateTournament = (tid, name) =>
+export const updateTournament = (tid, updateData) =>
   request(`/api/admin/tournaments/${tid}`, {
     method: 'PUT',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(updateData),
   });
 export const deleteTournament = (tid) =>
   request(`/api/admin/tournaments/${tid}`, {
@@ -127,7 +127,9 @@ export const completeScorecard = (tid, scorecardId, winner) =>
 
 // ── WebSocket ────────────────────────────────────────────────
 export function connectLiveScores(onMessage) {
-  const ws = new WebSocket(`ws://${API_HOST}:8000/ws/live-scores`);
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsHost = isDev ? `${window.location.hostname}:8000` : window.location.host;
+  const ws = new WebSocket(`${wsProtocol}//${wsHost}/ws/live-scores`);
   ws.onmessage = (e) => onMessage(JSON.parse(e.data));
   ws.onclose = () => {
     // Reconnect after 3 seconds

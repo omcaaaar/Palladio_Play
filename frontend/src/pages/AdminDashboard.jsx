@@ -106,9 +106,8 @@ export default function AdminDashboard() {
   async function handleEditTournament(e) {
     e.preventDefault();
     try {
-      const res = await api.updateTournament(selectedTournament.id, editTournamentName);
-      const updatedList = tournaments.map(t => t.id === selectedTournament.id ? res.tournament : t);
-      setTournaments(updatedList);
+      const res = await api.updateTournament(selectedTournament.id, { name: editTournamentName });
+      setTournaments(tournaments.map(t => t.id === selectedTournament.id ? res.tournament : t));
       setSelectedTournament(res.tournament);
       setShowEditTournamentForm(false);
     } catch (err) { setError(err.message); }

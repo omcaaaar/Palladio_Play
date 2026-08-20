@@ -7,15 +7,15 @@ export default function BroadcasterDashboard() {
   const [selectedTournament, setSelectedTournament] = useState('');
   const [tournamentData, setTournamentData] = useState(null);
   const tournamentDataRef = useRef(null);
-  
+
   const [youtubeHandle, setYoutubeHandle] = useState(import.meta.env.VITE_YOUTUBE_HANDLE || '');
   const [savingHandle, setSavingHandle] = useState(false);
   const [handleSaved, setHandleSaved] = useState(false);
-  
+
   useEffect(() => {
     tournamentDataRef.current = tournamentData;
   }, [tournamentData]);
-  
+
   const [streamKey, setStreamKey] = useState(import.meta.env.VITE_YOUTUBE_STREAM_KEY || '');
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlobUrl, setRecordedBlobUrl] = useState(null);
@@ -111,67 +111,68 @@ export default function BroadcasterDashboard() {
   const drawScoreboard = (ctx, width, height, data) => {
     const isLandscape = width > height;
     const sbWidth = isLandscape ? Math.min(width * 0.4, 450) : Math.min(width * 0.7, 320);
-    const sbHeight = isLandscape ? Math.max(height * 0.15, 80) : Math.max(height * 0.1, 70); 
-    
+    const sbHeight = isLandscape ? Math.max(height * 0.15, 80) : Math.max(height * 0.1, 70);
+
     const padding = isLandscape ? 40 : 20;
     const x = width - sbWidth - padding;
-    const y = padding; 
-    
+    const y = padding;
+
     ctx.fillStyle = 'rgba(20, 20, 24, 0.3)';
     ctx.beginPath();
     if (ctx.roundRect) {
       ctx.roundRect(x, y, sbWidth, sbHeight, 12);
     } else {
-      ctx.rect(x, y, sbWidth, sbHeight); 
+      ctx.rect(x, y, sbWidth, sbHeight);
     }
     ctx.fill();
-    
+
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(x, y + sbHeight / 2);
     ctx.lineTo(x + sbWidth, y + sbHeight / 2);
-    
+
     const nameWidth = sbWidth * 0.4;
     const cols = 7;
     const colWidth = (sbWidth - nameWidth) / cols;
-    
+
     for (let i = 0; i <= cols; i++) {
       const cx = x + nameWidth + i * colWidth;
       ctx.moveTo(cx, y);
       ctx.lineTo(cx, y + sbHeight);
     }
     ctx.stroke();
-    
+
     ctx.fillStyle = '#ffffff';
     ctx.textBaseline = 'middle';
-    
+
     const nameFont = `bold ${Math.max(10, sbHeight * 0.22)}px Inter, sans-serif`;
-    const scoreFont = `bold ${Math.max(12, sbHeight * 0.28)}px Inter, sans-serif`;
-    
+    const scoreFontSize = Math.max(8, Math.min(sbHeight * 0.20, colWidth * 0.55));
+    const scoreFont = `bold ${scoreFontSize}px Inter, sans-serif`;
+
     const team1Y = y + sbHeight * 0.25;
     const team2Y = y + sbHeight * 0.75;
-    
+
     ctx.font = nameFont;
     ctx.textAlign = 'left';
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
     ctx.shadowBlur = 2;
     ctx.shadowOffsetX = 1;
     ctx.shadowOffsetY = 1;
-    
+
     const maxNameWidth = nameWidth - 16;
     ctx.fillText(data.team1.name, x + 8, team1Y, maxNameWidth);
     ctx.fillText(data.team2.name, x + 8, team2Y, maxNameWidth);
-    
+
     ctx.shadowColor = 'transparent';
     ctx.font = scoreFont;
     ctx.textAlign = 'center';
-    
+
     for (let i = 0; i < cols; i++) {
       const cx = x + nameWidth + i * colWidth + colWidth / 2;
       const score1 = data.team1.scores[i] !== undefined ? data.team1.scores[i] : '-';
       const score2 = data.team2.scores[i] !== undefined ? data.team2.scores[i] : '-';
-      
+
       ctx.fillText(score1, cx, team1Y);
       ctx.fillText(score2, cx, team2Y);
     }
@@ -185,12 +186,12 @@ export default function BroadcasterDashboard() {
 
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
+
     const scoreboardData = getScoreboardData();
     if (scoreboardData) {
       drawScoreboard(ctx, canvas.width, canvas.height, scoreboardData);
     }
-    
+
     animationFrameRef.current = requestAnimationFrame(drawFrame);
   };
 
@@ -202,20 +203,20 @@ export default function BroadcasterDashboard() {
         width: { ideal: 1280 },
         height: { ideal: 720 }
       };
-      
+
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Camera API not available. If you are on a mobile device, ensure you are accessing this site via HTTPS (secure context).');
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: videoConstraints, 
-        audio: true 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: videoConstraints,
+        audio: true
       }).catch(() => navigator.mediaDevices.getUserMedia({ video: true, audio: true }));
 
       streamRef.current = stream;
       const video = videoRef.current;
       video.srcObject = stream;
-      
+
       await new Promise((resolve) => {
         video.onloadedmetadata = async () => {
           try {
@@ -228,7 +229,7 @@ export default function BroadcasterDashboard() {
       const canvas = canvasRef.current;
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      
+
       if (recordedBlobUrl) {
         URL.revokeObjectURL(recordedBlobUrl);
         setRecordedBlobUrl(null);
@@ -259,7 +260,7 @@ export default function BroadcasterDashboard() {
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsHost = import.meta.env.DEV ? `${window.location.hostname}:8000` : window.location.host;
         const wsUrl = `${wsProtocol}//${wsHost}/ws/stream?key=${encodeURIComponent(streamKey)}`;
-        
+
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
         ws.onopen = () => console.log('WebSocket connected to streaming backend');
@@ -299,20 +300,20 @@ export default function BroadcasterDashboard() {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
-    
+
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
-    
+
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
-    
+
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
-    
+
     setIsRecording(false);
     if (videoRef.current) videoRef.current.srcObject = null;
 
@@ -347,9 +348,9 @@ export default function BroadcasterDashboard() {
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           <div className="form-group" style={{ flex: 1, minWidth: '200px', marginBottom: 0 }}>
             <label className="form-label">Select Tournament</label>
-            <select 
-              className="form-input" 
-              value={selectedTournament} 
+            <select
+              className="form-input"
+              value={selectedTournament}
               onChange={(e) => handleTournamentSelect(e.target.value)}
               disabled={isRecording}
             >
@@ -364,10 +365,10 @@ export default function BroadcasterDashboard() {
 
           <div className="form-group" style={{ flex: 1, minWidth: '200px', marginBottom: 0 }}>
             <label className="form-label">YouTube Stream Key</label>
-            <input 
-              type="password" 
-              className="form-input" 
-              placeholder="Optional (for Local Record)" 
+            <input
+              type="password"
+              className="form-input"
+              placeholder="Optional (for Local Record)"
               value={streamKey}
               onChange={(e) => setStreamKey(e.target.value)}
               disabled={isRecording}
@@ -380,15 +381,15 @@ export default function BroadcasterDashboard() {
             <div className="form-group" style={{ flex: 1, minWidth: '200px', marginBottom: 0 }}>
               <label className="form-label">YouTube Channel Handle (Public Link)</label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  placeholder="e.g. @PalladioSports" 
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. @PalladioSports"
                   value={youtubeHandle}
                   onChange={(e) => setYoutubeHandle(e.target.value)}
                 />
-                <button 
-                  className={`btn ${handleSaved ? 'btn-outline' : 'btn-primary'}`} 
+                <button
+                  className={`btn ${handleSaved ? 'btn-outline' : 'btn-primary'}`}
                   onClick={handleSaveYoutubeLink}
                   disabled={savingHandle || handleSaved}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap', backgroundColor: handleSaved ? 'var(--accent-success)' : undefined, color: handleSaved ? '#fff' : undefined, borderColor: handleSaved ? 'var(--accent-success)' : undefined }}
@@ -412,17 +413,17 @@ export default function BroadcasterDashboard() {
 
       <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: 'var(--surface-dark)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          
-          <video 
-            ref={videoRef} 
-            autoPlay 
-            playsInline 
-            muted 
+
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
             style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: '1px', height: '1px' }}
           />
-          
-          <canvas 
-            ref={canvasRef} 
+
+          <canvas
+            ref={canvasRef}
             style={{ display: isRecording ? 'block' : 'none', width: '100%', height: '100%', objectFit: 'contain' }}
           />
 
@@ -446,9 +447,9 @@ export default function BroadcasterDashboard() {
           )}
 
           {recordedBlobUrl && !isRecording && (
-            <a 
-              href={recordedBlobUrl} 
-              download={`stream-recording-${Date.now()}.webm`} 
+            <a
+              href={recordedBlobUrl}
+              download={`stream-recording-${Date.now()}.webm`}
               className="btn btn-outline"
               style={{ textDecoration: 'none' }}
             >

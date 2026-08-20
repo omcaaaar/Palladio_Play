@@ -524,12 +524,12 @@ function StandingsTable({ standings }) {
           <tr>
             <th>#</th>
             <th>Team</th>
-            <th>P</th>
-            <th>W</th>
-            <th>L</th>
-            <th>Points</th>
-            <th>Event Diff</th>
-            <th>Set Pt Diff</th>
+            <th style={{ textAlign: 'center' }}>P</th>
+            <th style={{ textAlign: 'center' }}>W</th>
+            <th style={{ textAlign: 'center' }}>L</th>
+            <th style={{ textAlign: 'center' }}>Points</th>
+            <th style={{ textAlign: 'center' }}>Event Diff</th>
+            <th style={{ textAlign: 'center' }}>Set Pt Diff</th>
           </tr>
         </thead>
         <tbody>
@@ -537,12 +537,12 @@ function StandingsTable({ standings }) {
             <tr key={t.id}>
               <td>{i + 1}</td>
               <td style={{ fontWeight: 600 }}>{t.name}</td>
-              <td>{t.played}</td>
-              <td>{t.won}</td>
-              <td>{t.lost}</td>
-              <td style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>{t.points}</td>
-              <td style={{ color: t.eventDiff > 0 ? 'var(--accent-secondary)' : t.eventDiff < 0 ? 'var(--accent-danger)' : 'var(--text-secondary)' }}>{fmtDiff(t.eventDiff)}</td>
-              <td style={{ color: t.setPointDiff > 0 ? 'var(--accent-secondary)' : t.setPointDiff < 0 ? 'var(--accent-danger)' : 'var(--text-secondary)' }}>{fmtDiff(t.setPointDiff)}</td>
+              <td style={{ textAlign: 'center' }}>{t.played}</td>
+              <td style={{ textAlign: 'center' }}>{t.won}</td>
+              <td style={{ textAlign: 'center' }}>{t.lost}</td>
+              <td style={{ fontWeight: 700, color: 'var(--accent-primary)', textAlign: 'center' }}>{t.points}</td>
+              <td style={{ textAlign: 'center', color: t.eventDiff > 0 ? 'var(--accent-secondary)' : t.eventDiff < 0 ? 'var(--accent-danger)' : 'var(--text-secondary)' }}>{fmtDiff(t.eventDiff)}</td>
+              <td style={{ textAlign: 'center', color: t.setPointDiff > 0 ? 'var(--accent-secondary)' : t.setPointDiff < 0 ? 'var(--accent-danger)' : 'var(--text-secondary)' }}>{fmtDiff(t.setPointDiff)}</td>
             </tr>
           ))}
         </tbody>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Activity, Trophy, Users, ChevronDown, ChevronRight, Gavel, ZoomIn, ZoomOut } from 'lucide-react';
+import { Activity, Trophy, Users, ChevronDown, ChevronRight, Gavel, ZoomIn, ZoomOut, AlertCircle, Clock } from 'lucide-react';
 import * as api from '../api/client';
 
 const YoutubeIcon = ({ size = 24, color = "currentColor", ...props }) => (
@@ -218,6 +218,51 @@ export default function Dashboard() {
 
   const playerCounts = getPlayerEventCounts();
 
+  // ── Upcoming Match Flashcard Logic ──
+  let showUpcomingFlashCard = false;
+  let upcomingMatch = null;
+  let remainingEvents = 0;
+  let hasLiveMatch = false;
+
+  const pureUpcomingFixtures = scheduleFixtures.filter(f => f.status !== 'in_progress');
+  if (pureUpcomingFixtures.length > 0) {
+    upcomingMatch = pureUpcomingFixtures[0];
+    const combinationsSaved = scorecards.some(sc => sc.fixture_id === upcomingMatch.id);
+
+    if (!combinationsSaved) {
+      if (liveFixtures.length > 0) {
+        hasLiveMatch = true;
+        const liveMatch = liveFixtures[0];
+
+        const startedLiveEvents = scorecards.filter(sc => sc.fixture_id === liveMatch.id && (sc.status === 'completed' || sc.status === 'in_progress')).length;
+        remainingEvents = events.length - startedLiveEvents;
+
+        const liveDateStr = liveMatch.date_time ? new Date(liveMatch.date_time).toDateString() : null;
+        const upcomingDateStr = upcomingMatch.date_time ? new Date(upcomingMatch.date_time).toDateString() : null;
+        const isSameDay = (!liveDateStr || !upcomingDateStr) || (liveDateStr === upcomingDateStr);
+
+        if (remainingEvents <= 4 && isSameDay) {
+          showUpcomingFlashCard = true;
+        }
+      } else {
+        const lastMatch = resultsFixtures.length > 0 ? resultsFixtures[resultsFixtures.length - 1] : null;
+        if (lastMatch) {
+          const lastDateStr = lastMatch.date_time ? new Date(lastMatch.date_time).toDateString() : null;
+          const upcomingDateStr = upcomingMatch.date_time ? new Date(upcomingMatch.date_time).toDateString() : null;
+          const isSameDay = (!lastDateStr || !upcomingDateStr) || (lastDateStr === upcomingDateStr);
+          if (isSameDay) {
+            showUpcomingFlashCard = true;
+          }
+        } else {
+          const upcomingDateStr = upcomingMatch.date_time ? new Date(upcomingMatch.date_time).toDateString() : null;
+          if (!upcomingDateStr || upcomingDateStr === new Date().toDateString()) {
+            showUpcomingFlashCard = true;
+          }
+        }
+      }
+    }
+  }
+
   return (
     <div>
       {/* Header */}
@@ -294,6 +339,79 @@ export default function Dashboard() {
                 <FixtureEventsOverview fixture={fixture} events={events} scorecards={scorecards} getTeamName={getTeamName} />
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Upcoming Match Flashcard ── */}
+      {showUpcomingFlashCard && upcomingMatch && (
+        <div className="glass-card animate-fade-in alert-flash" style={{
+          marginBottom: '1.5rem',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Decorative glowing orb */}
+          <div style={{
+            position: 'absolute',
+            top: '-50px',
+            right: '-50px',
+            width: '150px',
+            height: '150px',
+            background: 'radial-gradient(circle, rgba(245, 158, 11, 0.3) 0%, transparent 70%)',
+            borderRadius: '50%',
+            pointerEvents: 'none'
+          }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', position: 'relative', zIndex: 1 }}>
+            <div style={{
+              background: 'rgba(245, 158, 11, 0.2)',
+              padding: '0.5rem',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <AlertCircle size={24} color="#f59e0b" className="pulse" />
+            </div>
+            <h3 style={{ margin: 0, color: '#f59e0b', textShadow: '0 0 10px rgba(245, 158, 11, 0.3)' }}>
+              Upcoming Match Alert
+            </h3>
+          </div>
+
+          <div style={{
+            background: 'rgba(0,0,0,0.3)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '1.5rem',
+            border: '1px solid rgba(245, 158, 11, 0.2)',
+            position: 'relative',
+            zIndex: 1
+          }}>
+            <h4 style={{ textAlign: 'center', margin: '0 0 0.5rem 0', fontSize: '1.4rem', color: 'var(--text-primary)' }}>
+              {getTeamName(upcomingMatch.team1_id)} <span style={{ color: 'var(--text-secondary)', fontSize: '1rem', margin: '0 0.5rem' }}>vs</span> {getTeamName(upcomingMatch.team2_id)}
+            </h4>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <Clock size={18} color="#fbbf24" />
+              <p style={{ textAlign: 'center', color: '#fbbf24', fontSize: '1.05rem', margin: 0, fontWeight: 500 }}>
+                {hasLiveMatch
+                  ? (remainingEvents === 0
+                    ? "The final event of the live match is currently playing!"
+                    : `Only ${remainingEvents} event${remainingEvents !== 1 ? 's' : ''} remaining in the current live match!`)
+                  : `Next match is starting soon!`}
+              </p>
+            </div>
+
+            <div style={{
+              background: 'rgba(245, 158, 11, 0.15)',
+              padding: '1rem 1.5rem',
+              borderRadius: 'var(--radius-md)',
+              textAlign: 'center',
+              borderLeft: '4px solid #f59e0b',
+              boxShadow: 'inset 0 0 10px rgba(245, 158, 11, 0.05)'
+            }}>
+              <p style={{ margin: 0, color: 'var(--text-primary)', lineHeight: '1.6', fontSize: '1rem' }}>
+                <strong style={{ color: '#f59e0b' }}>Team Owners & Players:</strong> It's time to submit your combinations and report to the court.
+              </p>
+            </div>
           </div>
         </div>
       )}

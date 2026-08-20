@@ -326,6 +326,24 @@ select.form-input option {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
+/* Alert Flash animation for important cards */
+@keyframes alert-flash {
+  0%, 100% {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%);
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+    border-color: rgba(245, 158, 11, 0.5);
+  }
+  50% {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.4) 0%, rgba(245, 158, 11, 0.15) 100%);
+    box-shadow: 0 0 45px rgba(245, 158, 11, 0.8);
+    border-color: rgba(245, 158, 11, 1);
+  }
+}
+
+.alert-flash {
+  animation: alert-flash 1.2s ease-in-out infinite;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   h1 {

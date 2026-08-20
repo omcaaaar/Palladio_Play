@@ -180,12 +180,13 @@ async def update_score(tid: str, scorecard_id: str, body: dict, request: Request
     else:
         new_winner = ""
         is_non_zero = any(s.get("team1_score", 0) > 0 or s.get("team2_score", 0) > 0 for s in sc["sets"])
-        if sc["status"] in ["pending", "on_hold"] and is_non_zero:
-            new_status = "in_progress"
-        elif sc["status"] == "in_progress" and not is_non_zero:
-            new_status = "pending"
+        if is_non_zero:
+            if sc["status"] in ["pending", "on_hold", "completed"]:
+                new_status = "in_progress"
+            else:
+                new_status = sc["status"]
         else:
-            new_status = sc["status"]
+            new_status = "pending"
             
     update_data = {
         "sets": sc["sets"],

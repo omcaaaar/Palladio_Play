@@ -4,6 +4,7 @@ const API = isDev ? `http://${window.location.hostname}:8000` : '';
 async function request(path, options = {}) {
   const res = await fetch(`${API}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
+    cache: 'no-store',
     ...options,
   });
   if (!res.ok) {
@@ -14,7 +15,10 @@ async function request(path, options = {}) {
 }
 
 // ── Tournaments ──────────────────────────────────────────────
-export const getTournaments = () => request('/api/public/tournaments');
+export const getTournaments = async () => {
+  const data = await request('/api/public/tournaments');
+  return data.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+};
 export const getTournamentFull = (tid) => request(`/api/public/tournaments/${tid}`);
 export const createTournament = (name, sport) =>
   request('/api/admin/tournaments', {
@@ -45,6 +49,18 @@ export const updateTeam = (tid, teamId, data) =>
   });
 export const deleteTeam = (tid, teamId) =>
   request(`/api/admin/tournaments/${tid}/teams/${teamId}`, {
+    method: 'DELETE',
+  });
+
+// ── Players ──────────────────────────────────────────────────
+export const getPlayers = (tid) => request(`/api/admin/tournaments/${tid}/players`);
+export const addPlayer = (tid, data) =>
+  request(`/api/admin/tournaments/${tid}/players`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+export const deletePlayer = (tid, playerId) =>
+  request(`/api/admin/tournaments/${tid}/players/${playerId}`, {
     method: 'DELETE',
   });
 
@@ -124,6 +140,24 @@ export const completeScorecard = (tid, scorecardId, winner) =>
     method: 'PUT',
     body: JSON.stringify({ winner }),
   });
+
+// ── Auction ──────────────────────────────────────────────────
+export const getAuction = (tid) => request(`/api/admin/tournaments/${tid}/auction`);
+export const updateAuction = (tid, data) =>
+  request(`/api/admin/tournaments/${tid}/auction`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+export const startAuction = (tid, config) =>
+  request(`/api/admin/tournaments/${tid}/auction/start`, {
+    method: 'POST',
+    body: JSON.stringify(config),
+  });
+export const endAuction = (tid) =>
+  request(`/api/admin/tournaments/${tid}/auction/end`, {
+    method: 'POST',
+  });
+export const getPublicAuction = (tid) => request(`/api/public/tournaments/${tid}/auction`);
 
 // ── WebSocket ────────────────────────────────────────────────
 export function connectLiveScores(onMessage) {

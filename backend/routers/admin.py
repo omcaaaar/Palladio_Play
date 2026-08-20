@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException
-from models import Tournament, Team, Fixture, Event
+from fastapi import APIRouter, HTTPException, Request
+from models import Tournament, Team, Fixture, Event, TournamentPlayer
 import database
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -17,10 +17,17 @@ def create_tournament(tournament: Tournament):
     return {"message": "Tournament created", "tournament": data}
 
 @router.put("/tournaments/{tid}")
-def update_tournament(tid: str, update: dict):
+async def update_tournament(tid: str, update: dict, request: Request):
     result = database.update_tournament(tid, update)
     if not result:
         raise HTTPException(404, "Tournament not found")
+    
+    if hasattr(request.app.state, "ws_manager"):
+        await request.app.state.ws_manager.broadcast({
+            "type": "tournament_updated",
+            "tournament_id": tid
+        })
+        
     return {"message": "Tournament updated", "tournament": result}
 
 @router.delete("/tournaments/{tid}")
@@ -54,6 +61,30 @@ def delete_team(tid: str, team_id: str):
     if not database.delete_team(tid, team_id):
         raise HTTPException(404, "Team not found")
     return {"message": "Team deleted"}
+
+# ── Players ───────────────────────────────────────────────────
+
+@router.get("/tournaments/{tid}/players")
+def list_players(tid: str):
+    return database.get_players(tid)
+
+@router.post("/tournaments/{tid}/players")
+def add_player(tid: str, player: TournamentPlayer):
+    data = player.model_dump()
+    data["tournament_id"] = tid
+    # Check for uniqueness
+    existing_players = database.get_players(tid)
+    for p in existing_players:
+        if p["name"].lower() == data["name"].lower():
+            raise HTTPException(400, "A player with this name already exists")
+    database.add_player(tid, data)
+    return {"message": "Player added", "player": data}
+
+@router.delete("/tournaments/{tid}/players/{player_id}")
+def delete_player(tid: str, player_id: str):
+    if not database.delete_player(tid, player_id):
+        raise HTTPException(404, "Player not found")
+    return {"message": "Player deleted"}
 
 # ── Events ────────────────────────────────────────────────────
 
@@ -106,3 +137,55 @@ def delete_fixture(tid: str, fixture_id: str):
     if not database.delete_fixture(tid, fixture_id):
         raise HTTPException(404, "Fixture not found")
     return {"message": "Fixture deleted"}
+
+# ── Auction ───────────────────────────────────────────────────
+
+@router.get("/tournaments/{tid}/auction")
+def get_auction(tid: str):
+    auction = database.get_auction(tid)
+    return auction or {"status": "idle", "max_players": 8, "total_points": 100, "starting_bid": 10, "team_players": {}}
+
+@router.put("/tournaments/{tid}/auction")
+def update_auction(tid: str, auction_data: dict):
+    result = database.update_auction(tid, auction_data)
+    if result is None:
+        raise HTTPException(404, "Tournament not found")
+    return {"message": "Auction updated", "auction": result}
+
+@router.post("/tournaments/{tid}/auction/start")
+def start_auction(tid: str, config: dict):
+    teams = database.get_teams(tid)
+    if not teams:
+        raise HTTPException(400, "No teams found. Add teams before starting the auction.")
+    
+    # Initialize team_players for each team
+    team_players = {}
+    for team in teams:
+        team_players[team["id"]] = []
+    
+    auction = {
+        "status": "live",
+        "max_players": config.get("max_players", 8),
+        "total_points": config.get("total_points", 100),
+        "starting_bid": config.get("starting_bid", 10),
+        "team_players": team_players,
+    }
+    result = database.update_auction(tid, auction)
+    return {"message": "Auction started", "auction": result}
+
+@router.post("/tournaments/{tid}/auction/end")
+def end_auction(tid: str):
+    auction = database.get_auction(tid)
+    if not auction or auction.get("status") != "live":
+        raise HTTPException(400, "No live auction to end")
+    
+    # Sync auction players into each team's players_list
+    team_players = auction.get("team_players", {})
+    for team_id, players in team_players.items():
+        # Build players_list from auction data (name + gender, without points)
+        players_list = [{"name": p["name"], "gender": p["gender"]} for p in players]
+        database.update_team(tid, team_id, {"players_list": players_list})
+    
+    auction["status"] = "ended"
+    database.update_auction(tid, auction)
+    return {"message": "Auction ended. Players synced to teams.", "auction": auction}

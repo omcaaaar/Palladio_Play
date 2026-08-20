@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { Activity, Trophy, Users, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Activity, Trophy, Users, ChevronDown, ChevronRight, Gavel, ZoomIn, ZoomOut } from 'lucide-react';
 import * as api from '../api/client';
 
 export default function Dashboard() {
@@ -12,6 +12,11 @@ export default function Dashboard() {
   // Live score state
   const [liveScorecards, setLiveScorecards] = useState([]);
   const [selectedCountTeamId, setSelectedCountTeamId] = useState('');
+  const [liveAuction, setLiveAuction] = useState(null);
+  
+  // Schedule/Results expansion state
+  const [expandedFixtures, setExpandedFixtures] = useState({});
+  const toggleFixture = (id) => setExpandedFixtures(prev => ({ ...prev, [id]: !prev[id] }));
 
   useEffect(() => {
     api.getTournaments().then(data => {
@@ -27,8 +32,8 @@ export default function Dashboard() {
   // WebSocket for live updates
   useEffect(() => {
     wsRef.current = api.connectLiveScores((msg) => {
-      if (msg.type === 'score_update' || msg.type === 'scorecard_created' || msg.type === 'scorecard_completed') {
-        // Reload tournament data on any score update
+      if (msg.type === 'score_update' || msg.type === 'scorecard_created' || msg.type === 'scorecard_completed' || msg.type === 'scorecard_updated' || msg.type === 'tournament_updated') {
+        // Reload tournament data on any score or tournament update
         if (selectedTid) loadTournament(selectedTid);
       }
     });
@@ -39,18 +44,36 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const data = await api.getTournamentFull(tid);
+      console.log('Reloaded tournamentData:', data);
       setTournamentData(data);
       // Separate live (in_progress) scorecards
       setLiveScorecards((data.scorecards || []).filter(sc => sc.status === 'in_progress'));
+      // Fetch live auction
+      try {
+        const auctionData = await api.getPublicAuction(tid);
+        setLiveAuction(auctionData && auctionData.status === 'live' ? auctionData : null);
+      } catch (e) { setLiveAuction(null); }
       // Default to first team for player counts
       if (data.teams && data.teams.length > 0) {
         setSelectedCountTeamId(data.teams[0].id);
       } else {
         setSelectedCountTeamId('');
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error('Failed to load tournament:', e); }
     setLoading(false);
   }
+
+  // Poll for live auction updates every 5 seconds
+  useEffect(() => {
+    if (!selectedTid) return;
+    const interval = setInterval(async () => {
+      try {
+        const auctionData = await api.getPublicAuction(selectedTid);
+        setLiveAuction(auctionData && auctionData.status === 'live' ? auctionData : null);
+      } catch (e) { /* ignore polling errors */ }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [selectedTid]);
 
   if (!tournamentData) {
     return (
@@ -77,6 +100,7 @@ export default function Dashboard() {
   });
   const events = tournamentData.events || [];
   const scorecards = tournamentData.scorecards || [];
+  const liveFixtures = fixtures.filter(f => f.status === 'in_progress');
 
   function getTeamName(id) {
     return teams.find(t => t.id === id)?.name || id;
@@ -189,19 +213,38 @@ export default function Dashboard() {
           <p style={{ color: 'var(--text-secondary)' }}>Live updates, standings, and schedule</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          {(tournaments.find(t => t.id === selectedTid)?.youtube_link || import.meta.env.VITE_YOUTUBE_HANDLE) && (
-            <a 
-              href={`https://youtube.com/${tournaments.find(t => t.id === selectedTid)?.youtube_link || import.meta.env.VITE_YOUTUBE_HANDLE}/live`} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="btn"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#ff0000', color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: 'var(--radius-full)', fontWeight: 600 }}
-            >
-              <Activity size={18} />
-              Watch Live
-            </a>
-          )}
-          {liveScorecards.length > 0 && (
+          {(() => {
+            const currentT = tournaments.find(t => t.id === selectedTid) || {};
+            const yLink = currentT.youtube_link || import.meta.env.VITE_YOUTUBE_HANDLE;
+            
+            if (!yLink) return null;
+            
+            return (
+              <a
+                href={`https://youtube.com/${yLink}/live`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem', 
+                  background: '#ff0000', 
+                  color: 'white', 
+                  textDecoration: 'none', 
+                  padding: '0.5rem 1rem', 
+                  borderRadius: 'var(--radius-full)', 
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  opacity: 1
+                }}
+              >
+                <Activity size={18} />
+                Watch Live
+              </a>
+            );
+          })()}
+          {liveFixtures.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-secondary)', padding: '0.5rem 1rem', borderRadius: 'var(--radius-full)' }}>
               <Activity size={18} className="pulse" />
               <span style={{ fontWeight: 500 }}>Live Match in Progress</span>
@@ -218,48 +261,41 @@ export default function Dashboard() {
       </div>
 
       {/* ── Live Scores ── */}
-      {liveScorecards.length > 0 && (
+      {liveFixtures.length > 0 && (
         <div className="glass-card" style={{ marginBottom: '1.5rem', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-            <Activity size={20} color="var(--accent-secondary)" />
-            <h3 style={{ margin: 0, color: 'var(--accent-secondary)' }}>Live Scores</h3>
+            <Activity size={20} color="var(--accent-secondary)" className="pulse" />
+            <h3 style={{ margin: 0, color: 'var(--accent-secondary)' }}>Live Match</h3>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
-            {liveScorecards.map(sc => {
-              const fixture = fixtures.find(f => f.id === sc.fixture_id);
-              return (
-                <div key={sc.id} className="glass-card" style={{ padding: '1rem', background: 'rgba(16, 185, 129, 0.05)' }}>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '0 0 0.5rem' }}>
-                    {getEventName(sc.event_id)} • Set {sc.current_set + 1}/{sc.num_sets}
-                  </p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ textAlign: 'center', flex: 1 }}>
-                      <p style={{ fontWeight: 600, margin: '0 0 0.25rem' }}>{fixture ? getTeamName(fixture.team1_id) : '?'}</p>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
-                        {[sc.team1_player1, sc.team1_player2].filter(Boolean).join(' & ')}
-                      </p>
-                    </div>
-                    <div style={{ textAlign: 'center', padding: '0 1rem' }}>
-                      <p style={{ fontSize: '2rem', fontWeight: 800, margin: 0 }}>
-                        {sc.sets[sc.current_set]?.team1_score} - {sc.sets[sc.current_set]?.team2_score}
-                      </p>
-                      {sc.num_sets > 1 && (
-                        <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0' }}>
-                          Sets: {sc.sets.map((s, i) => `${s.team1_score}-${s.team2_score}`).join(' | ')}
-                        </p>
-                      )}
-                    </div>
-                    <div style={{ textAlign: 'center', flex: 1 }}>
-                      <p style={{ fontWeight: 600, margin: '0 0 0.25rem' }}>{fixture ? getTeamName(fixture.team2_id) : '?'}</p>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
-                        {[sc.team2_player1, sc.team2_player2].filter(Boolean).join(' & ')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {liveFixtures.map(fixture => (
+              <div key={fixture.id} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-lg)', padding: '1rem' }}>
+                <h4 style={{ textAlign: 'center', margin: '0 0 1rem 0', fontSize: '1.2rem' }}>
+                  {getTeamName(fixture.team1_id)} <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0 0.5rem' }}>vs</span> {getTeamName(fixture.team2_id)}
+                </h4>
+                <FixtureEventsOverview fixture={fixture} events={events} scorecards={scorecards} getTeamName={getTeamName} />
+              </div>
+            ))}
           </div>
+        </div>
+      )}
+
+      {/* ── Live Auction ── */}
+      {liveAuction && (
+        <div className="glass-card" style={{ marginBottom: '1.5rem', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+            <Gavel size={20} color="#ef4444" />
+            <h3 style={{ margin: 0, color: '#ef4444' }}>Live Auction</h3>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '0.3rem 0.75rem', borderRadius: 'var(--radius-full)', fontSize: '0.8rem', fontWeight: 600 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1.5s infinite' }} /> LIVE
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+            <span>Max Players: <b style={{ color: 'var(--text-primary)' }}>{liveAuction.max_players}</b></span>
+            <span>Total Points: <b style={{ color: 'var(--text-primary)' }}>{liveAuction.total_points}</b></span>
+            <span>Starting Bid: <b style={{ color: 'var(--text-primary)' }}>{liveAuction.starting_bid}</b></span>
+          </div>
+          <DashboardAuctionTable auction={liveAuction} teams={teams} />
         </div>
       )}
 
@@ -296,16 +332,32 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {scheduleFixtures.map(f => (
-                  <tr key={f.id}>
-                    <td style={{ fontWeight: 600 }}>{getTeamName(f.team1_id)} <span style={{ color: 'var(--text-secondary)' }}>vs</span> {getTeamName(f.team2_id)}</td>
-                    <td style={{ textTransform: 'capitalize' }}>{f.match_type.replace('_', ' ')}</td>
-                    <td>{f.date_time ? new Date(f.date_time).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : <span style={{ color: 'var(--text-secondary)' }}>Not Scheduled</span>}</td>
-                    <td>
-                      <span className={`badge badge-${f.status.replace('_', '-')}`}>
-                        {f.status.replace('_', ' ')}
-                      </span>
-                    </td>
-                  </tr>
+                  <React.Fragment key={f.id}>
+                    <tr onClick={() => toggleFixture(f.id)} style={{ cursor: 'pointer' }} className="hoverable-row">
+                      <td style={{ fontWeight: 600 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {expandedFixtures[f.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                          <span>{getTeamName(f.team1_id)} <span style={{ color: 'var(--text-secondary)' }}>vs</span> {getTeamName(f.team2_id)}</span>
+                        </div>
+                      </td>
+                      <td style={{ textTransform: 'capitalize' }}>{f.match_type.replace('_', ' ')}</td>
+                      <td>{f.date_time ? new Date(f.date_time).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : <span style={{ color: 'var(--text-secondary)' }}>Not Scheduled</span>}</td>
+                      <td>
+                        <span className={`badge badge-${f.status.replace('_', '-')}`}>
+                          {f.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                    </tr>
+                    {expandedFixtures[f.id] && (
+                      <tr>
+                        <td colSpan={4} style={{ padding: 0, borderBottom: 'none' }}>
+                          <div style={{ padding: '0 1rem' }}>
+                            <FixtureEventsOverview fixture={f} events={events} scorecards={scorecards} getTeamName={getTeamName} />
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -340,16 +392,32 @@ export default function Dashboard() {
                   });
                   const winnerName = t1pts > t2pts ? getTeamName(f.team1_id) : (t2pts > t1pts ? getTeamName(f.team2_id) : 'Draw');
                   return (
-                    <tr key={f.id}>
-                      <td style={{ fontWeight: 600 }}>{getTeamName(f.team1_id)} <span style={{ color: 'var(--text-secondary)' }}>vs</span> {getTeamName(f.team2_id)}</td>
-                      <td style={{ textTransform: 'capitalize' }}>{f.match_type.replace('_', ' ')}</td>
-                      <td>
-                        <span style={{ fontWeight: 600 }}>{t1pts} - {t2pts}</span>
-                      </td>
-                      <td>
-                        <span className="badge badge-completed">{winnerName}</span>
-                      </td>
-                    </tr>
+                    <React.Fragment key={f.id}>
+                      <tr onClick={() => toggleFixture(f.id)} style={{ cursor: 'pointer' }} className="hoverable-row">
+                        <td style={{ fontWeight: 600 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            {expandedFixtures[f.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            <span>{getTeamName(f.team1_id)} <span style={{ color: 'var(--text-secondary)' }}>vs</span> {getTeamName(f.team2_id)}</span>
+                          </div>
+                        </td>
+                        <td style={{ textTransform: 'capitalize' }}>{f.match_type.replace('_', ' ')}</td>
+                        <td>
+                          <span style={{ fontWeight: 600 }}>{t1pts} - {t2pts}</span>
+                        </td>
+                        <td>
+                          <span className="badge badge-completed">{winnerName}</span>
+                        </td>
+                      </tr>
+                      {expandedFixtures[f.id] && (
+                        <tr>
+                          <td colSpan={4} style={{ padding: 0, borderBottom: 'none' }}>
+                            <div style={{ padding: '0 1rem' }}>
+                              <FixtureEventsOverview fixture={f} events={events} scorecards={scorecards} getTeamName={getTeamName} />
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -479,6 +547,167 @@ function StandingsTable({ standings }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function DashboardAuctionTable({ auction, teams }) {
+  const [zoomLevel, setZoomLevel] = useState(1);
+  if (!auction || !auction.team_players) return null;
+
+  const { max_players, total_points, starting_bid, team_players } = auction;
+  const auctionTeams = teams.filter(t => team_players[t.id] !== undefined);
+
+  const chunkedTeams = [];
+  for (let i = 0; i < auctionTeams.length; i += 5) {
+    chunkedTeams.push(auctionTeams.slice(i, i + 5));
+  }
+
+  const summaryRowStyle = { fontWeight: 700, fontSize: '0.85rem', padding: '0.6rem 0.75rem' };
+  const summaryLabelStyle = { ...summaryRowStyle, color: 'var(--text-secondary)', textAlign: 'left' };
+  const summaryValueStyle = { ...summaryRowStyle, textAlign: 'center' };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '-1rem' }}>
+        <button onClick={() => setZoomLevel(z => Math.max(0.1, Number((z - 0.1).toFixed(1))))} className="btn btn-outline" style={{ padding: '0.5rem' }} title="Zoom Out"><ZoomOut size={16} /></button>
+        <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)', minWidth: '40px', justifyContent: 'center' }}>{Math.round(zoomLevel * 100)}%</span>
+        <button onClick={() => setZoomLevel(z => Math.min(2.0, Number((z + 0.1).toFixed(1))))} className="btn btn-outline" style={{ padding: '0.5rem' }} title="Zoom In"><ZoomIn size={16} /></button>
+      </div>
+      {chunkedTeams.map((chunk, chunkIdx) => (
+        <div key={chunkIdx} style={{ overflowX: 'auto', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-lg)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', zoom: zoomLevel }}>
+            <thead>
+              <tr>
+                {chunk.map((team, idx) => (
+                  <th key={team.id} colSpan={4} style={{
+                    textAlign: 'center', padding: '0.75rem', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)',
+                    borderBottom: '2px solid var(--glass-border)', fontSize: '0.95rem', fontWeight: 700,
+                    borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none'
+                  }}>
+                    {team.name}
+                    {team.owners && <span style={{ fontWeight: 400, fontSize: '0.6rem', fontStyle: 'italic', color: 'var(--text-secondary)', display: 'block' }}>Owner: {team.owners}</span>}
+                  </th>
+                ))}
+              </tr>
+              <tr>
+                {chunk.map((team, idx) => (
+                  <React.Fragment key={`sub-${team.id}`}>
+                    <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', width: '40px', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>No.</th>
+                    <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'left' }}>Player</th>
+                    <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center' }}>Gender</th>
+                    <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center' }}>Pts</th>
+                  </React.Fragment>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: max_players }).map((_, rowIdx) => (
+                <tr key={rowIdx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  {chunk.map((team, idx) => {
+                    const players = team_players[team.id] || [];
+                    const player = players[rowIdx];
+                    return (
+                      <React.Fragment key={`${team.id}-${rowIdx}`}>
+                        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>{rowIdx + 1}</td>
+                        <td style={{ padding: '0.5rem 0.75rem', fontWeight: player ? 500 : 400, color: player ? 'var(--text-primary)' : 'rgba(255,255,255,0.15)' }}>
+                          {player ? player.name : '—'}
+                        </td>
+                        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: player ? 'var(--text-secondary)' : 'rgba(255,255,255,0.1)', fontSize: '0.8rem' }}>
+                          {player ? (player.gender === 'Male' ? 'M' : 'F') : '—'}
+                        </td>
+                        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: player ? 600 : 400, color: player ? 'var(--accent-primary)' : 'rgba(255,255,255,0.1)' }}>
+                          {player ? player.points : '—'}
+                        </td>
+                      </React.Fragment>
+                    );
+                  })}
+                </tr>
+              ))}
+
+              <tr><td colSpan={chunk.length * 4} style={{ padding: 0, height: '4px', background: 'var(--glass-border)' }}></td></tr>
+
+              <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
+                {chunk.map((team, idx) => {
+                  const consumed = (team_players[team.id] || []).reduce((s, p) => s + (p.points || 0), 0);
+                  return (<React.Fragment key={`c-${team.id}`}><td colSpan={3} style={{ ...summaryLabelStyle, borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>Points Consumed</td><td style={{ ...summaryValueStyle, color: 'var(--accent-primary)' }}>{consumed}</td></React.Fragment>);
+                })}
+              </tr>
+              <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
+                {chunk.map((team, idx) => {
+                  const left = total_points - (team_players[team.id] || []).reduce((s, p) => s + (p.points || 0), 0);
+                  return (<React.Fragment key={`l-${team.id}`}><td colSpan={3} style={{ ...summaryLabelStyle, borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>Points Left</td><td style={{ ...summaryValueStyle, color: left > 0 ? 'var(--accent-secondary)' : 'var(--accent-danger)' }}>{left}</td></React.Fragment>);
+                })}
+              </tr>
+              <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
+                {chunk.map((team, idx) => {
+                  const playersLeft = max_players - (team_players[team.id] || []).length;
+                  return (<React.Fragment key={`pl-${team.id}`}><td colSpan={3} style={{ ...summaryLabelStyle, borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>Players Left</td><td style={{ ...summaryValueStyle, color: playersLeft > 0 ? 'var(--text-primary)' : 'var(--accent-secondary)' }}>{playersLeft}</td></React.Fragment>);
+                })}
+              </tr>
+              <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
+                {chunk.map((team, idx) => {
+                  const players = team_players[team.id] || [];
+                  const pointsLeft = total_points - players.reduce((s, p) => s + (p.points || 0), 0);
+                  const playersLeft = max_players - players.length;
+                  const maxBid = playersLeft > 0 ? pointsLeft - ((playersLeft - 1) * starting_bid) : 0;
+                  return (<React.Fragment key={`mb-${team.id}`}><td colSpan={3} style={{ ...summaryLabelStyle, color: 'var(--accent-primary)', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>Max Bid</td><td style={{ ...summaryValueStyle, color: maxBid > 0 ? '#f59e0b' : 'var(--accent-danger)', fontSize: '1rem' }}>{maxBid > 0 ? maxBid : 0}</td></React.Fragment>);
+                })}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FixtureEventsOverview({ fixture, events, scorecards, getTeamName }) {
+  if (!fixture) return null;
+  return (
+    <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 'var(--radius-lg)', padding: '1rem', margin: '0.5rem 0' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        {events.map(event => {
+          const sc = scorecards.find(s => s.fixture_id === fixture.id && s.event_id === event.id);
+          return (
+            <div key={event.id} style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              padding: '0.75rem', 
+              background: sc?.status === 'in_progress' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.03)', 
+              borderRadius: 'var(--radius-md)', 
+              opacity: sc ? 1 : 0.6,
+              borderLeft: sc?.status === 'in_progress' ? '3px solid var(--accent-secondary)' : '3px solid transparent'
+            }}>
+              <div style={{ flex: 1, fontWeight: 600, fontSize: '0.9rem' }}>{event.name}</div>
+              
+              <div style={{ flex: 1, textAlign: 'right', paddingRight: '1rem', fontSize: '0.85rem' }}>
+                {[sc?.team1_player1, sc?.team1_player2].filter(Boolean).join(' & ') || 'TBD'}
+              </div>
+              
+              <div style={{ width: '130px', textAlign: 'center', fontWeight: 'bold' }}>
+                {sc?.status === 'in_progress' ? (
+                  <div className="pulse" style={{ color: 'var(--accent-secondary)' }}>
+                    <span style={{ fontSize: '1.2rem' }}>{sc.sets[sc.current_set]?.team1_score} - {sc.sets[sc.current_set]?.team2_score}</span>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>Set {sc.current_set + 1}</div>
+                  </div>
+                ) : sc?.status === 'completed' ? (
+                  <span style={{ color: 'var(--text-primary)' }}>
+                    {sc.sets.map(s => `${s.team1_score}-${s.team2_score}`).join(' | ')}
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Upcoming</span>
+                )}
+              </div>
+
+              <div style={{ flex: 1, textAlign: 'left', paddingLeft: '1rem', fontSize: '0.85rem' }}>
+                {[sc?.team2_player1, sc?.team2_player2].filter(Boolean).join(' & ') || 'TBD'}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

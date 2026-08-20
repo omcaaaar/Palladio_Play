@@ -51,7 +51,7 @@ export default function BroadcasterDashboard() {
     if (tid) {
       const data = await getTournamentFull(tid).catch(() => null);
       setTournamentData(data);
-      setYoutubeHandle(data?.youtube_link || import.meta.env.VITE_YOUTUBE_HANDLE || '');
+      setYoutubeHandle(data?.tournament?.youtube_link || import.meta.env.VITE_YOUTUBE_HANDLE || '');
     } else {
       setTournamentData(null);
       setYoutubeHandle(import.meta.env.VITE_YOUTUBE_HANDLE || '');
@@ -236,6 +236,10 @@ export default function BroadcasterDashboard() {
       recordedChunksRef.current = [];
       setIsRecording(true);
 
+      if (selectedTournament) {
+        updateTournament(selectedTournament, { is_live: true }).catch(err => console.error("Failed to update tournament live status", err));
+      }
+
       const canvasStream = canvas.captureStream(30);
       const audioTracks = stream.getAudioTracks();
       if (audioTracks.length > 0) {
@@ -311,6 +315,10 @@ export default function BroadcasterDashboard() {
     
     setIsRecording(false);
     if (videoRef.current) videoRef.current.srcObject = null;
+
+    if (selectedTournament) {
+      updateTournament(selectedTournament, { is_live: false }).catch(err => console.error("Failed to update tournament live status", err));
+    }
   };
 
   useEffect(() => {
@@ -391,9 +399,7 @@ export default function BroadcasterDashboard() {
               </div>
             </div>
           </div>
-        )}
-
-        {selectedTournament && (
+        )}        {selectedTournament && (
           <div style={{ padding: '0.75rem', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
             {activeFixture ? (
               <span style={{ color: 'var(--accent-success)' }}>Active Match Found: {tournamentData?.teams?.find(t => t.id === activeFixture.team1_id)?.name} vs {tournamentData?.teams?.find(t => t.id === activeFixture.team2_id)?.name}</span>

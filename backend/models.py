@@ -11,12 +11,20 @@ class Tournament(BaseModel):
     name: str
     sport: str = "Badminton"
     youtube_link: str = ""
+    is_live: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
 
 class Player(BaseModel):
     name: str
     gender: str  # "Male" or "Female"
+
+class TournamentPlayer(BaseModel):
+    id: str = Field(default_factory=generate_id)
+    tournament_id: str = ""
+    name: str
+    gender: str  # "Male" or "Female"
+
 
 class Team(BaseModel):
     id: str = Field(default_factory=generate_id)

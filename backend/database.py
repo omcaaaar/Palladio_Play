@@ -62,7 +62,9 @@ def add_tournament(tournament_data: dict):
         "teams": [],
         "fixtures": [],
         "events": [],
-        "scorecards": []
+        "scorecards": [],
+        "auction": None,
+        "players": []
     }
     _write(tid, data)
 
@@ -112,6 +114,30 @@ def delete_team(tournament_id: str, team_id: str) -> bool:
         original_len = len(data["teams"])
         data["teams"] = [t for t in data["teams"] if t["id"] != team_id]
         if len(data["teams"]) < original_len:
+            _write(tournament_id, data)
+            return True
+    return False
+
+# ── Players ───────────────────────────────────────────────────
+
+def get_players(tournament_id: str) -> List[dict]:
+    data = _read(tournament_id)
+    return data.get("players", []) if data else []
+
+def add_player(tournament_id: str, player_data: dict):
+    data = _read(tournament_id)
+    if data:
+        if "players" not in data:
+            data["players"] = []
+        data["players"].append(player_data)
+        _write(tournament_id, data)
+
+def delete_player(tournament_id: str, player_id: str) -> bool:
+    data = _read(tournament_id)
+    if data and "players" in data:
+        original_len = len(data["players"])
+        data["players"] = [p for p in data["players"] if p["id"] != player_id]
+        if len(data["players"]) < original_len:
             _write(tournament_id, data)
             return True
     return False
@@ -214,4 +240,20 @@ def update_scorecard(tournament_id: str, scorecard_id: str, update_data: dict) -
                 data["scorecards"][i].update(update_data)
                 _write(tournament_id, data)
                 return data["scorecards"][i]
+    return None
+
+# ── Auction ────────────────────────────────────────────────────
+
+def get_auction(tournament_id: str) -> dict | None:
+    data = _read(tournament_id)
+    if data:
+        return data.get("auction", None)
+    return None
+
+def update_auction(tournament_id: str, auction_data: dict | None) -> dict | None:
+    data = _read(tournament_id)
+    if data:
+        data["auction"] = auction_data
+        _write(tournament_id, data)
+        return auction_data
     return None

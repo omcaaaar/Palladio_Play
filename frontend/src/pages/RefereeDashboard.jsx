@@ -276,6 +276,7 @@ export default function RefereeDashboard() {
   async function handleScore(team, delta) {
     if (!activeScorecard) return;
     if (delta > 0 && isCurrentSetFinished()) return;
+    if (delta < 0 && activeScorecard.sets[activeScorecard.current_set][`${team}_score`] <= 0) return;
 
     try {
       const res = await api.updateScore(selectedTournament.id, activeScorecard.id, {
@@ -669,7 +670,7 @@ export default function RefereeDashboard() {
                 {[activeScorecard.team1_player1, activeScorecard.team1_player2].filter(Boolean).join(' & ')}
               </p>
               <div className="score-control" style={{ justifyContent: 'center', gap: '1.5rem' }}>
-                <button className="score-btn decrement" onClick={() => handleScore('team1', -1)}>
+                <button className="score-btn decrement" onClick={() => handleScore('team1', -1)} disabled={activeScorecard.sets[activeScorecard.current_set].team1_score <= 0}>
                   <Minus size={24} />
                 </button>
                 <div className="score-display">{activeScorecard.sets[activeScorecard.current_set].team1_score}</div>
@@ -686,7 +687,7 @@ export default function RefereeDashboard() {
                 {[activeScorecard.team2_player1, activeScorecard.team2_player2].filter(Boolean).join(' & ')}
               </p>
               <div className="score-control" style={{ justifyContent: 'center', gap: '1.5rem' }}>
-                <button className="score-btn decrement" onClick={() => handleScore('team2', -1)}>
+                <button className="score-btn decrement" onClick={() => handleScore('team2', -1)} disabled={activeScorecard.sets[activeScorecard.current_set].team2_score <= 0}>
                   <Minus size={24} />
                 </button>
                 <div className="score-display">{activeScorecard.sets[activeScorecard.current_set].team2_score}</div>

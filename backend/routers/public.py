@@ -33,3 +33,10 @@ def get_scorecards(tid: str):
 @router.get("/tournaments/{tid}/fixtures/{fixture_id}/scorecards")
 def get_scorecards_for_fixture(tid: str, fixture_id: str):
     return database.get_scorecards_for_fixture(tid, fixture_id)
+
+@router.get("/tournaments/{tid}/auction")
+def get_public_auction(tid: str):
+    auction = database.get_auction(tid)
+    if auction and auction.get("status") == "live":
+        return auction
+    return {"status": "idle"}

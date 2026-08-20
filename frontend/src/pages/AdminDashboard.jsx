@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Settings, Plus, Users, Calendar, Trash2, ChevronRight, Trophy, X, ListChecks, Edit } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings, Plus, Users, Calendar, Trash2, ChevronRight, Trophy, X, ListChecks, Edit, Gavel, Check, ZoomIn, ZoomOut } from 'lucide-react';
 import * as api from '../api/client';
 
 export default function AdminDashboard() {
@@ -11,6 +11,20 @@ export default function AdminDashboard() {
   const [teams, setTeams] = useState([]);
   const [events, setEvents] = useState([]);
   const [fixtures, setFixtures] = useState([]);
+  const [tournamentPlayers, setTournamentPlayers] = useState([]);
+  
+  // Player tab states
+  const [newPlayerName, setNewPlayerName] = useState('');
+  const [newPlayerGender, setNewPlayerGender] = useState('Male');
+
+  // Auction state
+  const [auction, setAuction] = useState(null);
+  const [auctionMaxPlayers, setAuctionMaxPlayers] = useState(8);
+  const [auctionTotalPoints, setAuctionTotalPoints] = useState(100);
+  const [auctionStartingBid, setAuctionStartingBid] = useState(10);
+  // Inline add player state per team: { [teamId]: { name, gender, points } }
+  const [auctionPlayerForms, setAuctionPlayerForms] = useState({});
+  const [isEditingAuctionParams, setIsEditingAuctionParams] = useState(false);
 
   // Modal states
   const [showTournamentForm, setShowTournamentForm] = useState(false);
@@ -79,14 +93,24 @@ export default function AdminDashboard() {
 
   async function loadTournamentData(tid) {
     try {
-      const [t, e, f] = await Promise.all([
+      const [t, e, f, a, p] = await Promise.all([
         api.getTeams(tid),
         api.getEvents(tid),
         api.getFixtures(tid),
+        api.getAuction(tid),
+        api.getPlayers(tid),
       ]);
       setTeams(t);
       setEvents(e);
       setFixtures(f);
+      setAuction(a);
+      setTournamentPlayers(p);
+      // Pre-fill auction config from saved state
+      if (a && a.status !== 'idle') {
+        setAuctionMaxPlayers(a.max_players || 8);
+        setAuctionTotalPoints(a.total_points || 100);
+        setAuctionStartingBid(a.starting_bid || 10);
+      }
     } catch (e) { setError(e.message); }
   }
 
@@ -144,7 +168,7 @@ export default function AdminDashboard() {
     try {
       const existingEvents = events.filter(ev => ev.name.startsWith(eventName));
       let finalName = eventName;
-      
+
       if (existingEvents.length === 1 && existingEvents[0].name === eventName) {
         // Rename the first one
         await api.updateEvent(selectedTournament.id, existingEvents[0].id, {
@@ -164,8 +188,8 @@ export default function AdminDashboard() {
       // Refetch events to get all updated names
       const updatedEvents = await api.getEvents(selectedTournament.id);
       setEvents(updatedEvents);
-      
-      setEventName(EVENT_TYPES[0]); 
+
+      setEventName(EVENT_TYPES[0]);
       setEventPoints(2);
       setShowEventForm(false);
     } catch (err) { setError(err.message); }
@@ -227,14 +251,18 @@ export default function AdminDashboard() {
     e.preventDefault();
     const team = teams.find(t => t.id === showPlayerForm);
     if (!team) return;
+    const existingPlayer = tournamentPlayers.find(p => p.name === playerName);
+    if (!existingPlayer) {
+       setError('Please select a valid player from the registered players list.');
+       return;
+    }
     try {
-      const updatedPlayers = [...(team.players_list || []), { name: playerName, gender: playerGender }];
+      const updatedPlayers = [...(team.players_list || []), { name: existingPlayer.name, gender: existingPlayer.gender }];
       const res = await api.updateTeam(selectedTournament.id, team.id, {
         players_list: updatedPlayers,
       });
       setTeams(teams.map(t => t.id === team.id ? res.team : t));
       setPlayerName('');
-      setPlayerGender('Male');
     } catch (err) { setError(err.message); }
   }
 
@@ -269,6 +297,46 @@ export default function AdminDashboard() {
     } catch (err) { setError(err.message); }
   }
 
+  function isPlayerAssigned(name) {
+    for (const t of teams) {
+      if (t.players_list && t.players_list.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+        return true;
+      }
+    }
+    if (auction && auction.status === 'live' && auction.team_players) {
+        for (const tId in auction.team_players) {
+           if (auction.team_players[tId].some(p => p.name.toLowerCase() === name.toLowerCase())) return true;
+        }
+    }
+    return false;
+  }
+
+  async function handleGlobalAddPlayer(e) {
+    e.preventDefault();
+    if (!newPlayerName.trim()) return;
+    if (tournamentPlayers.some(p => p.name.toLowerCase() === newPlayerName.trim().toLowerCase())) {
+       setError('A player with this name already exists.');
+       return;
+    }
+    try {
+      const res = await api.addPlayer(selectedTournament.id, { name: newPlayerName.trim(), gender: newPlayerGender });
+      setTournamentPlayers([...tournamentPlayers, res.player]);
+      setNewPlayerName('');
+    } catch (err) { setError(err.message); }
+  }
+
+  async function handleGlobalDeletePlayer(playerId) {
+      const p = tournamentPlayers.find(x => x.id === playerId);
+      if (p && isPlayerAssigned(p.name)) {
+         setError('Cannot delete player as they are already assigned to a team or auction.');
+         return;
+      }
+      try {
+          await api.deletePlayer(selectedTournament.id, playerId);
+          setTournamentPlayers(tournamentPlayers.filter(x => x.id !== playerId));
+      } catch (err) { setError(err.message); }
+  }
+
   async function handleDeleteEvent(eventId) {
     const eventObj = events.find(e => e.id === eventId);
     const eventNameStr = eventObj ? eventObj.name : 'this event';
@@ -277,11 +345,11 @@ export default function AdminDashboard() {
     }
     try {
       await api.deleteEvent(selectedTournament.id, eventId);
-      
+
       const baseType = EVENT_TYPES.find(t => eventNameStr.startsWith(t));
       if (baseType) {
         const remainingEvents = events.filter(e => e.id !== eventId && e.name.startsWith(baseType));
-        
+
         if (remainingEvents.length === 1) {
           await api.updateEvent(selectedTournament.id, remainingEvents[0].id, {
             name: baseType,
@@ -300,7 +368,7 @@ export default function AdminDashboard() {
           }
         }
       }
-      
+
       const updatedEvents = await api.getEvents(selectedTournament.id);
       setEvents(updatedEvents);
     } catch (err) { setError(err.message); }
@@ -320,6 +388,87 @@ export default function AdminDashboard() {
 
   function getTeamName(id) {
     return teams.find(t => t.id === id)?.name || id;
+  }
+
+  // ── Auction handlers ──────────────────────────────────────
+
+  async function handleStartAuction() {
+    if (teams.length === 0) {
+      setError('Add teams before starting the auction.');
+      return;
+    }
+    try {
+      const res = await api.startAuction(selectedTournament.id, {
+        max_players: auctionMaxPlayers,
+        total_points: auctionTotalPoints,
+        starting_bid: auctionStartingBid,
+      });
+      setAuction(res.auction);
+    } catch (err) { setError(err.message); }
+  }
+
+  async function handleEndAuction() {
+    if (!window.confirm('Are you sure you want to end the auction? Players will be synced to their respective teams.')) return;
+    try {
+      const res = await api.endAuction(selectedTournament.id);
+      setAuction(res.auction);
+      // Reload teams to reflect synced players
+      const updatedTeams = await api.getTeams(selectedTournament.id);
+      setTeams(updatedTeams);
+    } catch (err) { setError(err.message); }
+  }
+
+  async function handleAuctionAddPlayer(teamId) {
+    const form = auctionPlayerForms[teamId];
+    if (!form || !form.name || !form.points) return;
+
+    const existingPlayer = tournamentPlayers.find(p => p.name === form.name);
+    if (!existingPlayer) {
+       setError('Please select a valid player from the registered players list.');
+       return;
+    }
+
+    const points = parseInt(form.points);
+    if (isNaN(points)) {
+      setError('Points must be a valid number.');
+      return;
+    }
+
+    const players = auction.team_players[teamId] || [];
+    const consumed = players.reduce((sum, p) => sum + (p.points || 0), 0);
+    const pointsLeft = auction.total_points - consumed;
+    const playersLeft = auction.max_players - players.length;
+    const maxBid = playersLeft > 0 ? pointsLeft - ((playersLeft - 1) * auction.starting_bid) : 0;
+
+    if (points < auction.starting_bid) {
+      setError(`Bid must be at least the starting bid (${auction.starting_bid}).`);
+      return;
+    }
+    if (points > maxBid) {
+      setError(`Bid cannot exceed the maximum allowed bid (${maxBid}).`);
+      return;
+    }
+
+    const currentAuction = { ...auction };
+    const teamPlayers = [...players];
+    teamPlayers.push({ name: existingPlayer.name, gender: existingPlayer.gender, points });
+    currentAuction.team_players = { ...currentAuction.team_players, [teamId]: teamPlayers };
+    try {
+      const res = await api.updateAuction(selectedTournament.id, currentAuction);
+      setAuction(res.auction);
+      setAuctionPlayerForms(prev => ({ ...prev, [teamId]: { name: '', gender: 'Male', points: '' } }));
+    } catch (err) { setError(err.message); }
+  }
+
+  async function handleAuctionRemovePlayer(teamId, playerIdx) {
+    const currentAuction = { ...auction };
+    const teamPlayers = [...(currentAuction.team_players[teamId] || [])];
+    teamPlayers.splice(playerIdx, 1);
+    currentAuction.team_players = { ...currentAuction.team_players, [teamId]: teamPlayers };
+    try {
+      const res = await api.updateAuction(selectedTournament.id, currentAuction);
+      setAuction(res.auction);
+    } catch (err) { setError(err.message); }
   }
 
   return (
@@ -443,8 +592,12 @@ export default function AdminDashboard() {
               <input className="form-input" placeholder="e.g. John, Jane" value={teamOwners} onChange={e => setTeamOwners(e.target.value)} />
             </div>
             <div className="form-group">
-              <label className="form-label">Group</label>
-              <input className="form-input" placeholder="e.g. A or B (leave blank if no groups)" value={teamGroup} onChange={e => setTeamGroup(e.target.value)} />
+              <label className="form-label">Group (Optional)</label>
+              <select className="form-input" value={teamGroup} onChange={e => setTeamGroup(e.target.value)}>
+                <option value="">No Group</option>
+                <option value="A">Group A</option>
+                <option value="B">Group B</option>
+              </select>
             </div>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Add Team</button>
           </form>
@@ -583,8 +736,10 @@ export default function AdminDashboard() {
           <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
             {[
               { key: 'teams', icon: <Users size={16} />, label: 'Teams & Players' },
+              { key: 'players', icon: <Users size={16} />, label: 'Players' },
               { key: 'events', icon: <ListChecks size={16} />, label: 'Event Types' },
               { key: 'fixtures', icon: <Calendar size={16} />, label: 'Match Fixtures' },
+              { key: 'auction', icon: <Gavel size={16} />, label: 'Auction' },
             ].map(tab => (
               <button
                 key={tab.key}
@@ -630,8 +785,6 @@ export default function AdminDashboard() {
                             <option value="">No Group</option>
                             <option value="A">Group A</option>
                             <option value="B">Group B</option>
-                            <option value="C">Group C</option>
-                            <option value="D">Group D</option>
                           </select>
                           <button onClick={() => handleDeleteTeam(team.id)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '4px' }}>
                             <Trash2 size={16} />
@@ -658,22 +811,71 @@ export default function AdminDashboard() {
                         )}
                         {showPlayerForm === team.id ? (
                           <form onSubmit={handleAddPlayer} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <input className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem', flex: 2, minWidth: '120px' }} placeholder="Player name" value={playerName} onChange={e => setPlayerName(e.target.value)} required />
-                            <select className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem', flex: 1, minWidth: '80px' }} value={playerGender} onChange={e => setPlayerGender(e.target.value)} required>
-                              <option value="Male">Male</option>
-                              <option value="Female">Female</option>
-                            </select>
+                            <input className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem', flex: 2, minWidth: '120px' }} placeholder="Select player..." list={`players-list-${team.id}`} value={playerName} onChange={e => setPlayerName(e.target.value)} required />
+                            <datalist id={`players-list-${team.id}`}>
+                               {tournamentPlayers.filter(p => !isPlayerAssigned(p.name)).map(p => (
+                                  <option key={p.id} value={p.name} />
+                               ))}
+                            </datalist>
                             <button type="submit" className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>Add</button>
-                            <button type="button" className="btn btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={() => { setShowPlayerForm(null); setPlayerName(''); setPlayerGender('Male'); }}>Cancel</button>
+                            <button type="button" className="btn btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={() => { setShowPlayerForm(null); setPlayerName(''); }}>Cancel</button>
                           </form>
                         ) : (
-                          <button onClick={() => { setShowPlayerForm(team.id); setPlayerGender('Male'); }} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '0.8rem', padding: 0 }}>
+                          <button onClick={() => { setShowPlayerForm(team.id); }} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '0.8rem', padding: 0 }}>
                             + Add Player
                           </button>
                         )}
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ──── Players Tab ──── */}
+          {activeTab === 'players' && (
+            <div className="glass-card animate-fade-in">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h3 style={{ margin: 0 }}>Registered Players</h3>
+              </div>
+              <form onSubmit={handleGlobalAddPlayer} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+                <input className="form-input" placeholder="Player name" value={newPlayerName} onChange={e => setNewPlayerName(e.target.value)} required style={{ flex: 1, minWidth: '200px' }} />
+                <select className="form-input" value={newPlayerGender} onChange={e => setNewPlayerGender(e.target.value)} required style={{ width: '120px' }}>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+                <button type="submit" className="btn btn-primary">
+                  <Plus size={16} /> Register Player
+                </button>
+              </form>
+              
+              {tournamentPlayers.length === 0 ? (
+                <p style={{ color: 'var(--text-secondary)' }}>No players registered yet. Add players using the form above.</p>
+              ) : (
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Gender</th>
+                        <th style={{ textAlign: 'right' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tournamentPlayers.map(p => (
+                        <tr key={p.id}>
+                          <td>{p.name}</td>
+                          <td>{p.gender}</td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button onClick={() => handleGlobalDeletePlayer(p.id)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '0.25rem' }}>
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -803,6 +1005,138 @@ export default function AdminDashboard() {
               )}
             </div>
           )}
+
+          {/* ──── Auction Tab ──── */}
+          {activeTab === 'auction' && (
+            <div className="glass-card animate-fade-in">
+              {(!auction || auction.status === 'idle') && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h3 style={{ margin: 0 }}>Auction Setup</h3>
+                  </div>
+                  <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Configure the auction parameters and start the live auction. Make sure teams are added first.</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div className="form-group">
+                      <label className="form-label">Max Players per Team</label>
+                      <input type="text" className="form-input" value={auctionMaxPlayers} onChange={e => { const v = e.target.value.replace(/[^0-9]/g, ''); setAuctionMaxPlayers(v ? parseInt(v) : ''); }} onBlur={() => setAuctionMaxPlayers(auctionMaxPlayers || 1)} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Total Points per Team</label>
+                      <input type="text" className="form-input" value={auctionTotalPoints} onChange={e => { const v = e.target.value.replace(/[^0-9]/g, ''); setAuctionTotalPoints(v ? parseInt(v) : ''); }} onBlur={() => setAuctionTotalPoints(auctionTotalPoints || 1)} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Starting Bid</label>
+                      <input type="text" className="form-input" value={auctionStartingBid} onChange={e => { const v = e.target.value.replace(/[^0-9]/g, ''); setAuctionStartingBid(v ? parseInt(v) : ''); }} onBlur={() => setAuctionStartingBid(auctionStartingBid || 0)} />
+                    </div>
+                  </div>
+                  <button className="btn btn-primary" onClick={handleStartAuction} disabled={teams.length === 0} style={{ fontSize: '1rem', padding: '0.75rem 2rem' }}>
+                    <Gavel size={18} /> Start Auction
+                  </button>
+                  {teams.length === 0 && <p style={{ color: 'var(--accent-danger)', marginTop: '0.75rem', fontSize: '0.85rem' }}>Add teams in the "Teams & Players" tab before starting the auction.</p>}
+                </>
+              )}
+
+              {auction && auction.status === 'live' && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <h3 style={{ margin: 0 }}>Live Auction</h3>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '0.3rem 0.75rem', borderRadius: 'var(--radius-full)', fontSize: '0.8rem', fontWeight: 600 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1.5s infinite' }} /> LIVE
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)', alignItems: 'center' }}>
+                      {isEditingAuctionParams ? (
+                        <>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>Max Players:
+                            <input type="text" className="form-input" style={{ width: '60px', padding: '0.25rem 0.5rem', fontSize: '0.85rem' }}
+                              value={auction.max_players}
+                              onChange={e => setAuction({ ...auction, max_players: e.target.value.replace(/[^0-9]/g, '') })}
+                              onBlur={() => api.updateAuction(selectedTournament.id, { ...auction, max_players: parseInt(auction.max_players) || 1 }).catch(err => setError(err.message))}
+                            />
+                          </label>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>Total Points:
+                            <input type="text" className="form-input" style={{ width: '80px', padding: '0.25rem 0.5rem', fontSize: '0.85rem' }}
+                              value={auction.total_points}
+                              onChange={e => setAuction({ ...auction, total_points: e.target.value.replace(/[^0-9]/g, '') })}
+                              onBlur={() => api.updateAuction(selectedTournament.id, { ...auction, total_points: parseInt(auction.total_points) || 1 }).catch(err => setError(err.message))}
+                            />
+                          </label>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>Starting Bid:
+                            <input type="text" className="form-input" style={{ width: '70px', padding: '0.25rem 0.5rem', fontSize: '0.85rem' }}
+                              value={auction.starting_bid}
+                              onChange={e => setAuction({ ...auction, starting_bid: e.target.value.replace(/[^0-9]/g, '') })}
+                              onBlur={() => api.updateAuction(selectedTournament.id, { ...auction, starting_bid: parseInt(auction.starting_bid) || 0 }).catch(err => setError(err.message))}
+                            />
+                          </label>
+                          <button onClick={() => setIsEditingAuctionParams(false)} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '0.2rem', display: 'flex' }} title="Done editing">
+                            <Check size={16} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span>Max Players: <b style={{ color: 'var(--text-primary)' }}>{auction.max_players}</b></span>
+                          <span>Total Points: <b style={{ color: 'var(--text-primary)' }}>{auction.total_points}</b></span>
+                          <span>Starting Bid: <b style={{ color: 'var(--text-primary)' }}>{auction.starting_bid}</b></span>
+                          <button onClick={() => setIsEditingAuctionParams(true)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.2rem', display: 'flex' }} title="Edit parameters">
+                            <Edit size={14} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <AuctionTable
+                    auction={auction}
+                    teams={teams}
+                    editable={true}
+                    auctionPlayerForms={auctionPlayerForms}
+                    setAuctionPlayerForms={setAuctionPlayerForms}
+                    onAddPlayer={handleAuctionAddPlayer}
+                    onRemovePlayer={handleAuctionRemovePlayer}
+                    availablePlayers={tournamentPlayers.filter(p => !isPlayerAssigned(p.name))}
+                  />
+
+                  <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                    <button className="btn" onClick={handleEndAuction} style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', fontSize: '1rem', padding: '0.75rem 2rem' }}>
+                      End Auction
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {auction && auction.status === 'ended' && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <h3 style={{ margin: 0 }}>Auction Completed</h3>
+                      <span className="badge badge-completed">Ended</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      <span>Max Players: <b style={{ color: 'var(--text-primary)' }}>{auction.max_players}</b></span>
+                      <span>Total Points: <b style={{ color: 'var(--text-primary)' }}>{auction.total_points}</b></span>
+                      <span>Starting Bid: <b style={{ color: 'var(--text-primary)' }}>{auction.starting_bid}</b></span>
+                    </div>
+                  </div>
+                  <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>Players have been synced to their teams. View them in the "Teams & Players" tab.</p>
+
+                  <AuctionTable auction={auction} teams={teams} editable={false} availablePlayers={tournamentPlayers.filter(p => !isPlayerAssigned(p.name))} />
+
+                  <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                    <button className="btn btn-primary" onClick={async () => {
+                      const resumed = { ...auction, status: 'live' };
+                      try {
+                        const res = await api.updateAuction(selectedTournament.id, resumed);
+                        setAuction(res.auction);
+                      } catch (err) { setError(err.message); }
+                    }} style={{ fontSize: '0.9rem', padding: '0.6rem 1.5rem' }}>
+                      Resume Auction
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </>
       )}
 
@@ -840,6 +1174,226 @@ function Modal({ title, onClose, children }) {
         </div>
         {children}
       </div>
+    </div>
+  );
+}
+
+function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, setAuctionPlayerForms, onAddPlayer, onRemovePlayer, availablePlayers = [] }) {
+  const [zoomLevel, setZoomLevel] = React.useState(1);
+  if (!auction || !auction.team_players) return null;
+
+  const { max_players, total_points, starting_bid, team_players } = auction;
+
+  // Filter teams to only those in the auction
+  const auctionTeams = teams.filter(t => team_players[t.id] !== undefined);
+
+  const chunkedTeams = [];
+  for (let i = 0; i < auctionTeams.length; i += 5) {
+    chunkedTeams.push(auctionTeams.slice(i, i + 5));
+  }
+
+  const summaryRowStyle = { fontWeight: 700, fontSize: '0.85rem', padding: '0.6rem 0.75rem' };
+  const summaryLabelStyle = { ...summaryRowStyle, color: 'var(--text-secondary)', textAlign: 'left' };
+  const summaryValueStyle = { ...summaryRowStyle, textAlign: 'center' };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '-1rem' }}>
+        <button onClick={() => setZoomLevel(z => Math.max(0.1, Number((z - 0.1).toFixed(1))))} className="btn btn-outline" style={{ padding: '0.5rem' }} title="Zoom Out"><ZoomOut size={16} /></button>
+        <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)', minWidth: '40px', justifyContent: 'center' }}>{Math.round(zoomLevel * 100)}%</span>
+        <button onClick={() => setZoomLevel(z => Math.min(2.0, Number((z + 0.1).toFixed(1))))} className="btn btn-outline" style={{ padding: '0.5rem' }} title="Zoom In"><ZoomIn size={16} /></button>
+      </div>
+      {chunkedTeams.map((chunk, chunkIdx) => (
+        <div key={chunkIdx} style={{ overflowX: 'auto', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-lg)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', zoom: zoomLevel }}>
+            <thead>
+              <tr>
+                {chunk.map((team, idx) => (
+                  <th key={team.id} colSpan={editable ? 5 : 4} style={{
+                    textAlign: 'center', padding: '0.75rem', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)',
+                    borderBottom: '2px solid var(--glass-border)', fontSize: '0.95rem', fontWeight: 700,
+                    borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none'
+                  }}>
+                    {team.name}
+                    {team.owners && <span style={{ fontWeight: 400, fontSize: '0.6rem', fontStyle: 'italic', color: 'var(--text-secondary)', display: 'block' }}>Owner: {team.owners}</span>}
+                  </th>
+                ))}
+              </tr>
+              <tr>
+                {chunk.map((team, idx) => (
+                  <React.Fragment key={`sub-${team.id}`}>
+                    <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', width: '40px', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>No.</th>
+                    <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'left' }}>Player</th>
+                    <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center' }}>Gender</th>
+                    <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center' }}>Pts</th>
+                    {editable && <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', width: '30px' }}></th>}
+                  </React.Fragment>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {/* Player rows */}
+              {Array.from({ length: max_players }).map((_, rowIdx) => (
+                <tr key={rowIdx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  {chunk.map((team, idx) => {
+                    const players = team_players[team.id] || [];
+                    const player = players[rowIdx];
+                    return (
+                      <React.Fragment key={`${team.id}-${rowIdx}`}>
+                        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>{rowIdx + 1}</td>
+                        <td style={{ padding: '0.5rem 0.75rem', fontWeight: player ? 500 : 400, color: player ? 'var(--text-primary)' : 'rgba(255,255,255,0.15)' }}>
+                          {player ? player.name : '—'}
+                        </td>
+                        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: player ? 'var(--text-secondary)' : 'rgba(255,255,255,0.1)', fontSize: '0.8rem' }}>
+                          {player ? (player.gender === 'Male' ? 'M' : 'F') : '—'}
+                        </td>
+                        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: player ? 600 : 400, color: player ? 'var(--accent-primary)' : 'rgba(255,255,255,0.1)' }}>
+                          {player ? player.points : '—'}
+                        </td>
+                        {editable && (
+                          <td style={{ padding: '0.25rem', textAlign: 'center' }}>
+                            {player && (
+                              <button onClick={() => onRemovePlayer(team.id, rowIdx)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '2px', lineHeight: 1 }}>
+                                <X size={14} />
+                              </button>
+                            )}
+                          </td>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tr>
+              ))}
+
+              {/* Add player row (editable only) */}
+              {editable && (
+                <tr style={{ borderTop: '2px solid var(--glass-border)', background: 'rgba(59, 130, 246, 0.03)' }}>
+                  {chunk.map((team, idx) => {
+                    const players = team_players[team.id] || [];
+                    const isFull = players.length >= max_players;
+                    const form = auctionPlayerForms?.[team.id] || { name: '', gender: 'Male', points: '' };
+                    return (
+                      <React.Fragment key={`add-${team.id}`}>
+                        <td style={{ padding: '0.4rem 0.25rem', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}></td>
+                        <td colSpan={2} style={{ padding: '0.4rem 0.25rem' }}>
+                          <input
+                            className="form-input"
+                            style={{ padding: '0.3rem 0.5rem', fontSize: '0.8rem', width: '100%', minWidth: '80px' }}
+                            placeholder={isFull ? 'Full' : 'Select'}
+                            disabled={isFull}
+                            list={`auction-players-${team.id}`}
+                            value={form.name}
+                            onChange={e => {
+                               const val = e.target.value;
+                               const selected = availablePlayers.find(p => p.name === val);
+                               // Auto-fill gender if found
+                               if (selected) {
+                                  setAuctionPlayerForms(prev => ({ ...prev, [team.id]: { ...form, name: val, gender: selected.gender } }));
+                               } else {
+                                  setAuctionPlayerForms(prev => ({ ...prev, [team.id]: { ...form, name: val } }));
+                               }
+                            }}
+                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onAddPlayer(team.id); } }}
+                          />
+                          <datalist id={`auction-players-${team.id}`}>
+                             {availablePlayers.map(p => <option key={p.id} value={p.name} />)}
+                          </datalist>
+                        </td>
+                        <td style={{ padding: '0.4rem 0.25rem' }}>
+                          <input
+                            type="text"
+                            className="form-input"
+                            style={{ padding: '0.3rem 0.5rem', fontSize: '0.8rem', width: '100%', minWidth: '50px' }}
+                            placeholder="Pts"
+                            disabled={isFull}
+                            value={form.points}
+                            onChange={e => {
+                              const val = e.target.value.replace(/[^0-9]/g, '');
+                              setAuctionPlayerForms(prev => ({ ...prev, [team.id]: { ...form, points: val } }))
+                            }}
+                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onAddPlayer(team.id); } }}
+                          />
+                        </td>
+                        <td style={{ padding: '0.4rem 0.25rem', textAlign: 'center' }}>
+                          <button
+                            className="btn btn-primary"
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', minWidth: 'unset' }}
+                            disabled={isFull || !form.name || !form.points}
+                            onClick={() => onAddPlayer(team.id)}
+                          >+</button>
+                        </td>
+                      </React.Fragment>
+                    );
+                  })}
+                </tr>
+              )}
+
+              {/* Separator */}
+              <tr><td colSpan={chunk.length * (editable ? 5 : 4)} style={{ padding: 0, height: '4px', background: 'var(--glass-border)' }}></td></tr>
+
+              {/* Points Consumed */}
+              <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
+                {chunk.map((team, idx) => {
+                  const players = team_players[team.id] || [];
+                  const consumed = players.reduce((sum, p) => sum + (p.points || 0), 0);
+                  return (
+                    <React.Fragment key={`consumed-${team.id}`}>
+                      <td colSpan={editable ? 4 : 3} style={{ ...summaryLabelStyle, borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>Points Consumed</td>
+                      <td style={{ ...summaryValueStyle, color: 'var(--accent-primary)' }}>{consumed}</td>
+                    </React.Fragment>
+                  );
+                })}
+              </tr>
+
+              {/* Points Left */}
+              <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
+                {chunk.map((team, idx) => {
+                  const players = team_players[team.id] || [];
+                  const consumed = players.reduce((sum, p) => sum + (p.points || 0), 0);
+                  const left = total_points - consumed;
+                  return (
+                    <React.Fragment key={`left-${team.id}`}>
+                      <td colSpan={editable ? 4 : 3} style={{ ...summaryLabelStyle, borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>Points Left</td>
+                      <td style={{ ...summaryValueStyle, color: left > 0 ? 'var(--accent-secondary)' : 'var(--accent-danger)' }}>{left}</td>
+                    </React.Fragment>
+                  );
+                })}
+              </tr>
+
+              {/* Players Left */}
+              <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
+                {chunk.map((team, idx) => {
+                  const players = team_players[team.id] || [];
+                  const playersLeft = max_players - players.length;
+                  return (
+                    <React.Fragment key={`pleft-${team.id}`}>
+                      <td colSpan={editable ? 4 : 3} style={{ ...summaryLabelStyle, borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>Players Left</td>
+                      <td style={{ ...summaryValueStyle, color: playersLeft > 0 ? 'var(--text-primary)' : 'var(--accent-secondary)' }}>{playersLeft}</td>
+                    </React.Fragment>
+                  );
+                })}
+              </tr>
+
+              {/* Max Bid */}
+              <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
+                {chunk.map((team, idx) => {
+                  const players = team_players[team.id] || [];
+                  const consumed = players.reduce((sum, p) => sum + (p.points || 0), 0);
+                  const pointsLeft = total_points - consumed;
+                  const playersLeft = max_players - players.length;
+                  const maxBid = playersLeft > 0 ? pointsLeft - ((playersLeft - 1) * starting_bid) : 0;
+                  return (
+                    <React.Fragment key={`maxbid-${team.id}`}>
+                      <td colSpan={editable ? 4 : 3} style={{ ...summaryLabelStyle, color: 'var(--accent-primary)', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>Max Bid</td>
+                      <td style={{ ...summaryValueStyle, color: maxBid > 0 ? '#f59e0b' : 'var(--accent-danger)', fontSize: '1rem' }}>{maxBid > 0 ? maxBid : 0}</td>
+                    </React.Fragment>
+                  );
+                })}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      ))}
     </div>
   );
 }

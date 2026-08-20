@@ -39,7 +39,6 @@ export default function AdminDashboard() {
   // Edit Event Form states
   const [editingEvent, setEditingEvent] = useState(null);
   const [editEventName, setEditEventName] = useState('');
-  const [editEventPoints, setEditEventPoints] = useState(2);
 
   // Form states
   const [tournamentName, setTournamentName] = useState('');
@@ -56,7 +55,6 @@ export default function AdminDashboard() {
     "Mixed Doubles"
   ];
   const [eventName, setEventName] = useState(EVENT_TYPES[0]);
-  const [eventPoints, setEventPoints] = useState(2);
   const [fixtureTeam1, setFixtureTeam1] = useState('');
   const [fixtureTeam2, setFixtureTeam2] = useState('');
   const [fixtureType, setFixtureType] = useState('league');
@@ -172,8 +170,7 @@ export default function AdminDashboard() {
       if (existingEvents.length === 1 && existingEvents[0].name === eventName) {
         // Rename the first one
         await api.updateEvent(selectedTournament.id, existingEvents[0].id, {
-          name: `${eventName} 1`,
-          points: existingEvents[0].points
+          name: `${eventName} 1`
         });
         finalName = `${eventName} 2`;
       } else if (existingEvents.length > 0) {
@@ -181,8 +178,7 @@ export default function AdminDashboard() {
       }
 
       await api.addEvent(selectedTournament.id, {
-        name: finalName,
-        points: eventPoints,
+        name: finalName
       });
 
       // Refetch events to get all updated names
@@ -190,7 +186,6 @@ export default function AdminDashboard() {
       setEvents(updatedEvents);
 
       setEventName(EVENT_TYPES[0]);
-      setEventPoints(2);
       setShowEventForm(false);
     } catch (err) { setError(err.message); }
   }
@@ -198,11 +193,39 @@ export default function AdminDashboard() {
   async function handleEditEvent(e) {
     e.preventDefault();
     try {
-      const res = await api.updateEvent(selectedTournament.id, editingEvent.id, {
-        name: editEventName,
-        points: editEventPoints,
+      const existingEvents = events.filter(ev => ev.id !== editingEvent.id && ev.name.startsWith(editEventName));
+      let finalName = editEventName;
+
+      if (existingEvents.length === 1 && existingEvents[0].name === editEventName) {
+        await api.updateEvent(selectedTournament.id, existingEvents[0].id, {
+          name: `${editEventName} 1`,
+        });
+        finalName = `${editEventName} 2`;
+      } else if (existingEvents.length > 0) {
+        finalName = `${editEventName} ${existingEvents.length + 1}`;
+      }
+
+      await api.updateEvent(selectedTournament.id, editingEvent.id, {
+        name: finalName,
       });
-      setEvents(events.map(ev => ev.id === editingEvent.id ? res.event : ev));
+
+      const oldBaseType = EVENT_TYPES.find(t => editingEvent.name.startsWith(t));
+      if (oldBaseType && oldBaseType !== editEventName) {
+        const remainingOld = events.filter(e => e.id !== editingEvent.id && e.name.startsWith(oldBaseType));
+        if (remainingOld.length === 1) {
+          await api.updateEvent(selectedTournament.id, remainingOld[0].id, { name: oldBaseType });
+        } else if (remainingOld.length > 1) {
+          for (let i = 0; i < remainingOld.length; i++) {
+            const newOldName = `${oldBaseType} ${i + 1}`;
+            if (remainingOld[i].name !== newOldName) {
+              await api.updateEvent(selectedTournament.id, remainingOld[i].id, { name: newOldName });
+            }
+          }
+        }
+      }
+
+      const updatedEvents = await api.getEvents(selectedTournament.id);
+      setEvents(updatedEvents);
       setEditingEvent(null);
       setShowEditEventForm(false);
     } catch (err) { setError(err.message); }
@@ -352,8 +375,7 @@ export default function AdminDashboard() {
 
         if (remainingEvents.length === 1) {
           await api.updateEvent(selectedTournament.id, remainingEvents[0].id, {
-            name: baseType,
-            points: remainingEvents[0].points
+            name: baseType
           });
         } else if (remainingEvents.length > 1) {
           for (let i = 0; i < remainingEvents.length; i++) {
@@ -361,8 +383,7 @@ export default function AdminDashboard() {
             const newName = `${baseType} ${i + 1}`;
             if (ev.name !== newName) {
               await api.updateEvent(selectedTournament.id, ev.id, {
-                name: newName,
-                points: ev.points
+                name: newName
               });
             }
           }
@@ -614,13 +635,6 @@ export default function AdminDashboard() {
                 {EVENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
-            <div className="form-group">
-              <label className="form-label">Points</label>
-              <select className="form-input" value={eventPoints} onChange={e => setEventPoints(parseInt(e.target.value))} required>
-                <option value={2}>2</option>
-                <option value={3}>3</option>
-              </select>
-            </div>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Add Event</button>
           </form>
         </Modal>
@@ -632,13 +646,8 @@ export default function AdminDashboard() {
           <form onSubmit={handleEditEvent}>
             <div className="form-group">
               <label className="form-label">Event Name</label>
-              <input className="form-input" value={editEventName} disabled style={{ backgroundColor: 'var(--bg-secondary)', cursor: 'not-allowed', color: 'var(--text-secondary)' }} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Points</label>
-              <select className="form-input" value={editEventPoints} onChange={e => setEditEventPoints(parseInt(e.target.value))} required>
-                <option value={2}>2</option>
-                <option value={3}>3</option>
+              <select className="form-input" value={editEventName} onChange={e => setEditEventName(e.target.value)} required>
+                {EVENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Save Changes</button>
@@ -901,7 +910,6 @@ export default function AdminDashboard() {
                     <thead>
                       <tr>
                         <th>Event Name</th>
-                        <th>Points</th>
                         <th>Action</th>
                       </tr>
                     </thead>
@@ -909,14 +917,13 @@ export default function AdminDashboard() {
                       {events.map(ev => (
                         <tr key={ev.id}>
                           <td>{ev.name}</td>
-                          <td><span className="badge badge-in-progress">{ev.points} pts</span></td>
                           <td>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                               <button
                                 onClick={() => {
+                                  const baseType = EVENT_TYPES.find(t => ev.name.startsWith(t)) || EVENT_TYPES[0];
                                   setEditingEvent(ev);
-                                  setEditEventName(ev.name);
-                                  setEditEventPoints(ev.points);
+                                  setEditEventName(baseType);
                                   setShowEditEventForm(true);
                                 }}
                                 style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '4px' }}

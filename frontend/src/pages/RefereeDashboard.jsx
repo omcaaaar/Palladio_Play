@@ -57,9 +57,11 @@ export default function RefereeDashboard() {
   // Selected fixture
   const [selectedFixture, setSelectedFixture] = useState(null);
   const [existingScorecards, setExistingScorecards] = useState([]);
+  const [allScorecards, setAllScorecards] = useState([]);
 
   // Lineups setup
   const [lineups, setLineups] = useState({});
+  const [bonusEventId, setBonusEventId] = useState('');
 
   // Editing individual scorecard
   const [editingScorecard, setEditingScorecard] = useState(null);
@@ -82,6 +84,7 @@ export default function RefereeDashboard() {
       setTeams(full.teams || []);
       setFixtures(full.fixtures || []);
       setEvents(full.events || []);
+      setAllScorecards(full.scorecards || []);
       setStep(STEPS.SELECT_FIXTURE);
     } catch (e) { setError(e.message); }
   }
@@ -138,6 +141,26 @@ export default function RefereeDashboard() {
     });
   }
 
+  async function handleUpdateBonusEvent(newEventId) {
+    try {
+      const updatedScorecards = [];
+      for (const sc of existingScorecards) {
+        const targetPoints = sc.event_id === newEventId ? 3 : 2;
+        if (sc.event_points !== targetPoints) {
+          const res = await api.updateScorecard(selectedTournament.id, sc.id, {
+            ...sc,
+            event_points: targetPoints
+          });
+          updatedScorecards.push(res.scorecard);
+        } else {
+          updatedScorecards.push(sc);
+        }
+      }
+      setExistingScorecards(updatedScorecards);
+      api.getTournamentFull(selectedTournament.id).then(f => setAllScorecards(f.scorecards || []));
+    } catch (err) { setError(err.message); }
+  }
+
   async function handleSaveEditLineup(e) {
     e.preventDefault();
     const eventName = getEventName(editingScorecard.event_id);
@@ -173,6 +196,7 @@ export default function RefereeDashboard() {
   async function handleSaveLineups(e) {
     e.preventDefault();
     setError('');
+
     // Validation
     for (const event of events) {
       const lineup = lineups[event.id];
@@ -200,6 +224,7 @@ export default function RefereeDashboard() {
           team2_player2: lineup.team2Player2,
           num_sets: lineup.numSets || 1,
           points_per_set: lineup.pointsPerSet || 21,
+          event_points: event.id === bonusEventId ? 3 : 2,
           status: existing ? existing.status : 'pending',
         };
 
@@ -211,6 +236,10 @@ export default function RefereeDashboard() {
           scs.push(res.scorecard);
         }
       }
+
+      // Update all scorecards context
+      api.getTournamentFull(selectedTournament.id).then(f => setAllScorecards(f.scorecards || []));
+
       setExistingScorecards(scs);
       setStep(STEPS.OVERVIEW_FIXTURE);
     } catch (err) { setError(err.message); }
@@ -462,7 +491,7 @@ export default function RefereeDashboard() {
               const isSingles = ev.name.toLowerCase().includes('singles');
               return (
                 <div key={ev.id} className="glass-card" style={{ marginBottom: '1rem' }}>
-                  <h4 style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>{ev.name} ({ev.points} pts)</h4>
+                  <h4 style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>{ev.name} ({ev.id === bonusEventId ? 3 : 2} pts)</h4>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                     {/* Team 1 Players */}
                     <div>
@@ -483,7 +512,7 @@ export default function RefereeDashboard() {
                       </div>
                       {!isSingles && (
                         <div className="form-group">
-                          <label className="form-label">Player 2 (doubles)</label>
+                          <label className="form-label">Player 2</label>
                           <select className="form-input" value={lineup.team1Player2} onChange={e => handleLineupChange(ev.id, 'team1Player2', e.target.value)} required={!isSingles}>
                             <option value="">-- Select --</option>
                             {getFilteredPlayers(team1Players, ev.name, 2, lineup.team1Player1)
@@ -516,7 +545,7 @@ export default function RefereeDashboard() {
                       </div>
                       {!isSingles && (
                         <div className="form-group">
-                          <label className="form-label">Player 2 (doubles)</label>
+                          <label className="form-label">Player 2</label>
                           <select className="form-input" value={lineup.team2Player2} onChange={e => handleLineupChange(ev.id, 'team2Player2', e.target.value)} required={!isSingles}>
                             <option value="">-- Select --</option>
                             {getFilteredPlayers(team2Players, ev.name, 2, lineup.team2Player1)
@@ -553,6 +582,24 @@ export default function RefereeDashboard() {
                 </div>
               );
             })}
+
+            <div className="glass-card" style={{ marginBottom: '1.5rem' }}>
+              <h4 style={{ margin: '0 0 0.5rem 0' }}>Select Bonus Event</h4>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                The selected event will be awarded 3 points, while remaining events get 2 points.
+              </p>
+              <select
+                className="form-input"
+                value={bonusEventId}
+                onChange={e => setBonusEventId(e.target.value)}
+              >
+                <option value="">-- No Bonus Event --</option>
+                {events.map(ev => (
+                  <option key={ev.id} value={ev.id}>{ev.name}</option>
+                ))}
+              </select>
+            </div>
+
             <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '1rem', fontSize: '1rem', marginBottom: '2rem' }}>
               Save All Combinations
             </button>
@@ -565,6 +612,20 @@ export default function RefereeDashboard() {
         <div className="animate-fade-in">
           <div className="glass-card" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <h3 style={{ margin: 0 }}>{team1Name} vs {team2Name} - Events</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Bonus:</span>
+              <select
+                className="form-input"
+                style={{ padding: '0.4rem', fontSize: '0.85rem', minWidth: '150px' }}
+                value={existingScorecards.find(sc => sc.event_points === 3)?.event_id || ""}
+                onChange={(e) => handleUpdateBonusEvent(e.target.value)}
+              >
+                <option value="">-- None --</option>
+                {events.map(ev => (
+                  <option key={ev.id} value={ev.id}>{ev.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="glass-card">
             <div className="table-container">
@@ -580,7 +641,10 @@ export default function RefereeDashboard() {
                 <tbody>
                   {existingScorecards.map(sc => (
                     <tr key={sc.id}>
-                      <td>{getEventName(sc.event_id)}</td>
+                      <td>
+                        {getEventName(sc.event_id)}
+                        {sc.event_points === 3 && <span style={{ color: 'var(--accent-primary)', marginLeft: '4px', fontWeight: 'bold' }} title="Bonus Event">(B)</span>}
+                      </td>
                       <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                         {[sc.team1_player1, sc.team1_player2].filter(Boolean).join(', ')} vs {[sc.team2_player1, sc.team2_player2].filter(Boolean).join(', ')}
                       </td>
@@ -754,7 +818,7 @@ export default function RefereeDashboard() {
                         </div>
                         {!isSingles && (
                           <div className="form-group">
-                            <label className="form-label">Player 2 (doubles)</label>
+                            <label className="form-label">Player 2</label>
                             <select className="form-input" value={editLineupData.team1Player2} onChange={e => setEditLineupData(p => ({ ...p, team1Player2: e.target.value }))} required={!isSingles}>
                               <option value="">-- Select --</option>
                               {getFilteredPlayers(team1Players, getEventName(editingScorecard.event_id), 2, editLineupData.team1Player1)
@@ -783,7 +847,7 @@ export default function RefereeDashboard() {
                         </div>
                         {!isSingles && (
                           <div className="form-group">
-                            <label className="form-label">Player 2 (doubles)</label>
+                            <label className="form-label">Player 2</label>
                             <select className="form-input" value={editLineupData.team2Player2} onChange={e => setEditLineupData(p => ({ ...p, team2Player2: e.target.value }))} required={!isSingles}>
                               <option value="">-- Select --</option>
                               {getFilteredPlayers(team2Players, getEventName(editingScorecard.event_id), 2, editLineupData.team2Player1)

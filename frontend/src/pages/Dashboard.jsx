@@ -2,6 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Activity, Trophy, Users, ChevronDown, ChevronRight, Gavel, ZoomIn, ZoomOut } from 'lucide-react';
 import * as api from '../api/client';
 
+const YoutubeIcon = ({ size = 24, color = "currentColor", ...props }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    {...props}
+  >
+    <path fill={color} d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
+    <polygon fill="#ffffff" points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+  </svg>
+);
+
 export default function Dashboard() {
   const [tournaments, setTournaments] = useState([]);
   const [selectedTid, setSelectedTid] = useState('');
@@ -13,7 +27,7 @@ export default function Dashboard() {
   const [liveScorecards, setLiveScorecards] = useState([]);
   const [selectedCountTeamId, setSelectedCountTeamId] = useState('');
   const [liveAuction, setLiveAuction] = useState(null);
-  
+
   // Schedule/Results expansion state
   const [expandedFixtures, setExpandedFixtures] = useState({});
   const toggleFixture = (id) => setExpandedFixtures(prev => ({ ...prev, [id]: !prev[id] }));
@@ -131,7 +145,7 @@ export default function Dashboard() {
       let t1EventPts = 0, t2EventPts = 0;
       fScorecards.forEach(sc => {
         const ev = events.find(e => e.id === sc.event_id);
-        const pts = ev?.points || 0;
+        const pts = sc.event_points !== undefined ? sc.event_points : (ev?.points || 0);
         if (sc.winner === 'team1') t1EventPts += pts;
         else if (sc.winner === 'team2') t2EventPts += pts;
       });
@@ -214,32 +228,36 @@ export default function Dashboard() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           {(() => {
-            const currentT = tournaments.find(t => t.id === selectedTid) || {};
+            const currentT = tournamentData?.tournament || tournaments.find(t => t.id === selectedTid) || {};
             const yLink = currentT.youtube_link || import.meta.env.VITE_YOUTUBE_HANDLE;
-            
+            const isLive = currentT.is_live;
+
             if (!yLink) return null;
-            
+
             return (
               <a
-                href={`https://youtube.com/${yLink}/live`}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={isLive ? `https://youtube.com/${yLink}/live` : undefined}
+                target={isLive ? "_blank" : undefined}
+                rel={isLive ? "noopener noreferrer" : undefined}
                 className="btn"
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.5rem', 
-                  background: '#ff0000', 
-                  color: 'white', 
-                  textDecoration: 'none', 
-                  padding: '0.5rem 1rem', 
-                  borderRadius: 'var(--radius-full)', 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  background: 'transparent',
+                  color: isLive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  border: isLive ? '1px solid #ffffff' : '1px solid var(--glass-border)',
+                  textDecoration: 'none',
+                  padding: '0.5rem 1rem',
+                  borderRadius: 'var(--radius-full)',
                   fontWeight: 600,
-                  cursor: 'pointer',
-                  opacity: 1
+                  cursor: isLive ? 'pointer' : 'not-allowed',
+                  opacity: 1,
+                  pointerEvents: isLive ? 'auto' : 'none',
+                  transition: 'all 0.2s ease'
                 }}
               >
-                <Activity size={18} />
+                <YoutubeIcon size={30} color={isLive ? "#ff0000" : "currentColor"} className={isLive ? "pulse" : ""} />
                 Watch Live
               </a>
             );
@@ -335,7 +353,7 @@ export default function Dashboard() {
                   <React.Fragment key={f.id}>
                     <tr onClick={() => toggleFixture(f.id)} style={{ cursor: 'pointer' }} className="hoverable-row">
                       <td style={{ fontWeight: 600 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                           {expandedFixtures[f.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                           <span>{getTeamName(f.team1_id)} <span style={{ color: 'var(--text-secondary)' }}>vs</span> {getTeamName(f.team2_id)}</span>
                         </div>
@@ -387,15 +405,16 @@ export default function Dashboard() {
                   let t1pts = 0, t2pts = 0;
                   fScorecards.forEach(sc => {
                     const ev = events.find(e => e.id === sc.event_id);
-                    if (sc.winner === 'team1') t1pts += (ev?.points || 0);
-                    else if (sc.winner === 'team2') t2pts += (ev?.points || 0);
+                    const pts = sc.event_points !== undefined ? sc.event_points : (ev?.points || 0);
+                    if (sc.winner === 'team1') t1pts += pts;
+                    else if (sc.winner === 'team2') t2pts += pts;
                   });
                   const winnerName = t1pts > t2pts ? getTeamName(f.team1_id) : (t2pts > t1pts ? getTeamName(f.team2_id) : 'Draw');
                   return (
                     <React.Fragment key={f.id}>
                       <tr onClick={() => toggleFixture(f.id)} style={{ cursor: 'pointer' }} className="hoverable-row">
                         <td style={{ fontWeight: 600 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                             {expandedFixtures[f.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                             <span>{getTeamName(f.team1_id)} <span style={{ color: 'var(--text-secondary)' }}>vs</span> {getTeamName(f.team2_id)}</span>
                           </div>
@@ -670,22 +689,25 @@ function FixtureEventsOverview({ fixture, events, scorecards, getTeamName }) {
         {events.map(event => {
           const sc = scorecards.find(s => s.fixture_id === fixture.id && s.event_id === event.id);
           return (
-            <div key={event.id} style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between', 
-              padding: '0.75rem', 
-              background: sc?.status === 'in_progress' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.03)', 
-              borderRadius: 'var(--radius-md)', 
+            <div key={event.id} style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.75rem',
+              background: sc?.status === 'in_progress' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.03)',
+              borderRadius: 'var(--radius-md)',
               opacity: sc ? 1 : 0.6,
               borderLeft: sc?.status === 'in_progress' ? '3px solid var(--accent-secondary)' : '3px solid transparent'
             }}>
-              <div style={{ flex: 1, fontWeight: 600, fontSize: '0.9rem' }}>{event.name}</div>
-              
+              <div style={{ flex: 1, fontWeight: 600, fontSize: '0.9rem' }}>
+                {event.name}
+                {sc?.event_points === 3 && <span style={{ color: 'var(--accent-primary)', marginLeft: '4px', fontWeight: 'bold' }} title="Bonus Event">(B)</span>}
+              </div>
+
               <div style={{ flex: 1, textAlign: 'right', paddingRight: '1rem', fontSize: '0.85rem' }}>
                 {[sc?.team1_player1, sc?.team1_player2].filter(Boolean).join(' & ') || 'TBD'}
               </div>
-              
+
               <div style={{ width: '130px', textAlign: 'center', fontWeight: 'bold' }}>
                 {sc?.status === 'in_progress' ? (
                   <div className="pulse" style={{ color: 'var(--accent-secondary)' }}>

@@ -38,7 +38,6 @@ class Event(BaseModel):
     id: str = Field(default_factory=generate_id)
     tournament_id: str = ""
     name: str
-    points: int = 2
 
 class Fixture(BaseModel):
     id: str = Field(default_factory=generate_id)
@@ -64,6 +63,7 @@ class Scorecard(BaseModel):
     team2_player2: str = ""
     num_sets: int = 1
     points_per_set: int = 21
+    event_points: int = 0
     sets: List[SetScore] = []
     current_set: int = 0
     status: str = "pending"  # pending, in_progress, completed
@@ -78,4 +78,5 @@ class ScorecardCreate(BaseModel):
     team2_player2: str = ""
     num_sets: int = 1
     points_per_set: int = 21
+    event_points: int = 0
     status: str = "pending"

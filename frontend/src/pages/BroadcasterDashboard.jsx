@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getTournaments, getTournamentFull, updateTournament } from '../api/client';
-import { Tv, Play, Square, Download, AlertCircle, RefreshCw, Link as LinkIcon, Check } from 'lucide-react';
+import { Tv, Play, Square, Download, AlertCircle, RefreshCw, Link as LinkIcon, Check, Activity } from 'lucide-react';
 
 export default function BroadcasterDashboard() {
   const [tournaments, setTournaments] = useState([]);
@@ -69,6 +69,17 @@ export default function BroadcasterDashboard() {
       setError('Failed to save YouTube handle: ' + err.message);
     } finally {
       setSavingHandle(false);
+    }
+  };
+
+  const handleToggleLive = async () => {
+    if (!selectedTournament || !tournamentData?.tournament) return;
+    const newStatus = !tournamentData.tournament.is_live;
+    try {
+      await updateTournament(selectedTournament, { is_live: newStatus });
+      setTournamentData({ ...tournamentData, tournament: { ...tournamentData.tournament, is_live: newStatus } });
+    } catch (err) {
+      setError('Failed to update live status: ' + err.message);
     }
   };
 
@@ -398,6 +409,28 @@ export default function BroadcasterDashboard() {
                   {handleSaved ? 'Saved!' : 'Set Link'}
                 </button>
               </div>
+            </div>
+
+            <div className="form-group" style={{ minWidth: '200px', marginBottom: 0 }}>
+              <label className="form-label">Live Stream Status</label>
+              <button
+                className={`btn`}
+                onClick={handleToggleLive}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem', 
+                  width: '100%',
+                  justifyContent: 'center',
+                  background: tournamentData?.tournament?.is_live ? 'rgba(16, 185, 129, 0.2)' : 'var(--glass-bg)',
+                  color: tournamentData?.tournament?.is_live ? 'var(--accent-success)' : 'var(--text-secondary)',
+                  border: `1px solid ${tournamentData?.tournament?.is_live ? 'var(--accent-success)' : 'var(--glass-border)'}`,
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Activity size={18} className={tournamentData?.tournament?.is_live ? 'pulse' : ''} />
+                {tournamentData?.tournament?.is_live ? 'Stream is Live' : 'Stream is Offline'}
+              </button>
             </div>
           </div>
         )}        {selectedTournament && (

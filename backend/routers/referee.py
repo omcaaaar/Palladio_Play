@@ -23,6 +23,7 @@ async def create_scorecard(tid: str, sc: ScorecardCreate, request: Request):
         team2_player2=sc.team2_player2,
         num_sets=sc.num_sets,
         points_per_set=sc.points_per_set,
+        event_points=sc.event_points,
         sets=[SetScore() for _ in range(sc.num_sets)],
         current_set=0,
         status=sc.status,
@@ -83,7 +84,7 @@ async def update_scorecard_details(tid: str, scorecard_id: str, body: dict, requ
     
     allowed_keys = {
         "team1_player1", "team1_player2", "team2_player1", "team2_player2",
-        "num_sets", "points_per_set", "status", "winner", "sets", "current_set"
+        "num_sets", "points_per_set", "status", "winner", "sets", "current_set", "event_points"
     }
     update_data = {k: v for k, v in body.items() if k in allowed_keys}
     

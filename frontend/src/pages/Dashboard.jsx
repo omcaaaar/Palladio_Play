@@ -426,11 +426,6 @@ export default function Dashboard() {
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1.5s infinite' }} /> LIVE
             </span>
           </div>
-          <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-            <span>Max Players: <b style={{ color: 'var(--text-primary)' }}>{liveAuction.max_players}</b></span>
-            <span>Total Points: <b style={{ color: 'var(--text-primary)' }}>{liveAuction.total_points}</b></span>
-            <span>Starting Bid: <b style={{ color: 'var(--text-primary)' }}>{liveAuction.starting_bid}</b></span>
-          </div>
           <DashboardAuctionTable auction={liveAuction} teams={teams} />
         </div>
       )}
@@ -692,17 +687,13 @@ function DashboardAuctionTable({ auction, teams }) {
   const [zoomLevel, setZoomLevel] = useState(1);
   if (!auction || !auction.team_players) return null;
 
-  const { max_players, total_points, starting_bid, team_players } = auction;
+  const { max_players, team_players } = auction;
   const auctionTeams = teams.filter(t => team_players[t.id] !== undefined);
 
   const chunkedTeams = [];
   for (let i = 0; i < auctionTeams.length; i += 5) {
     chunkedTeams.push(auctionTeams.slice(i, i + 5));
   }
-
-  const summaryRowStyle = { fontWeight: 700, fontSize: '0.85rem', padding: '0.6rem 0.75rem' };
-  const summaryLabelStyle = { ...summaryRowStyle, color: 'var(--text-secondary)', textAlign: 'left' };
-  const summaryValueStyle = { ...summaryRowStyle, textAlign: 'center' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -717,7 +708,7 @@ function DashboardAuctionTable({ auction, teams }) {
             <thead>
               <tr>
                 {chunk.map((team, idx) => (
-                  <th key={team.id} colSpan={4} style={{
+                  <th key={team.id} colSpan={3} style={{
                     textAlign: 'center', padding: '0.75rem', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)',
                     borderBottom: '2px solid var(--glass-border)', fontSize: '0.95rem', fontWeight: 700,
                     borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none'
@@ -733,7 +724,6 @@ function DashboardAuctionTable({ auction, teams }) {
                     <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', width: '40px', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>No.</th>
                     <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'left' }}>Player</th>
                     <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center' }}>Gender</th>
-                    <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center' }}>Pts</th>
                   </React.Fragment>
                 ))}
               </tr>
@@ -753,44 +743,13 @@ function DashboardAuctionTable({ auction, teams }) {
                         <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: player ? 'var(--text-secondary)' : 'rgba(255,255,255,0.1)', fontSize: '0.8rem' }}>
                           {player ? (player.gender === 'Male' ? 'M' : 'F') : '—'}
                         </td>
-                        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: player ? 600 : 400, color: player ? 'var(--accent-primary)' : 'rgba(255,255,255,0.1)' }}>
-                          {player ? player.points : '—'}
-                        </td>
                       </React.Fragment>
                     );
                   })}
                 </tr>
               ))}
 
-              <tr><td colSpan={chunk.length * 4} style={{ padding: 0, height: '4px', background: 'var(--glass-border)' }}></td></tr>
-
-              <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
-                {chunk.map((team, idx) => {
-                  const consumed = (team_players[team.id] || []).reduce((s, p) => s + (p.points || 0), 0);
-                  return (<React.Fragment key={`c-${team.id}`}><td colSpan={3} style={{ ...summaryLabelStyle, borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>Points Consumed</td><td style={{ ...summaryValueStyle, color: 'var(--accent-primary)' }}>{consumed}</td></React.Fragment>);
-                })}
-              </tr>
-              <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
-                {chunk.map((team, idx) => {
-                  const left = total_points - (team_players[team.id] || []).reduce((s, p) => s + (p.points || 0), 0);
-                  return (<React.Fragment key={`l-${team.id}`}><td colSpan={3} style={{ ...summaryLabelStyle, borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>Points Left</td><td style={{ ...summaryValueStyle, color: left > 0 ? 'var(--accent-secondary)' : 'var(--accent-danger)' }}>{left}</td></React.Fragment>);
-                })}
-              </tr>
-              <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
-                {chunk.map((team, idx) => {
-                  const playersLeft = max_players - (team_players[team.id] || []).length;
-                  return (<React.Fragment key={`pl-${team.id}`}><td colSpan={3} style={{ ...summaryLabelStyle, borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>Players Left</td><td style={{ ...summaryValueStyle, color: playersLeft > 0 ? 'var(--text-primary)' : 'var(--accent-secondary)' }}>{playersLeft}</td></React.Fragment>);
-                })}
-              </tr>
-              <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
-                {chunk.map((team, idx) => {
-                  const players = team_players[team.id] || [];
-                  const pointsLeft = total_points - players.reduce((s, p) => s + (p.points || 0), 0);
-                  const playersLeft = max_players - players.length;
-                  const maxBid = playersLeft > 0 ? pointsLeft - ((playersLeft - 1) * starting_bid) : 0;
-                  return (<React.Fragment key={`mb-${team.id}`}><td colSpan={3} style={{ ...summaryLabelStyle, color: 'var(--accent-primary)', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>Max Bid</td><td style={{ ...summaryValueStyle, color: maxBid > 0 ? '#f59e0b' : 'var(--accent-danger)', fontSize: '1rem' }}>{maxBid > 0 ? maxBid : 0}</td></React.Fragment>);
-                })}
-              </tr>
+              <tr><td colSpan={chunk.length * 3} style={{ padding: 0, height: '4px', background: 'var(--glass-border)' }}></td></tr>
             </tbody>
           </table>
         </div>

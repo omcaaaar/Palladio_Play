@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Plus, Users, Calendar, Trash2, ChevronRight, Trophy, X, ListChecks, Edit, Gavel, Check, ZoomIn, ZoomOut } from 'lucide-react';
+import { Settings, Plus, Users, Calendar, Trash2, ChevronRight, Trophy, X, ListChecks, Edit, Gavel, Check, ZoomIn, ZoomOut, AlertTriangle } from 'lucide-react';
 import * as api from '../api/client';
 
 export default function AdminDashboard() {
@@ -35,6 +35,9 @@ export default function AdminDashboard() {
   const [showEditFixtureForm, setShowEditFixtureForm] = useState(false);
   const [showEditEventForm, setShowEditEventForm] = useState(false);
   const [showPlayerForm, setShowPlayerForm] = useState(null); // team id or null
+  const [showDeleteTournamentConfirm, setShowDeleteTournamentConfirm] = useState(false);
+  const [teamToDelete, setTeamToDelete] = useState(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState(null);
 
   // Edit Event Form states
   const [editingEvent, setEditingEvent] = useState(null);
@@ -136,14 +139,12 @@ export default function AdminDashboard() {
   }
 
   async function handleDeleteTournament() {
-    if (!window.confirm(`Are you sure you want to delete the tournament "${selectedTournament.name}"? This will delete all its teams, fixtures, events, and scorecards.`)) {
-      return;
-    }
     try {
       await api.deleteTournament(selectedTournament.id);
       const updatedList = tournaments.filter(t => t.id !== selectedTournament.id);
       setTournaments(updatedList);
       setSelectedTournament(null);
+      setShowDeleteTournamentConfirm(false);
     } catch (err) { setError(err.message); }
   }
 
@@ -309,14 +310,10 @@ export default function AdminDashboard() {
   }
 
   async function handleDeleteTeam(teamId) {
-    const team = teams.find(t => t.id === teamId);
-    const teamName = team ? team.name : 'this team';
-    if (!window.confirm(`Are you sure you want to delete the team "${teamName}"? This will also remove all its players.`)) {
-      return;
-    }
     try {
       await api.deleteTeam(selectedTournament.id, teamId);
       setTeams(teams.filter(t => t.id !== teamId));
+      setTeamToDelete(null);
     } catch (err) { setError(err.message); }
   }
 
@@ -348,24 +345,30 @@ export default function AdminDashboard() {
     } catch (err) { setError(err.message); }
   }
 
-  async function handleGlobalDeletePlayer(playerId) {
+    function handleGlobalDeletePlayer(playerId) {
       const p = tournamentPlayers.find(x => x.id === playerId);
       if (p && isPlayerAssigned(p.name)) {
          setError('Cannot delete player as they are already assigned to a team or auction.');
          return;
       }
+      setPendingConfirmation({ type: 'player', id: playerId, name: p?.name || 'this player' });
+    }
+
+    async function executeDeletePlayer(playerId) {
       try {
           await api.deletePlayer(selectedTournament.id, playerId);
           setTournamentPlayers(tournamentPlayers.filter(x => x.id !== playerId));
+        setPendingConfirmation(null);
       } catch (err) { setError(err.message); }
   }
 
-  async function handleDeleteEvent(eventId) {
+  function handleDeleteEvent(eventId) {
     const eventObj = events.find(e => e.id === eventId);
     const eventNameStr = eventObj ? eventObj.name : 'this event';
-    if (!window.confirm(`Are you sure you want to delete the event type "${eventNameStr}"?`)) {
-      return;
-    }
+    setPendingConfirmation({ type: 'event', id: eventId, name: eventNameStr });
+  }
+
+  async function executeDeleteEvent(eventId, eventNameStr) {
     try {
       await api.deleteEvent(selectedTournament.id, eventId);
 
@@ -392,18 +395,21 @@ export default function AdminDashboard() {
 
       const updatedEvents = await api.getEvents(selectedTournament.id);
       setEvents(updatedEvents);
+      setPendingConfirmation(null);
     } catch (err) { setError(err.message); }
   }
 
-  async function handleDeleteFixture(fixtureId) {
+  function handleDeleteFixture(fixtureId) {
     const fixture = fixtures.find(f => f.id === fixtureId);
     const matchName = fixture ? `${getTeamName(fixture.team1_id)} vs ${getTeamName(fixture.team2_id)}` : 'this fixture';
-    if (!window.confirm(`Are you sure you want to delete ${matchName}? This action cannot be undone.`)) {
-      return;
-    }
+    setPendingConfirmation({ type: 'fixture', id: fixtureId, name: matchName });
+  }
+
+  async function executeDeleteFixture(fixtureId) {
     try {
       await api.deleteFixture(selectedTournament.id, fixtureId);
       setFixtures(fixtures.filter(f => f.id !== fixtureId));
+      setPendingConfirmation(null);
     } catch (err) { setError(err.message); }
   }
 
@@ -428,15 +434,31 @@ export default function AdminDashboard() {
     } catch (err) { setError(err.message); }
   }
 
-  async function handleEndAuction() {
-    if (!window.confirm('Are you sure you want to end the auction? Players will be synced to their respective teams.')) return;
+  function handleEndAuction() {
+    setPendingConfirmation({ type: 'auction' });
+  }
+
+  async function executeEndAuction() {
     try {
       const res = await api.endAuction(selectedTournament.id);
       setAuction(res.auction);
       // Reload teams to reflect synced players
       const updatedTeams = await api.getTeams(selectedTournament.id);
       setTeams(updatedTeams);
+      setPendingConfirmation(null);
     } catch (err) { setError(err.message); }
+  }
+
+  function handleConfirmAction() {
+    if (pendingConfirmation?.type === 'event') {
+      executeDeleteEvent(pendingConfirmation.id, pendingConfirmation.name);
+    } else if (pendingConfirmation?.type === 'fixture') {
+      executeDeleteFixture(pendingConfirmation.id);
+    } else if (pendingConfirmation?.type === 'player') {
+      executeDeletePlayer(pendingConfirmation.id);
+    } else if (pendingConfirmation?.type === 'auction') {
+      executeEndAuction();
+    }
   }
 
   async function handleAuctionAddPlayer(teamId) {
@@ -554,7 +576,7 @@ export default function AdminDashboard() {
                   <button
                     className="btn btn-outline"
                     style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', color: 'var(--accent-danger)', borderColor: 'rgba(239, 68, 68, 0.2)' }}
-                    onClick={handleDeleteTournament}
+                    onClick={() => setShowDeleteTournamentConfirm(true)}
                   >
                     Delete Tournament
                   </button>
@@ -584,6 +606,106 @@ export default function AdminDashboard() {
             </div>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Create Tournament</button>
           </form>
+        </Modal>
+      )}
+
+      {showDeleteTournamentConfirm && selectedTournament && (
+        <Modal title="Delete Tournament?" onClose={() => setShowDeleteTournamentConfirm(false)}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <AlertTriangle size={24} color="var(--accent-danger)" style={{ flexShrink: 0 }} />
+            <div>
+              <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>
+                Delete “{selectedTournament.name}”?
+              </p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                This permanently removes the tournament, its teams, players, events, fixtures, and scorecards.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+            <button className="btn btn-outline" onClick={() => setShowDeleteTournamentConfirm(false)}>
+              Cancel
+            </button>
+            <button
+              className="btn"
+              onClick={handleDeleteTournament}
+              style={{ background: 'var(--accent-danger)', color: '#fff' }}
+            >
+              <Trash2 size={16} /> Delete Tournament
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {teamToDelete && (
+        <Modal title="Delete Team?" onClose={() => setTeamToDelete(null)}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <AlertTriangle size={24} color="var(--accent-danger)" style={{ flexShrink: 0 }} />
+            <div>
+              <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>
+                Delete “{teamToDelete.name}”?
+              </p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                This will permanently remove the team and all players assigned to it.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+            <button className="btn btn-outline" onClick={() => setTeamToDelete(null)}>
+              Cancel
+            </button>
+            <button
+              className="btn"
+              onClick={() => handleDeleteTeam(teamToDelete.id)}
+              style={{ background: 'var(--accent-danger)', color: '#fff' }}
+            >
+              <Trash2 size={16} /> Delete Team
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {pendingConfirmation && (
+        <Modal
+          title={pendingConfirmation.type === 'auction'
+            ? 'End Auction?'
+            : `Delete ${pendingConfirmation.type === 'event' ? 'Event Type' : pendingConfirmation.type === 'player' ? 'Player' : 'Fixture'}?`}
+          onClose={() => setPendingConfirmation(null)}
+        >
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <AlertTriangle size={24} color="var(--accent-danger)" style={{ flexShrink: 0 }} />
+            <div>
+              <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>
+                {pendingConfirmation.type === 'auction'
+                  ? 'End the live auction?'
+                  : `Delete “${pendingConfirmation.name}”?`}
+              </p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                {pendingConfirmation.type === 'auction'
+                  ? 'Players will be synced to their teams and the auction will be marked as ended.'
+                  : pendingConfirmation.type === 'event'
+                    ? 'This will permanently remove the event type and update the remaining event numbering.'
+                    : pendingConfirmation.type === 'player'
+                      ? 'This will permanently remove the registered player from this tournament.'
+                    : 'This action cannot be undone.'}
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+            <button className="btn btn-outline" onClick={() => setPendingConfirmation(null)}>
+              Cancel
+            </button>
+            <button
+              className="btn"
+              onClick={handleConfirmAction}
+              style={{ background: 'var(--accent-danger)', color: '#fff' }}
+            >
+              <Trash2 size={16} />
+              {pendingConfirmation.type === 'auction'
+                ? 'End Auction'
+                : pendingConfirmation.type === 'player' ? 'Delete Player' : 'Delete'}
+            </button>
+          </div>
         </Modal>
       )}
 
@@ -795,7 +917,7 @@ export default function AdminDashboard() {
                             <option value="A">Group A</option>
                             <option value="B">Group B</option>
                           </select>
-                          <button onClick={() => handleDeleteTeam(team.id)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '4px' }}>
+                          <button onClick={() => setTeamToDelete(team)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '4px' }}>
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -1283,28 +1405,23 @@ function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, se
                       <React.Fragment key={`add-${team.id}`}>
                         <td style={{ padding: '0.4rem 0.25rem', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}></td>
                         <td colSpan={2} style={{ padding: '0.4rem 0.25rem' }}>
-                          <input
+                          <select
                             className="form-input"
-                            style={{ padding: '0.3rem 0.5rem', fontSize: '0.8rem', width: '100%', minWidth: '80px' }}
-                            placeholder={isFull ? 'Full' : 'Select'}
+                            style={{ padding: '0.3rem 2rem 0.3rem 0.5rem', fontSize: '0.8rem', width: '100%', minWidth: '80px' }}
                             disabled={isFull}
-                            list={`auction-players-${team.id}`}
                             value={form.name}
                             onChange={e => {
                                const val = e.target.value;
                                const selected = availablePlayers.find(p => p.name === val);
-                               // Auto-fill gender if found
-                               if (selected) {
-                                  setAuctionPlayerForms(prev => ({ ...prev, [team.id]: { ...form, name: val, gender: selected.gender } }));
-                               } else {
-                                  setAuctionPlayerForms(prev => ({ ...prev, [team.id]: { ...form, name: val } }));
-                               }
+                               setAuctionPlayerForms(prev => ({
+                                 ...prev,
+                                 [team.id]: { ...form, name: val, gender: selected?.gender || form.gender },
+                               }));
                             }}
-                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onAddPlayer(team.id); } }}
-                          />
-                          <datalist id={`auction-players-${team.id}`}>
-                             {availablePlayers.map(p => <option key={p.id} value={p.name} />)}
-                          </datalist>
+                          >
+                            <option value="">{isFull ? 'Team is full' : 'Select a player'}</option>
+                            {availablePlayers.map(p => <option key={p.id} value={p.name}>{p.name} ({p.gender === 'Male' ? 'M' : 'F'})</option>)}
+                          </select>
                         </td>
                         <td style={{ padding: '0.4rem 0.25rem' }}>
                           <input

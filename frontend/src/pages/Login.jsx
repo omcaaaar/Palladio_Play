@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { LogIn, Tv, ShieldAlert, Settings } from 'lucide-react';
+import { LogIn, Tv, ShieldAlert, Settings, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-export default function Login({ onLogin }) {
-  const [mode, setMode] = useState('select'); // 'select' | 'login'
-  const [role, setRole] = useState('');
+export default function Login({ onLogin, fixedRole = '' }) {
+  const navigate = useNavigate();
+  const [mode, setMode] = useState(fixedRole ? 'login' : 'select'); // 'select' | 'login'
+  const [role, setRole] = useState(fixedRole);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -24,6 +26,8 @@ export default function Login({ onLogin }) {
     const refPass = import.meta.env.VITE_REFEREE_PASS || 'referee';
     const broadUser = import.meta.env.VITE_BROADCASTER_USER || 'broadcaster';
     const broadPass = import.meta.env.VITE_BROADCASTER_PASS || 'broadcaster';
+    const ownerUser = import.meta.env.VITE_OWNER_USER || 'owner';
+    const ownerPass = import.meta.env.VITE_OWNER_PASS || 'owner';
 
     if (role === 'admin' && username === adminUser && password === adminPass) {
       onLogin('admin', 'admin');
@@ -31,6 +35,8 @@ export default function Login({ onLogin }) {
       onLogin('referee', 'referee');
     } else if (role === 'broadcaster' && username === broadUser && password === broadPass) {
       onLogin('broadcaster', 'broadcaster');
+    } else if (role === 'owner' && username === ownerUser && password === ownerPass) {
+      onLogin('owner', 'owner');
     } else {
       setError('Invalid credentials. Please try again.');
     }
@@ -43,7 +49,7 @@ export default function Login({ onLogin }) {
           <h1>Welcome to Palladio Play</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Select your role to continue</p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', maxWidth: '500px', margin: '0 auto' }}>
           {/* Broadcaster */}
           <button className="glass-card" onClick={() => handleSelectRole('broadcaster')}
             style={{ cursor: 'pointer', textAlign: 'center', padding: '2rem 1rem', border: '1px solid var(--glass-border)', transition: 'all 0.2s' }}>
@@ -67,6 +73,14 @@ export default function Login({ onLogin }) {
             <h3 style={{ marginBottom: '0.5rem' }}>Admin</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0 }}>Manage tournaments and teams</p>
           </button>
+
+          {/* Owner */}
+          <button className="glass-card" onClick={() => handleSelectRole('owner')}
+            style={{ cursor: 'pointer', textAlign: 'center', padding: '2rem 1rem', border: '1px solid var(--glass-border)', transition: 'all 0.2s' }}>
+            <Eye size={36} color="var(--accent-secondary)" style={{ marginBottom: '0.75rem' }} />
+            <h3 style={{ marginBottom: '0.5rem' }}>Owner</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0 }}>View auction points</p>
+          </button>
         </div>
       </div>
     );
@@ -76,10 +90,10 @@ export default function Login({ onLogin }) {
     <div style={{ maxWidth: '400px', margin: '4rem auto' }}>
       <div className="glass-card animate-fade-in">
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ display: 'inline-flex', padding: '1rem', background: role === 'admin' ? 'rgba(59, 130, 246, 0.1)' : role === 'broadcaster' ? 'rgba(167, 139, 250, 0.1)' : 'rgba(239, 68, 68, 0.1)', borderRadius: '50%', marginBottom: '1rem' }}>
-            {role === 'admin' ? <Settings size={32} color="var(--accent-primary)" /> : role === 'broadcaster' ? <Tv size={32} color="var(--accent-secondary)" /> : <ShieldAlert size={32} color="var(--accent-danger)" />}
+          <div style={{ display: 'inline-flex', padding: '1rem', background: role === 'admin' ? 'rgba(59, 130, 246, 0.1)' : role === 'broadcaster' || role === 'owner' ? 'rgba(167, 139, 250, 0.1)' : 'rgba(239, 68, 68, 0.1)', borderRadius: '50%', marginBottom: '1rem' }}>
+            {role === 'admin' ? <Settings size={32} color="var(--accent-primary)" /> : role === 'broadcaster' ? <Tv size={32} color="var(--accent-secondary)" /> : role === 'owner' ? <Eye size={32} color="var(--accent-secondary)" /> : <ShieldAlert size={32} color="var(--accent-danger)" />}
           </div>
-          <h2>{role === 'admin' ? 'Admin' : role === 'broadcaster' ? 'Broadcaster' : 'Referee'} Login</h2>
+          <h2>{role === 'admin' ? 'Admin' : role === 'broadcaster' ? 'Broadcaster' : role === 'owner' ? 'Owner' : 'Referee'} Login</h2>
           <p style={{ color: 'var(--text-secondary)' }}>Enter your credentials to continue</p>
         </div>
 
@@ -101,8 +115,8 @@ export default function Login({ onLogin }) {
           <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
             <LogIn size={18} /> Login
           </button>
-          <button type="button" className="btn btn-outline" style={{ width: '100%', marginTop: '0.75rem' }} onClick={() => { setMode('select'); setError(''); }}>
-            Back to Role Selection
+          <button type="button" className="btn btn-outline" style={{ width: '100%', marginTop: '0.75rem' }} onClick={() => { fixedRole ? navigate('/') : setMode('select'); setError(''); }}>
+            {fixedRole ? 'Back to Home' : 'Back to Role Selection'}
           </button>
         </form>
       </div>

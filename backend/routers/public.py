@@ -37,6 +37,6 @@ def get_scorecards_for_fixture(tid: str, fixture_id: str):
 @router.get("/tournaments/{tid}/auction")
 def get_public_auction(tid: str):
     auction = database.get_auction(tid)
-    if auction and auction.get("status") == "live":
+    if auction and auction.get("status") in ["live", "ended"]:
         return auction
     return {"status": "idle"}

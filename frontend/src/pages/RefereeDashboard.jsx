@@ -253,17 +253,11 @@ export default function RefereeDashboard() {
         setStep(STEPS.SCORING);
       } catch (err) { setError(err.message); }
     } else if (sc.status === 'completed') {
-      try {
-        // Reopen the scorecard back to in_progress and clear the winner
-        const res = await api.updateScorecard(selectedTournament.id, sc.id, {
-          ...sc,
-          status: 'in_progress',
-          winner: null
-        });
-        setActiveScorecard(res.scorecard);
-        setStep(STEPS.SCORING);
-        setExistingScorecards(prev => prev.map(s => s.id === sc.id ? res.scorecard : s));
-      } catch (err) { setError(err.message); }
+      // Just open the scorecard. If the referee modifies the score later,
+      // the backend updateScore logic will automatically handle changing
+      // the status back to in_progress if it's no longer completed.
+      setActiveScorecard(sc);
+      setStep(STEPS.SCORING);
     } else {
       setActiveScorecard(sc);
       setStep(STEPS.SCORING);

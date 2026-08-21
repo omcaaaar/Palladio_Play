@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShieldAlert, Plus, Minus, Check, ChevronRight, ChevronLeft, ArrowLeft, X, Pencil } from 'lucide-react';
+import { ShieldAlert, Plus, Minus, Check, ChevronRight, ChevronLeft, ArrowLeft, X, Pencil, AlertTriangle, Lock } from 'lucide-react';
 import * as api from '../api/client';
 
 /*
@@ -71,6 +71,7 @@ export default function RefereeDashboard() {
   const [activeScorecard, setActiveScorecard] = useState(null);
 
   const [error, setError] = useState('');
+  const [showLockConfirm, setShowLockConfirm] = useState(false);
 
   useEffect(() => {
     api.getTournaments().then(setTournaments).catch(e => setError(e.message));
@@ -360,6 +361,21 @@ export default function RefereeDashboard() {
     else if (step === STEPS.SELECT_FIXTURE) { setStep(STEPS.SELECT_TOURNAMENT); setSelectedTournament(null); }
   }
 
+  async function handleLockMatch() {
+    try {
+      await api.updateFixture(selectedTournament.id, selectedFixture.id, { is_frozen: true });
+      // Refresh fixtures list
+      const full = await api.getTournamentFull(selectedTournament.id);
+      setFixtures(full.fixtures || []);
+      
+      setStep(STEPS.SELECT_FIXTURE);
+      setSelectedFixture(null);
+      setShowLockConfirm(false);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   const team1Name = selectedFixture ? getTeamName(selectedFixture.team1_id) : '';
   const team2Name = selectedFixture ? getTeamName(selectedFixture.team2_id) : '';
   const team1Players = selectedFixture ? getTeamPlayers(selectedFixture.team1_id) : [];
@@ -456,7 +472,16 @@ export default function RefereeDashboard() {
                         </span>
                       </td>
                       <td>
-                        <button className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={() => selectFixture(f)}>
+                        <button 
+                          className={`btn ${f.is_frozen ? '' : 'btn-primary'}`} 
+                          style={{ 
+                            padding: '0.4rem 0.8rem', 
+                            fontSize: '0.8rem',
+                            ...(f.is_frozen ? { background: 'rgba(255, 255, 255, 0.1)', color: 'var(--text-secondary)', cursor: 'not-allowed', borderColor: 'transparent' } : {})
+                          }} 
+                          onClick={() => selectFixture(f)}
+                          disabled={f.is_frozen}
+                        >
                           <ChevronRight size={14} /> Select
                         </button>
                       </td>
@@ -671,6 +696,15 @@ export default function RefereeDashboard() {
                 </tbody>
               </table>
             </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
+            <button 
+              className="btn btn-outline" 
+              style={{ color: 'var(--accent-primary)', borderColor: 'var(--accent-primary)', padding: '0.75rem 1.5rem' }} 
+              onClick={() => setShowLockConfirm(true)}
+            >
+              Lock Match
+            </button>
           </div>
         </div>
       )}
@@ -887,6 +921,55 @@ export default function RefereeDashboard() {
           </div>
         </div>
       )}
+
+      {/* Lock Confirmation Modal */}
+      {showLockConfirm && (
+        <Modal
+          title="Lock Match?"
+          onClose={() => setShowLockConfirm(false)}
+        >
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <AlertTriangle size={24} color="var(--accent-danger)" style={{ flexShrink: 0 }} />
+            <div>
+              <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>
+                Lock this match scorecard?
+              </p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                You will not be able to modify the scorecard once it's locked.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+            <button className="btn btn-outline" onClick={() => setShowLockConfirm(false)}>
+              Cancel
+            </button>
+            <button
+              className="btn"
+              onClick={handleLockMatch}
+              style={{ background: 'var(--accent-danger)', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Lock size={16} />
+              Lock Match
+            </button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function Modal({ title, onClose, children }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem',
+    }} onClick={onClose}>
+      <div className="glass-card animate-fade-in" style={{ maxWidth: '480px', width: '100%', background: 'var(--bg-secondary)', backdropFilter: 'none' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h3 style={{ margin: 0 }}>{title}</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><X size={20} /></button>
+        </div>
+        {children}
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Plus, Users, Calendar, Trash2, ChevronRight, Trophy, X, ListChecks, Edit, Gavel, Check, ZoomIn, ZoomOut, AlertTriangle } from 'lucide-react';
+import { Settings, Plus, Users, Calendar, Trash2, ChevronRight, Trophy, X, ListChecks, Edit, Gavel, Check, ZoomIn, ZoomOut, AlertTriangle, Lock } from 'lucide-react';
 import * as api from '../api/client';
 
 export default function AdminDashboard() {
@@ -268,7 +268,18 @@ export default function AdminDashboard() {
       setFixtures(fixtures.map(f => f.id === editingFixture.id ? res.fixture : f));
       setEditingFixture(null);
       setShowEditFixtureForm(false);
-    } catch (err) { setError(err.message); }
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function handleUnlockFixture(fixtureId) {
+    try {
+      const res = await api.updateFixture(selectedTournament.id, fixtureId, { is_frozen: false });
+      setFixtures(fixtures.map(f => f.id === fixtureId ? res.fixture : f));
+    } catch (err) {
+      alert(err.message);
+    }
   }
 
   async function handleAddPlayer(e) {
@@ -1099,7 +1110,10 @@ export default function AdminDashboard() {
                     <tbody>
                       {fixtures.map(f => (
                         <tr key={f.id}>
-                          <td style={{ fontWeight: 600 }}>{getTeamName(f.team1_id)} <span style={{ color: 'var(--text-secondary)' }}>vs</span> {getTeamName(f.team2_id)}</td>
+                          <td style={{ fontWeight: 600 }}>
+                            {f.is_frozen && <Lock size={14} style={{ color: 'var(--accent-danger)', marginRight: '0.5rem', verticalAlign: 'middle' }} />}
+                            {getTeamName(f.team1_id)} <span style={{ color: 'var(--text-secondary)' }}>vs</span> {getTeamName(f.team2_id)}
+                          </td>
                           <td><span style={{ textTransform: 'capitalize' }}>{f.match_type.replace('_', ' ')}</span></td>
                           <td>{f.date_time ? new Date(f.date_time).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : <span style={{ color: 'var(--text-secondary)' }}>Not Scheduled</span>}</td>
                           <td>
@@ -1109,11 +1123,20 @@ export default function AdminDashboard() {
                           </td>
                           <td>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                              <button
-                                onClick={() => {
-                                  setEditingFixture(f);
-                                  setEditFixtureTeam1(f.team1_id);
-                                  setEditFixtureTeam2(f.team2_id);
+                              {f.is_frozen ? (
+                                <button
+                                  onClick={() => handleUnlockFixture(f.id)}
+                                  style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '4px' }}
+                                  title="Unlock Fixture"
+                                >
+                                  <Lock size={16} />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setEditingFixture(f);
+                                    setEditFixtureTeam1(f.team1_id);
+                                    setEditFixtureTeam2(f.team2_id);
                                   setEditFixtureType(f.match_type);
                                   setEditFixtureDateTime(f.date_time || '');
                                   setEditFixtureStatus(f.status);
@@ -1123,6 +1146,7 @@ export default function AdminDashboard() {
                               >
                                 <Edit size={16} />
                               </button>
+                              )}
                               <button onClick={() => handleDeleteFixture(f.id)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '4px' }}>
                                 <Trash2 size={16} />
                               </button>

@@ -47,6 +47,8 @@ class Fixture(BaseModel):
     match_type: str = "league"
     status: str = "pending"  # pending, in_progress, completed
     date_time: Optional[str] = None
+    is_frozen: bool = False
+
 
 
 class SetScore(BaseModel):

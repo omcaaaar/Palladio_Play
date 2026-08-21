@@ -1405,28 +1405,23 @@ function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, se
                       <React.Fragment key={`add-${team.id}`}>
                         <td style={{ padding: '0.4rem 0.25rem', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}></td>
                         <td colSpan={2} style={{ padding: '0.4rem 0.25rem' }}>
-                          <input
+                          <select
                             className="form-input"
-                            style={{ padding: '0.3rem 0.5rem', fontSize: '0.8rem', width: '100%', minWidth: '80px' }}
-                            placeholder={isFull ? 'Full' : 'Select'}
+                            style={{ padding: '0.3rem 2rem 0.3rem 0.5rem', fontSize: '0.8rem', width: '100%', minWidth: '80px' }}
                             disabled={isFull}
-                            list={`auction-players-${team.id}`}
                             value={form.name}
                             onChange={e => {
                                const val = e.target.value;
                                const selected = availablePlayers.find(p => p.name === val);
-                               // Auto-fill gender if found
-                               if (selected) {
-                                  setAuctionPlayerForms(prev => ({ ...prev, [team.id]: { ...form, name: val, gender: selected.gender } }));
-                               } else {
-                                  setAuctionPlayerForms(prev => ({ ...prev, [team.id]: { ...form, name: val } }));
-                               }
+                               setAuctionPlayerForms(prev => ({
+                                 ...prev,
+                                 [team.id]: { ...form, name: val, gender: selected?.gender || form.gender },
+                               }));
                             }}
-                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onAddPlayer(team.id); } }}
-                          />
-                          <datalist id={`auction-players-${team.id}`}>
-                             {availablePlayers.map(p => <option key={p.id} value={p.name} />)}
-                          </datalist>
+                          >
+                            <option value="">{isFull ? 'Team is full' : 'Select a player'}</option>
+                            {availablePlayers.map(p => <option key={p.id} value={p.name}>{p.name} ({p.gender === 'Male' ? 'M' : 'F'})</option>)}
+                          </select>
                         </td>
                         <td style={{ padding: '0.4rem 0.25rem' }}>
                           <input

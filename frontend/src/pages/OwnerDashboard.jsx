@@ -92,14 +92,31 @@ export default function OwnerDashboard() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
                     {teams.filter((team) => teamPlayers[team.id] !== undefined).map((team) => {
                       const players = teamPlayers[team.id] || [];
-                      const pointsUsed = players.reduce((total, player) => total + (player.points || 0), 0);
-                      const pointsRemaining = auction.total_points - pointsUsed;
+                      const pointsUsed = players.reduce((total, player) => total + Number(player.points || 0), 0);
+                      const pointsRemaining = Number(auction.total_points || 0) - pointsUsed;
+                      const playersRemaining = Number(auction.max_players || 0) - players.length;
+                      const maxBid = playersRemaining > 0
+                        ? pointsRemaining - ((playersRemaining - 1) * Number(auction.starting_bid || 0))
+                        : 0;
 
                       return (
                         <div key={team.id} style={{ border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem', background: 'rgba(59, 130, 246, 0.08)' }}>
                             <h4 style={{ margin: 0 }}>{team.name}</h4>
                             <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>{pointsUsed} pts</span>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', padding: '0.75rem 1rem', borderBottom: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)' }}>
+                            {[
+                              ['Points consumed', pointsUsed, 'var(--accent-primary)'],
+                              ['Points left', pointsRemaining, pointsRemaining >= 0 ? 'var(--accent-secondary)' : 'var(--accent-danger)'],
+                              ['Players left', playersRemaining, playersRemaining > 0 ? 'var(--text-primary)' : 'var(--accent-secondary)'],
+                              ['Max bid', Math.max(0, maxBid), maxBid > 0 ? '#f59e0b' : 'var(--accent-danger)'],
+                            ].map(([label, value, color]) => (
+                              <div key={label} style={{ minWidth: 0 }}>
+                                <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', marginBottom: '0.2rem' }}>{label}</div>
+                                <strong style={{ color, fontSize: '0.95rem' }}>{value}</strong>
+                              </div>
+                            ))}
                           </div>
                           <div className="table-container" style={{ border: 0, borderRadius: 0 }}>
                             <table>
@@ -126,10 +143,6 @@ export default function OwnerDashboard() {
                                 )}
                               </tbody>
                             </table>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 1rem', borderTop: '1px solid var(--glass-border)', fontSize: '0.85rem' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>Points remaining</span>
-                            <strong style={{ color: pointsRemaining >= 0 ? 'var(--accent-secondary)' : 'var(--accent-danger)' }}>{pointsRemaining}</strong>
                           </div>
                         </div>
                       );

@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import RefereeDashboard from './pages/RefereeDashboard';
 import BroadcasterDashboard from './pages/BroadcasterDashboard';
+import OwnerDashboard from './pages/OwnerDashboard';
 
 function Navbar({ user, logout }) {
   const location = useLocation();
@@ -29,6 +30,9 @@ function Navbar({ user, logout }) {
         )}
         {user?.role === 'broadcaster' && (
           <Link to="/broadcaster" className={`nav-link ${location.pathname.startsWith('/broadcaster') ? 'active' : ''}`}>Broadcaster</Link>
+        )}
+        {user?.role === 'owner' && (
+          <Link to="/owner" className={`nav-link ${location.pathname.startsWith('/owner') ? 'active' : ''}`}>Owner</Link>
         )}
         
         {!user ? (
@@ -54,6 +58,7 @@ function App() {
     if (role === 'admin') navigate('/admin');
     else if (role === 'referee') navigate('/referee');
     else if (role === 'broadcaster') navigate('/broadcaster');
+    else if (role === 'owner') navigate('/owner');
   };
 
   const handleLogout = () => {
@@ -68,9 +73,11 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
+          <Route path="/owner-login" element={<Login onLogin={handleLogin} fixedRole="owner" />} />
           <Route path="/admin/*" element={user?.role === 'admin' ? <AdminDashboard /> : <Login onLogin={handleLogin} />} />
           <Route path="/referee/*" element={user?.role === 'referee' ? <RefereeDashboard /> : <Login onLogin={handleLogin} />} />
           <Route path="/broadcaster/*" element={user?.role === 'broadcaster' ? <BroadcasterDashboard /> : <Login onLogin={handleLogin} />} />
+          <Route path="/owner/*" element={user?.role === 'owner' ? <OwnerDashboard /> : <Login onLogin={handleLogin} fixedRole="owner" />} />
         </Routes>
       </main>
     </div>

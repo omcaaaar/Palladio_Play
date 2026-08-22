@@ -186,6 +186,41 @@ def add_fixture(tournament_id: str, fixture_data: dict):
         data["fixtures"].append(fixture_data)
         _write(tournament_id, data)
 
+def generate_league_fixtures(tournament_id: str) -> List[dict]:
+    import itertools
+    from models import Fixture
+    data = _read(tournament_id)
+    if not data:
+        return []
+
+    # Filter out existing league fixtures
+    data["fixtures"] = [f for f in data.get("fixtures", []) if f.get("match_type") != "league"]
+
+    teams = data.get("teams", [])
+    
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for t in teams:
+        grp = t.get("group", "").strip()
+        if grp:
+            groups[grp].append(t)
+    
+    new_fixtures = []
+    for grp, grp_teams in groups.items():
+        for t1, t2 in itertools.combinations(grp_teams, 2):
+            fixture = Fixture(
+                tournament_id=tournament_id,
+                team1_id=t1["id"],
+                team2_id=t2["id"],
+                match_type="league",
+                status="pending"
+            ).model_dump()
+            new_fixtures.append(fixture)
+            
+    data["fixtures"].extend(new_fixtures)
+    _write(tournament_id, data)
+    return data["fixtures"]
+
 def update_fixture(tournament_id: str, fixture_id: str, update_data: dict) -> dict | None:
     data = _read(tournament_id)
     if data:

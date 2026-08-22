@@ -460,6 +460,15 @@ export default function AdminDashboard() {
     } catch (err) { setError(err.message); }
   }
 
+  async function executeGenerateLeagueFixtures() {
+    try {
+      await api.generateLeagueFixtures(selectedTournament.id);
+      const updatedFixtures = await api.getFixtures(selectedTournament.id);
+      setFixtures(updatedFixtures);
+      setPendingConfirmation(null);
+    } catch (err) { setError(err.message); }
+  }
+
   function handleConfirmAction() {
     if (pendingConfirmation?.type === 'event') {
       executeDeleteEvent(pendingConfirmation.id, pendingConfirmation.name);
@@ -469,6 +478,8 @@ export default function AdminDashboard() {
       executeDeletePlayer(pendingConfirmation.id);
     } else if (pendingConfirmation?.type === 'auction') {
       executeEndAuction();
+    } else if (pendingConfirmation?.type === 'generateLeague') {
+      executeGenerateLeagueFixtures();
     }
   }
 
@@ -682,6 +693,8 @@ export default function AdminDashboard() {
         <Modal
           title={pendingConfirmation.type === 'auction'
             ? 'End Auction?'
+            : pendingConfirmation.type === 'generateLeague'
+              ? 'Generate League Fixtures?'
             : `Delete ${pendingConfirmation.type === 'event' ? 'Event Type' : pendingConfirmation.type === 'player' ? 'Player' : 'Fixture'}?`}
           onClose={() => setPendingConfirmation(null)}
         >
@@ -691,11 +704,15 @@ export default function AdminDashboard() {
               <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>
                 {pendingConfirmation.type === 'auction'
                   ? 'End the live auction?'
+                  : pendingConfirmation.type === 'generateLeague'
+                    ? 'Generate round robin league fixtures for all groups?'
                   : `Delete “${pendingConfirmation.name}”?`}
               </p>
               <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 {pendingConfirmation.type === 'auction'
                   ? 'Players will be synced to their teams and the auction will be marked as ended.'
+                  : pendingConfirmation.type === 'generateLeague'
+                    ? 'This will delete any existing league fixtures and generate new round robin fixtures for all groups.'
                   : pendingConfirmation.type === 'event'
                     ? 'This will permanently remove the event type and update the remaining event numbering.'
                     : pendingConfirmation.type === 'player'
@@ -716,6 +733,8 @@ export default function AdminDashboard() {
               <Trash2 size={16} />
               {pendingConfirmation.type === 'auction'
                 ? 'End Auction'
+                : pendingConfirmation.type === 'generateLeague'
+                  ? 'Generate Fixtures'
                 : pendingConfirmation.type === 'player' ? 'Delete Player' : 'Delete'}
             </button>
           </div>
@@ -1084,9 +1103,14 @@ export default function AdminDashboard() {
             <div className="glass-card animate-fade-in">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <h3 style={{ margin: 0 }}>Match Fixtures</h3>
-                <button className="btn btn-primary" style={{ fontSize: '0.875rem' }} onClick={() => setShowFixtureForm(true)} disabled={teams.length < 2}>
-                  <Plus size={16} /> Add Fixture
-                </button>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button className="btn btn-outline" style={{ fontSize: '0.875rem' }} onClick={() => setPendingConfirmation({ type: 'generateLeague' })} disabled={teams.length < 2}>
+                    <Calendar size={16} /> Generate Fixtures
+                  </button>
+                  <button className="btn btn-primary" style={{ fontSize: '0.875rem' }} onClick={() => setShowFixtureForm(true)} disabled={teams.length < 2}>
+                    <Plus size={16} /> Add Fixture
+                  </button>
+                </div>
               </div>
 
 

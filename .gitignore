@@ -1,0 +1,9 @@
+./node_modules
+./dist
+.env
+backend/__pycache__
+backend/node_modules
+backend/routers/*
+backend/data/*
+backend/package-lock.json
+frontend/package-lock.json

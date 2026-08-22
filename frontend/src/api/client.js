@@ -98,6 +98,11 @@ export const updateFixture = (tid, fixtureId, data) =>
     body: JSON.stringify(data),
   });
 
+export const generateLeagueFixtures = (tid) =>
+  request(`/api/admin/tournaments/${tid}/generate-league-fixtures`, {
+    method: 'POST',
+  });
+
 
 // ── Referee / Scorecards ─────────────────────────────────────
 export const getScorecardsForFixture = (tid, fixtureId) =>

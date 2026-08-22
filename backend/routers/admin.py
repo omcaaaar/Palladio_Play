@@ -138,6 +138,11 @@ def delete_fixture(tid: str, fixture_id: str):
         raise HTTPException(404, "Fixture not found")
     return {"message": "Fixture deleted"}
 
+@router.post("/tournaments/{tid}/generate-league-fixtures")
+def generate_league_fixtures(tid: str):
+    fixtures = database.generate_league_fixtures(tid)
+    return {"message": "League fixtures generated successfully", "fixtures": fixtures}
+
 # ── Auction ───────────────────────────────────────────────────
 
 @router.get("/tournaments/{tid}/auction")

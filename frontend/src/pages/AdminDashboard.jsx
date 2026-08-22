@@ -34,6 +34,7 @@ export default function AdminDashboard() {
   const [showFixtureForm, setShowFixtureForm] = useState(false);
   const [showEditFixtureForm, setShowEditFixtureForm] = useState(false);
   const [showEditEventForm, setShowEditEventForm] = useState(false);
+  const [showEditPlayerForm, setShowEditPlayerForm] = useState(false);
   const [showPlayerForm, setShowPlayerForm] = useState(null); // team id or null
   const [showDeleteTournamentConfirm, setShowDeleteTournamentConfirm] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState(null);
@@ -64,6 +65,9 @@ export default function AdminDashboard() {
   const [fixtureDateTime, setFixtureDateTime] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [playerGender, setPlayerGender] = useState('Male');
+  const [editingPlayer, setEditingPlayer] = useState(null);
+  const [editPlayerName, setEditPlayerName] = useState('');
+  const [editPlayerGender, setEditPlayerGender] = useState('Male');
 
   // Edit Fixture Form states
   const [editingFixture, setEditingFixture] = useState(null);
@@ -342,6 +346,29 @@ export default function AdminDashboard() {
       const res = await api.addPlayer(selectedTournament.id, { name: newPlayerName.trim(), gender: newPlayerGender });
       setTournamentPlayers([...tournamentPlayers, res.player]);
       setNewPlayerName('');
+    } catch (err) { setError(err.message); }
+  }
+
+  function openEditPlayer(player) {
+    setEditingPlayer(player);
+    setEditPlayerName(player.name);
+    setEditPlayerGender(player.gender);
+    setShowEditPlayerForm(true);
+  }
+
+  async function handleEditPlayer(e) {
+    e.preventDefault();
+    const name = editPlayerName.trim();
+    if (!name) return;
+    if (tournamentPlayers.some(p => p.id !== editingPlayer.id && p.name.toLowerCase() === name.toLowerCase())) {
+      setError('A player with this name already exists.');
+      return;
+    }
+    try {
+      const res = await api.updatePlayer(selectedTournament.id, editingPlayer.id, { name, gender: editPlayerGender });
+      setTournamentPlayers(tournamentPlayers.map(p => p.id === editingPlayer.id ? res.player : p));
+      setShowEditPlayerForm(false);
+      setEditingPlayer(null);
     } catch (err) { setError(err.message); }
   }
 
@@ -722,6 +749,25 @@ export default function AdminDashboard() {
         </Modal>
       )}
 
+      {showEditPlayerForm && editingPlayer && (
+        <Modal title="Edit Registered Player" onClose={() => { setShowEditPlayerForm(false); setEditingPlayer(null); }}>
+          <form onSubmit={handleEditPlayer}>
+            <div className="form-group">
+              <label className="form-label">Player Name</label>
+              <input className="form-input" value={editPlayerName} onChange={e => setEditPlayerName(e.target.value)} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Gender</label>
+              <select className="form-input" value={editPlayerGender} onChange={e => setEditPlayerGender(e.target.value)} required>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Save Changes</button>
+          </form>
+        </Modal>
+      )}
+
       {/* Team Form Modal */}
       {showTeamForm && (
         <Modal title="Add New Team" onClose={() => setShowTeamForm(false)}>
@@ -999,6 +1045,9 @@ export default function AdminDashboard() {
                           <td>{p.name}</td>
                           <td>{p.gender}</td>
                           <td style={{ textAlign: 'right' }}>
+                            <button onClick={() => openEditPlayer(p)} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '0.25rem' }} title="Edit player">
+                              <Edit size={16} />
+                            </button>
                             <button onClick={() => handleGlobalDeletePlayer(p.id)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '0.25rem' }}>
                               <Trash2 size={16} />
                             </button>

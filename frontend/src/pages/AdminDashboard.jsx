@@ -1401,6 +1401,7 @@ function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, se
                     const players = team_players[team.id] || [];
                     const isFull = players.length >= max_players;
                     const form = auctionPlayerForms?.[team.id] || { name: '', gender: 'Male', points: '' };
+                    const sortedAvailablePlayers = [...availablePlayers].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
                     return (
                       <React.Fragment key={`add-${team.id}`}>
                         <td style={{ padding: '0.4rem 0.25rem', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}></td>
@@ -1420,7 +1421,7 @@ function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, se
                             }}
                           >
                             <option value="">{isFull ? 'Team is full' : 'Select a player'}</option>
-                            {availablePlayers.map(p => <option key={p.id} value={p.name}>{p.name} ({p.gender === 'Male' ? 'M' : 'F'})</option>)}
+                            {sortedAvailablePlayers.map(p => <option key={p.id} value={p.name}>{p.name} ({p.gender === 'Male' ? 'M' : 'F'})</option>)}
                           </select>
                         </td>
                         <td style={{ padding: '0.4rem 0.25rem' }}>

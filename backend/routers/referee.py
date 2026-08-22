@@ -14,6 +14,27 @@ def list_scorecards_for_fixture(tid: str, fixture_id: str):
 
 @router.post("/tournaments/{tid}/scorecards")
 async def create_scorecard(tid: str, sc: ScorecardCreate, request: Request):
+    existing = database.get_scorecards_for_fixture(tid, sc.fixture_id)
+    for existing_sc in existing:
+        if existing_sc["event_id"] == sc.event_id:
+            update_data = {
+                "team1_player1": sc.team1_player1,
+                "team1_player2": sc.team1_player2,
+                "team2_player1": sc.team2_player1,
+                "team2_player2": sc.team2_player2,
+                "num_sets": sc.num_sets,
+                "points_per_set": sc.points_per_set,
+                "event_points": sc.event_points,
+                "status": sc.status
+            }
+            updated = database.update_scorecard(tid, existing_sc["id"], update_data)
+            await request.app.state.ws_manager.broadcast({
+                "type": "scorecard_updated",
+                "tournament_id": tid,
+                "data": updated,
+            })
+            return {"message": "Scorecard updated (duplicate prevented)", "scorecard": updated}
+
     scorecard = Scorecard(
         fixture_id=sc.fixture_id,
         event_id=sc.event_id,
@@ -62,6 +83,9 @@ def update_fixture_status_from_scorecards(tid: str, fixture_id: str):
                     database.update_fixture(tid, f["id"], {"status": "on_hold"})
                     
     database.update_fixture(tid, fixture_id, {"status": new_status})
+    
+    if new_status == "completed":
+        database.resolve_placeholders(tid)
 
 @router.put("/tournaments/{tid}/scorecards/{scorecard_id}/start")
 async def start_scorecard(tid: str, scorecard_id: str, request: Request):

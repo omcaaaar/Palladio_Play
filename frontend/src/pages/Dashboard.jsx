@@ -116,8 +116,9 @@ export default function Dashboard() {
   const scorecards = tournamentData.scorecards || [];
   const liveFixtures = fixtures.filter(f => f.status === 'in_progress');
 
-  function getTeamName(id) {
-    return teams.find(t => t.id === id)?.name || id;
+  function getTeamName(id, placeholder) {
+    if (id) return teams.find(t => t.id === id)?.name || id;
+    return 'TBD';
   }
   function getEventName(id) {
     return events.find(e => e.id === id)?.name || id;
@@ -334,7 +335,7 @@ export default function Dashboard() {
             {liveFixtures.map(fixture => (
               <div key={fixture.id} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-lg)', padding: '1rem' }}>
                 <h4 style={{ textAlign: 'center', margin: '0 0 1rem 0', fontSize: '1.2rem' }}>
-                  {getTeamName(fixture.team1_id)} <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0 0.5rem' }}>vs</span> {getTeamName(fixture.team2_id)}
+                  {getTeamName(fixture.team1_id, fixture.team1_placeholder)} <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0 0.5rem' }}>vs</span> {getTeamName(fixture.team2_id, fixture.team2_placeholder)}
                 </h4>
                 <FixtureEventsOverview fixture={fixture} events={events} scorecards={scorecards} getTeamName={getTeamName} />
               </div>
@@ -387,7 +388,7 @@ export default function Dashboard() {
             zIndex: 1
           }}>
             <h4 style={{ textAlign: 'center', margin: '0 0 0.5rem 0', fontSize: '1.4rem', color: 'var(--text-primary)' }}>
-              {getTeamName(upcomingMatch.team1_id)} <span style={{ color: 'var(--text-secondary)', fontSize: '1rem', margin: '0 0.5rem' }}>vs</span> {getTeamName(upcomingMatch.team2_id)}
+              {getTeamName(upcomingMatch.team1_id, upcomingMatch.team1_placeholder)} <span style={{ color: 'var(--text-secondary)', fontSize: '1rem', margin: '0 0.5rem' }}>vs</span> {getTeamName(upcomingMatch.team2_id, upcomingMatch.team2_placeholder)}
             </h4>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
               <Clock size={18} color="#fbbf24" />
@@ -471,7 +472,7 @@ export default function Dashboard() {
                       <td style={{ fontWeight: 600 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                           {expandedFixtures[f.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                          <span>{getTeamName(f.team1_id)} <span style={{ color: 'var(--text-secondary)' }}>vs</span> {getTeamName(f.team2_id)}</span>
+                          <span>{getTeamName(f.team1_id, f.team1_placeholder)} <span style={{ color: 'var(--text-secondary)' }}>vs</span> {getTeamName(f.team2_id, f.team2_placeholder)}</span>
                         </div>
                       </td>
                       <td style={{ textTransform: 'capitalize' }}>{f.match_type.replace('_', ' ')}</td>
@@ -525,14 +526,14 @@ export default function Dashboard() {
                     if (sc.winner === 'team1') t1pts += pts;
                     else if (sc.winner === 'team2') t2pts += pts;
                   });
-                  const winnerName = t1pts > t2pts ? getTeamName(f.team1_id) : (t2pts > t1pts ? getTeamName(f.team2_id) : 'Draw');
+                  const winnerName = t1pts > t2pts ? getTeamName(f.team1_id, f.team1_placeholder) : (t2pts > t1pts ? getTeamName(f.team2_id, f.team2_placeholder) : 'Draw');
                   return (
                     <React.Fragment key={f.id}>
                       <tr onClick={() => toggleFixture(f.id)} style={{ cursor: 'pointer' }} className="hoverable-row">
                         <td style={{ fontWeight: 600 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                             {expandedFixtures[f.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                            <span>{getTeamName(f.team1_id)} <span style={{ color: 'var(--text-secondary)' }}>vs</span> {getTeamName(f.team2_id)}</span>
+                            <span>{getTeamName(f.team1_id, f.team1_placeholder)} <span style={{ color: 'var(--text-secondary)' }}>vs</span> {getTeamName(f.team2_id, f.team2_placeholder)}</span>
                           </div>
                         </td>
                         <td style={{ textTransform: 'capitalize' }}>{f.match_type.replace('_', ' ')}</td>

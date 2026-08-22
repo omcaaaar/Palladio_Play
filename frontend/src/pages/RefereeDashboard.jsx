@@ -109,6 +109,7 @@ export default function RefereeDashboard() {
   }
 
   function getTeamName(id) {
+    if (!id) return 'TBD';
     return teams.find(t => t.id === id)?.name || id;
   }
 

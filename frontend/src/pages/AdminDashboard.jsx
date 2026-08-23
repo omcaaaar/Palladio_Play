@@ -16,6 +16,8 @@ export default function AdminDashboard() {
   // Player tab states
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerGender, setNewPlayerGender] = useState('Male');
+  const [editingPlayerId, setEditingPlayerId] = useState(null);
+  const [editPlayerForm, setEditPlayerForm] = useState({ name: '', gender: '' });
 
   // Auction state
   const [auction, setAuction] = useState(null);
@@ -447,6 +449,19 @@ export default function AdminDashboard() {
       return;
     }
     setPendingConfirmation({ type: 'player', id: playerId, name: p?.name || 'this player' });
+  }
+
+  async function handleEditPlayerSave(playerId) {
+    if (!editPlayerForm.name.trim()) return;
+    if (tournamentPlayers.some(p => p.id !== playerId && p.name.toLowerCase() === editPlayerForm.name.trim().toLowerCase())) {
+      setError('A player with this name already exists.');
+      return;
+    }
+    try {
+      const res = await api.updatePlayer(selectedTournament.id, playerId, { name: editPlayerForm.name.trim(), gender: editPlayerForm.gender });
+      setTournamentPlayers(tournamentPlayers.map(p => p.id === playerId ? res.player : p));
+      setEditingPlayerId(null);
+    } catch (err) { setError(err.message); }
   }
 
   async function executeDeletePlayer(playerId) {
@@ -1192,13 +1207,64 @@ export default function AdminDashboard() {
                     <tbody>
                       {tournamentPlayers.map(p => (
                         <tr key={p.id}>
-                          <td>{p.name}</td>
-                          <td>{p.gender}</td>
-                          <td style={{ textAlign: 'right' }}>
-                            <button onClick={() => handleGlobalDeletePlayer(p.id)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '0.25rem' }}>
-                              <Trash2 size={16} />
-                            </button>
-                          </td>
+                          {editingPlayerId === p.id ? (
+                            <>
+                              <td>
+                                <input
+                                  type="text"
+                                  className="form-input"
+                                  value={editPlayerForm.name}
+                                  onChange={e => setEditPlayerForm({ ...editPlayerForm, name: e.target.value })}
+                                />
+                              </td>
+                              <td>
+                                <select
+                                  className="form-input"
+                                  value={editPlayerForm.gender}
+                                  onChange={e => setEditPlayerForm({ ...editPlayerForm, gender: e.target.value })}
+                                >
+                                  {selectedTournament.category === 'Kids' ? (
+                                    <>
+                                      <option value="Junior">Junior</option>
+                                      <option value="Senior">Senior</option>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <option value="Male">Male</option>
+                                      <option value="Female">Female</option>
+                                    </>
+                                  )}
+                                </select>
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <button onClick={() => handleEditPlayerSave(p.id)} style={{ background: 'none', border: 'none', color: 'var(--success-color, #10b981)', cursor: 'pointer', padding: '0.25rem', marginRight: '0.5rem' }}>
+                                  <Check size={16} />
+                                </button>
+                                <button onClick={() => setEditingPlayerId(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem' }}>
+                                  <X size={16} />
+                                </button>
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td>{p.name}</td>
+                              <td>{p.gender}</td>
+                              <td style={{ textAlign: 'right' }}>
+                                <button
+                                  onClick={() => {
+                                    setEditingPlayerId(p.id);
+                                    setEditPlayerForm({ name: p.name, gender: p.gender });
+                                  }}
+                                  style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '0.25rem', marginRight: '0.5rem' }}
+                                >
+                                  <Edit size={16} />
+                                </button>
+                                <button onClick={() => handleGlobalDeletePlayer(p.id)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '0.25rem' }}>
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            </>
+                          )}
                         </tr>
                       ))}
                     </tbody>

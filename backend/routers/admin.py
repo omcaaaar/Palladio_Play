@@ -86,6 +86,21 @@ def delete_player(tid: str, player_id: str):
         raise HTTPException(404, "Player not found")
     return {"message": "Player deleted"}
 
+@router.put("/tournaments/{tid}/players/{player_id}")
+def update_player(tid: str, player_id: str, player: TournamentPlayer):
+    data = player.model_dump()
+    data["tournament_id"] = tid
+    data["id"] = player_id
+    # Check for uniqueness if name is provided
+    if "name" in data:
+        existing_players = database.get_players(tid)
+        for p in existing_players:
+            if p["id"] != player_id and p["name"].lower() == data["name"].lower():
+                raise HTTPException(400, "A player with this name already exists")
+    if not database.update_player(tid, player_id, data):
+        raise HTTPException(404, "Player not found")
+    return {"message": "Player updated", "player": data}
+
 # ── Events ────────────────────────────────────────────────────
 
 @router.get("/tournaments/{tid}/events")

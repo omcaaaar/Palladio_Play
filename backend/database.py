@@ -142,6 +142,19 @@ def delete_player(tournament_id: str, player_id: str) -> bool:
             return True
     return False
 
+def update_player(tournament_id: str, player_id: str, player_data: dict) -> bool:
+    data = _read(tournament_id)
+    if data and "players" in data:
+        for idx, p in enumerate(data["players"]):
+            if p["id"] == player_id:
+                for k, v in player_data.items():
+                    if k != "id":
+                        data["players"][idx][k] = v
+                _write(tournament_id, data)
+                return True
+    return False
+
+
 # ── Events ────────────────────────────────────────────────────
 
 def get_events(tournament_id: str) -> List[dict]:

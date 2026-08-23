@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [tournaments, setTournaments] = useState([]);
   const [selectedTid, setSelectedTid] = useState('');
   const [tournament, setTournament] = useState(null);
+  const [isAuctionLive, setIsAuctionLive] = useState(false);
 
   useEffect(() => {
     api.getTournaments().then(tournaments => {
@@ -30,7 +31,10 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (selectedTid) api.getTournamentFull(selectedTid).then(setTournament).catch(() => {});
+    if (selectedTid) {
+      api.getTournamentFull(selectedTid).then(setTournament).catch(() => {});
+      api.getPublicAuction(selectedTid).then(auction => setIsAuctionLive(auction?.status === 'live')).catch(() => setIsAuctionLive(false));
+    }
   }, [selectedTid]);
 
   const handleTournamentChange = event => {
@@ -42,5 +46,5 @@ export default function Dashboard() {
   const youtubeLink = tournament?.tournament?.youtube_link || import.meta.env.VITE_YOUTUBE_HANDLE;
   const isLive = tournament?.tournament?.is_live;
 
-  return <div className="dashboard-home animate-fade-in"><div className="dashboard-heading"><div><p className="eyebrow">PALLADIO PLAY</p><h1>Tournament Hub</h1><p className="dashboard-subtitle">Everything happening across the tournament, one tap away.</p></div><div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}><a href={isLive && youtubeLink ? `https://youtube.com/${youtubeLink}/live` : undefined} target={isLive ? '_blank' : undefined} rel={isLive ? 'noopener noreferrer' : undefined} className="btn btn-outline" aria-disabled={!isLive} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isLive ? '#ff0000' : 'var(--text-secondary)', cursor: isLive ? 'pointer' : 'not-allowed', opacity: youtubeLink ? 1 : 0.5, pointerEvents: isLive && youtubeLink ? 'auto' : 'none' }}><Play size={20} /> Watch YouTube Live</a><Activity size={42} color="var(--accent-secondary)" className="dashboard-mark" /></div></div>{tournaments.length > 0 && <div className="dashboard-tournament-select" style={{ marginBottom: '1.5rem' }}><label className="form-label" htmlFor="dashboard-tournament">Tournament</label><select id="dashboard-tournament" className="form-input tournament-select" value={selectedTid} onChange={handleTournamentChange}>{tournaments.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>}<div className="dashboard-tiles">{tiles.map(({ title, description, path, icon: Icon, tone }) => <Link key={path} to={path} className={`dashboard-tile tile-${tone}`}><span className="tile-icon" aria-hidden="true"><Icon size={25} strokeWidth={2.25} /></span><span className="tile-copy"><strong>{title}</strong><span>{description}</span></span><span className="tile-arrow" aria-hidden="true">→</span></Link>)}</div></div>;
+  return <div className="dashboard-home animate-fade-in"><div className="dashboard-heading"><div><p className="eyebrow">PALLADIO PLAY</p><h1>Tournament Hub</h1><p className="dashboard-subtitle">Everything happening across the tournament, one tap away.</p></div><div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}><a href={isLive && youtubeLink ? `https://youtube.com/${youtubeLink}/live` : undefined} target={isLive ? '_blank' : undefined} rel={isLive ? 'noopener noreferrer' : undefined} className="btn btn-outline" aria-disabled={!isLive} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isLive ? '#ff0000' : 'var(--text-secondary)', cursor: isLive ? 'pointer' : 'not-allowed', opacity: youtubeLink ? 1 : 0.5, pointerEvents: isLive && youtubeLink ? 'auto' : 'none' }}><Play size={20} /> Watch YouTube Live</a><Activity size={42} color="var(--accent-secondary)" className="dashboard-mark" /></div></div>{tournaments.length > 0 && <div className="dashboard-tournament-select" style={{ marginBottom: '1.5rem' }}><label className="form-label" htmlFor="dashboard-tournament">Tournament</label><select id="dashboard-tournament" className="form-input tournament-select" value={selectedTid} onChange={handleTournamentChange}>{tournaments.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>}<div className="dashboard-tiles">{tiles.filter(tile => tile.path !== '/auction' || isAuctionLive).map(({ title, description, path, icon: Icon, tone }) => <Link key={path} to={path} className={`dashboard-tile tile-${tone}`}><span className="tile-icon" aria-hidden="true"><Icon size={25} strokeWidth={2.25} /></span><span className="tile-copy"><strong>{title}</strong><span>{description}</span></span><span className="tile-arrow" aria-hidden="true">→</span></Link>)}</div></div>;
 }

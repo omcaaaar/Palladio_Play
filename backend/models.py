@@ -10,6 +10,7 @@ class Tournament(BaseModel):
     id: str = Field(default_factory=generate_id)
     name: str
     sport: str = "Badminton"
+    category: str = "Adults"  # "Adults" or "Kids"
     youtube_link: str = ""
     is_live: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
@@ -42,11 +43,15 @@ class Event(BaseModel):
 class Fixture(BaseModel):
     id: str = Field(default_factory=generate_id)
     tournament_id: str = ""
-    team1_id: str
-    team2_id: str
+    team1_id: str = ""
+    team2_id: str = ""
+    team1_placeholder: Optional[str] = None
+    team2_placeholder: Optional[str] = None
     match_type: str = "league"
     status: str = "pending"  # pending, in_progress, completed
     date_time: Optional[str] = None
+    is_frozen: bool = False
+
 
 
 class SetScore(BaseModel):

@@ -14,6 +14,27 @@ def list_scorecards_for_fixture(tid: str, fixture_id: str):
 
 @router.post("/tournaments/{tid}/scorecards")
 async def create_scorecard(tid: str, sc: ScorecardCreate, request: Request):
+    existing = database.get_scorecards_for_fixture(tid, sc.fixture_id)
+    for existing_sc in existing:
+        if existing_sc["event_id"] == sc.event_id:
+            update_data = {
+                "team1_player1": sc.team1_player1,
+                "team1_player2": sc.team1_player2,
+                "team2_player1": sc.team2_player1,
+                "team2_player2": sc.team2_player2,
+                "num_sets": sc.num_sets,
+                "points_per_set": sc.points_per_set,
+                "event_points": sc.event_points,
+                "status": sc.status
+            }
+            updated = database.update_scorecard(tid, existing_sc["id"], update_data)
+            await request.app.state.ws_manager.broadcast({
+                "type": "scorecard_updated",
+                "tournament_id": tid,
+                "data": updated,
+            })
+            return {"message": "Scorecard updated (duplicate prevented)", "scorecard": updated}
+
     scorecard = Scorecard(
         fixture_id=sc.fixture_id,
         event_id=sc.event_id,
@@ -44,9 +65,12 @@ def update_fixture_status_from_scorecards(tid: str, fixture_id: str):
     
     any_in_progress = any(sc["status"] == "in_progress" for sc in scorecards)
     any_completed = any(sc["status"] == "completed" for sc in scorecards)
-    all_completed = all(sc["status"] == "completed" for sc in scorecards)
+    all_completed = all(sc["status"] in ["completed", "abandoned"] for sc in scorecards)
+    all_abandoned = all(sc["status"] == "abandoned" for sc in scorecards)
     
-    if all_completed:
+    if all_abandoned:
+        new_status = "abandoned"
+    elif all_completed:
         new_status = "completed"
     elif any_in_progress or any_completed:
         new_status = "in_progress"
@@ -62,6 +86,9 @@ def update_fixture_status_from_scorecards(tid: str, fixture_id: str):
                     database.update_fixture(tid, f["id"], {"status": "on_hold"})
                     
     database.update_fixture(tid, fixture_id, {"status": new_status})
+    
+    if new_status == "completed":
+        database.resolve_placeholders(tid)
 
 @router.put("/tournaments/{tid}/scorecards/{scorecard_id}/start")
 async def start_scorecard(tid: str, scorecard_id: str, request: Request):
@@ -257,3 +284,54 @@ async def complete_scorecard(tid: str, scorecard_id: str, body: dict, request: R
         "data": updated,
     })
     return {"message": "Event completed", "scorecard": updated}
+
+@router.put("/tournaments/{tid}/scorecards/{scorecard_id}/abandon")
+async def abandon_scorecard(tid: str, scorecard_id: str, request: Request):
+    updated = database.update_scorecard(tid, scorecard_id, {
+        "status": "abandoned",
+        "winner": "",
+    })
+    if not updated:
+        raise HTTPException(404, "Scorecard not found")
+
+    update_fixture_status_from_scorecards(tid, updated["fixture_id"])
+
+    await request.app.state.ws_manager.broadcast({
+        "type": "scorecard_updated",
+        "tournament_id": tid,
+        "data": updated,
+    })
+    return {"message": "Event abandoned", "scorecard": updated}
+
+@router.put("/tournaments/{tid}/fixtures/{fixture_id}/abandon")
+async def abandon_fixture(tid: str, fixture_id: str, request: Request):
+    scorecards = database.get_scorecards_for_fixture(tid, fixture_id)
+    if not scorecards:
+        raise HTTPException(404, "Fixture not found or has no events")
+
+    for sc in scorecards:
+        if sc["status"] != "completed":
+            database.update_scorecard(tid, sc["id"], {
+                "status": "abandoned",
+                "winner": ""
+            })
+            await request.app.state.ws_manager.broadcast({
+                "type": "scorecard_updated",
+                "tournament_id": tid,
+                "data": database.get_scorecard(tid, sc["id"]),
+            })
+
+    update_fixture_status_from_scorecards(tid, fixture_id)
+
+    updated_fixture = next((f for f in database.get_fixtures(tid) if f["id"] == fixture_id), None)
+    if updated_fixture:
+        updated_fixture = database.update_fixture(tid, fixture_id, {"is_frozen": True})
+
+    # Also notify about fixture status change
+    await request.app.state.ws_manager.broadcast({
+        "type": "fixture_updated",
+        "tournament_id": tid,
+        "data": updated_fixture,
+    })
+    
+    return {"message": "Fixture abandoned", "fixture": updated_fixture}

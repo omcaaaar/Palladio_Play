@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Plus, Users, Calendar, Trash2, ChevronRight, Trophy, X, ListChecks, Edit, Gavel, Check, ZoomIn, ZoomOut, AlertTriangle } from 'lucide-react';
+import { Settings, Plus, Users, Calendar, Trash2, ChevronRight, Trophy, X, ListChecks, Edit, Gavel, Check, ZoomIn, ZoomOut, AlertTriangle, Lock } from 'lucide-react';
 import * as api from '../api/client';
 
 export default function AdminDashboard() {
@@ -12,10 +12,12 @@ export default function AdminDashboard() {
   const [events, setEvents] = useState([]);
   const [fixtures, setFixtures] = useState([]);
   const [tournamentPlayers, setTournamentPlayers] = useState([]);
-  
+
   // Player tab states
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerGender, setNewPlayerGender] = useState('Male');
+  const [editingPlayerId, setEditingPlayerId] = useState(null);
+  const [editPlayerForm, setEditPlayerForm] = useState({ name: '', gender: '' });
 
   // Auction state
   const [auction, setAuction] = useState(null);
@@ -47,20 +49,33 @@ export default function AdminDashboard() {
   // Form states
   const [tournamentName, setTournamentName] = useState('');
   const [tournamentSport, setTournamentSport] = useState('Badminton');
+  const [tournamentCategory, setTournamentCategory] = useState('Adults');
   const [editTournamentName, setEditTournamentName] = useState('');
   const [teamName, setTeamName] = useState('');
   const [teamOwners, setTeamOwners] = useState('');
   const [teamGroup, setTeamGroup] = useState('');
-  const EVENT_TYPES = [
+  const EVENT_TYPES_ADULTS = [
     "Men's Singles",
     "Men's Doubles",
     "Women's Singles",
     "Women's Doubles",
     "Mixed Doubles"
   ];
-  const [eventName, setEventName] = useState(EVENT_TYPES[0]);
+  const EVENT_TYPES_KIDS = [
+    "Junior Singles",
+    "Senior Singles",
+    "Junior Doubles",
+    "Senior Doubles",
+    "Mixed Doubles"
+  ];
+  const currentEventTypes = selectedTournament?.category === 'Kids' ? EVENT_TYPES_KIDS : EVENT_TYPES_ADULTS;
+  const [eventName, setEventName] = useState(EVENT_TYPES_ADULTS[0]);
   const [fixtureTeam1, setFixtureTeam1] = useState('');
   const [fixtureTeam2, setFixtureTeam2] = useState('');
+  const [fixtureTeam1Type, setFixtureTeam1Type] = useState('team');
+  const [fixtureTeam1Placeholder, setFixtureTeam1Placeholder] = useState('');
+  const [fixtureTeam2Type, setFixtureTeam2Type] = useState('team');
+  const [fixtureTeam2Placeholder, setFixtureTeam2Placeholder] = useState('');
   const [fixtureType, setFixtureType] = useState('league');
   const [fixtureDateTime, setFixtureDateTime] = useState('');
   const [playerName, setPlayerName] = useState('');
@@ -73,11 +88,16 @@ export default function AdminDashboard() {
   const [editingFixture, setEditingFixture] = useState(null);
   const [editFixtureTeam1, setEditFixtureTeam1] = useState('');
   const [editFixtureTeam2, setEditFixtureTeam2] = useState('');
+  const [editFixtureTeam1Type, setEditFixtureTeam1Type] = useState('team');
+  const [editFixtureTeam1Placeholder, setEditFixtureTeam1Placeholder] = useState('');
+  const [editFixtureTeam2Type, setEditFixtureTeam2Type] = useState('team');
+  const [editFixtureTeam2Placeholder, setEditFixtureTeam2Placeholder] = useState('');
   const [editFixtureType, setEditFixtureType] = useState('league');
   const [editFixtureDateTime, setEditFixtureDateTime] = useState('');
   const [editFixtureStatus, setEditFixtureStatus] = useState('pending');
 
   const [error, setError] = useState('');
+  const [validationError, setValidationError] = useState(null);
 
   useEffect(() => {
     loadTournaments();
@@ -86,6 +106,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (selectedTournament) {
       loadTournamentData(selectedTournament.id);
+      setNewPlayerGender(selectedTournament.category === 'Kids' ? 'Junior' : 'Male');
     }
   }, [selectedTournament]);
 
@@ -122,12 +143,13 @@ export default function AdminDashboard() {
   async function handleCreateTournament(e) {
     e.preventDefault();
     try {
-      const res = await api.createTournament(tournamentName, tournamentSport);
+      const res = await api.createTournament(tournamentName, tournamentSport, tournamentCategory);
       setTournaments([...tournaments, res.tournament]);
       setSelectedTournament(res.tournament);
       setActiveTab('teams');
       setTournamentName('');
       setTournamentSport('Badminton');
+      setTournamentCategory('Adults');
       setShowTournamentForm(false);
     } catch (err) { setError(err.message); }
   }
@@ -190,7 +212,7 @@ export default function AdminDashboard() {
       const updatedEvents = await api.getEvents(selectedTournament.id);
       setEvents(updatedEvents);
 
-      setEventName(EVENT_TYPES[0]);
+      setEventName(currentEventTypes[0]);
       setShowEventForm(false);
     } catch (err) { setError(err.message); }
   }
@@ -214,7 +236,7 @@ export default function AdminDashboard() {
         name: finalName,
       });
 
-      const oldBaseType = EVENT_TYPES.find(t => editingEvent.name.startsWith(t));
+      const oldBaseType = currentEventTypes.find(t => editingEvent.name.startsWith(t));
       if (oldBaseType && oldBaseType !== editEventName) {
         const remainingOld = events.filter(e => e.id !== editingEvent.id && e.name.startsWith(oldBaseType));
         if (remainingOld.length === 1) {
@@ -238,33 +260,97 @@ export default function AdminDashboard() {
 
   async function handleAddFixture(e) {
     e.preventDefault();
-    if (fixtureTeam1 === fixtureTeam2) {
+    const t1Id = fixtureTeam1Type === 'team' ? fixtureTeam1 : '';
+    const t2Id = fixtureTeam2Type === 'team' ? fixtureTeam2 : '';
+    const t1Ph = fixtureTeam1Type === 'placeholder' ? fixtureTeam1Placeholder : null;
+    const t2Ph = fixtureTeam2Type === 'placeholder' ? fixtureTeam2Placeholder : null;
+
+    if (fixtureTeam1Type === 'team' && fixtureTeam2Type === 'team' && fixtureTeam1 === fixtureTeam2) {
       setError('Please select two different teams');
       return;
     }
+
+    const validatePlaceholder = (ph) => {
+      if (!ph) return null;
+      const parts = ph.split(':');
+      if (parts.length >= 2 && (parts[1].toLowerCase() === 'winner' || parts[1].toLowerCase() === 'loser')) {
+        const targetId = parts[0];
+        if (!fixtures.some(f => f.id === targetId)) {
+          return `Match ID ${targetId} does not exist in the tournament.`;
+        }
+      }
+      return null;
+    };
+
+    const t1Error = validatePlaceholder(t1Ph);
+    if (t1Error) {
+      setValidationError(t1Error);
+      return;
+    }
+    const t2Error = validatePlaceholder(t2Ph);
+    if (t2Error) {
+      setValidationError(t2Error);
+      return;
+    }
+
     try {
       const res = await api.addFixture(selectedTournament.id, {
-        team1_id: fixtureTeam1,
-        team2_id: fixtureTeam2,
+        team1_id: t1Id,
+        team2_id: t2Id,
+        team1_placeholder: t1Ph,
+        team2_placeholder: t2Ph,
         match_type: fixtureType,
         date_time: fixtureDateTime || null,
       });
       setFixtures([...fixtures, res.fixture]);
       setFixtureTeam1(''); setFixtureTeam2(''); setFixtureType('league'); setFixtureDateTime('');
+      setFixtureTeam1Type('team'); setFixtureTeam1Placeholder('');
+      setFixtureTeam2Type('team'); setFixtureTeam2Placeholder('');
       setShowFixtureForm(false);
     } catch (err) { setError(err.message); }
   }
 
   async function handleEditFixture(e) {
     e.preventDefault();
-    if (editFixtureTeam1 === editFixtureTeam2) {
+    const t1Id = editFixtureTeam1Type === 'team' ? editFixtureTeam1 : '';
+    const t2Id = editFixtureTeam2Type === 'team' ? editFixtureTeam2 : '';
+    const t1Ph = editFixtureTeam1Type === 'placeholder' ? editFixtureTeam1Placeholder : null;
+    const t2Ph = editFixtureTeam2Type === 'placeholder' ? editFixtureTeam2Placeholder : null;
+
+    if (editFixtureTeam1Type === 'team' && editFixtureTeam2Type === 'team' && editFixtureTeam1 === editFixtureTeam2) {
       setError('Please select two different teams');
       return;
     }
+
+    const validatePlaceholder = (ph) => {
+      if (!ph) return null;
+      const parts = ph.split(':');
+      if (parts.length >= 2 && (parts[1].toLowerCase() === 'winner' || parts[1].toLowerCase() === 'loser')) {
+        const targetId = parts[0];
+        if (!fixtures.some(f => f.id === targetId)) {
+          return `Match ID ${targetId} does not exist in the tournament.`;
+        }
+      }
+      return null;
+    };
+
+    const t1Error = validatePlaceholder(t1Ph);
+    if (t1Error) {
+      setValidationError(t1Error);
+      return;
+    }
+    const t2Error = validatePlaceholder(t2Ph);
+    if (t2Error) {
+      setValidationError(t2Error);
+      return;
+    }
+
     try {
       const res = await api.updateFixture(selectedTournament.id, editingFixture.id, {
-        team1_id: editFixtureTeam1,
-        team2_id: editFixtureTeam2,
+        team1_id: t1Id,
+        team2_id: t2Id,
+        team1_placeholder: t1Ph,
+        team2_placeholder: t2Ph,
         match_type: editFixtureType,
         date_time: editFixtureDateTime || null,
         status: editFixtureStatus,
@@ -272,7 +358,18 @@ export default function AdminDashboard() {
       setFixtures(fixtures.map(f => f.id === editingFixture.id ? res.fixture : f));
       setEditingFixture(null);
       setShowEditFixtureForm(false);
-    } catch (err) { setError(err.message); }
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function handleUnlockFixture(fixtureId) {
+    try {
+      const res = await api.updateFixture(selectedTournament.id, fixtureId, { is_frozen: false });
+      setFixtures(fixtures.map(f => f.id === fixtureId ? res.fixture : f));
+    } catch (err) {
+      alert(err.message);
+    }
   }
 
   async function handleAddPlayer(e) {
@@ -281,8 +378,8 @@ export default function AdminDashboard() {
     if (!team) return;
     const existingPlayer = tournamentPlayers.find(p => p.name === playerName);
     if (!existingPlayer) {
-       setError('Please select a valid player from the registered players list.');
-       return;
+      setError('Please select a valid player from the registered players list.');
+      return;
     }
     try {
       const updatedPlayers = [...(team.players_list || []), { name: existingPlayer.name, gender: existingPlayer.gender }];
@@ -328,9 +425,9 @@ export default function AdminDashboard() {
       }
     }
     if (auction && auction.status === 'live' && auction.team_players) {
-        for (const tId in auction.team_players) {
-           if (auction.team_players[tId].some(p => p.name.toLowerCase() === name.toLowerCase())) return true;
-        }
+      for (const tId in auction.team_players) {
+        if (auction.team_players[tId].some(p => p.name.toLowerCase() === name.toLowerCase())) return true;
+      }
     }
     return false;
   }
@@ -339,8 +436,8 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!newPlayerName.trim()) return;
     if (tournamentPlayers.some(p => p.name.toLowerCase() === newPlayerName.trim().toLowerCase())) {
-       setError('A player with this name already exists.');
-       return;
+      setError('A player with this name already exists.');
+      return;
     }
     try {
       const res = await api.addPlayer(selectedTournament.id, { name: newPlayerName.trim(), gender: newPlayerGender });
@@ -397,9 +494,31 @@ export default function AdminDashboard() {
 
   async function executeDeleteEvent(eventId, eventNameStr) {
     try {
+      const res = await api.updatePlayer(selectedTournament.id, playerId, { name: editPlayerForm.name.trim(), gender: editPlayerForm.gender });
+      setTournamentPlayers(tournamentPlayers.map(p => p.id === playerId ? res.player : p));
+      setEditingPlayerId(null);
+    } catch (err) { setError(err.message); }
+  }
+
+  async function executeDeletePlayer(playerId) {
+    try {
+      await api.deletePlayer(selectedTournament.id, playerId);
+      setTournamentPlayers(tournamentPlayers.filter(x => x.id !== playerId));
+      setPendingConfirmation(null);
+    } catch (err) { setError(err.message); }
+  }
+
+  function handleDeleteEvent(eventId) {
+    const eventObj = events.find(e => e.id === eventId);
+    const eventNameStr = eventObj ? eventObj.name : 'this event';
+    setPendingConfirmation({ type: 'event', id: eventId, name: eventNameStr });
+  }
+
+  async function executeDeleteEvent(eventId, eventNameStr) {
+    try {
       await api.deleteEvent(selectedTournament.id, eventId);
 
-      const baseType = EVENT_TYPES.find(t => eventNameStr.startsWith(t));
+      const baseType = currentEventTypes.find(t => eventNameStr.startsWith(t));
       if (baseType) {
         const remainingEvents = events.filter(e => e.id !== eventId && e.name.startsWith(baseType));
 
@@ -428,7 +547,7 @@ export default function AdminDashboard() {
 
   function handleDeleteFixture(fixtureId) {
     const fixture = fixtures.find(f => f.id === fixtureId);
-    const matchName = fixture ? `${getTeamName(fixture.team1_id)} vs ${getTeamName(fixture.team2_id)}` : 'this fixture';
+    const matchName = fixture ? `${getTeamName(fixture.team1_id, fixture.team1_placeholder)} vs ${getTeamName(fixture.team2_id, fixture.team2_placeholder)}` : 'this fixture';
     setPendingConfirmation({ type: 'fixture', id: fixtureId, name: matchName });
   }
 
@@ -440,8 +559,22 @@ export default function AdminDashboard() {
     } catch (err) { setError(err.message); }
   }
 
-  function getTeamName(id) {
-    return teams.find(t => t.id === id)?.name || id;
+  function getTeamName(id, placeholder) {
+    if (id) return teams.find(t => t.id === id)?.name || id;
+    if (placeholder) {
+      const parts = placeholder.split(':');
+      if (parts.length >= 2) {
+        if (!isNaN(parts[1])) {
+          return parts[0] ? `${parts[0]} (${parts[1]} pos)` : `Position ${parts[1]}`;
+        } else if (parts[1].toLowerCase() === 'winner') {
+          return `Winner of Match ${parts[0]}`;
+        } else if (parts[1].toLowerCase() === 'loser') {
+          return `Loser of Match ${parts[0]}`;
+        }
+      }
+      return placeholder;
+    }
+    return 'TBD';
   }
 
   // ── Auction handlers ──────────────────────────────────────
@@ -476,6 +609,15 @@ export default function AdminDashboard() {
     } catch (err) { setError(err.message); }
   }
 
+  async function executeGenerateLeagueFixtures() {
+    try {
+      await api.generateLeagueFixtures(selectedTournament.id);
+      const updatedFixtures = await api.getFixtures(selectedTournament.id);
+      setFixtures(updatedFixtures);
+      setPendingConfirmation(null);
+    } catch (err) { setError(err.message); }
+  }
+
   function handleConfirmAction() {
     if (pendingConfirmation?.type === 'event') {
       executeDeleteEvent(pendingConfirmation.id, pendingConfirmation.name);
@@ -485,6 +627,8 @@ export default function AdminDashboard() {
       executeDeletePlayer(pendingConfirmation.id);
     } else if (pendingConfirmation?.type === 'auction') {
       executeEndAuction();
+    } else if (pendingConfirmation?.type === 'generateLeague') {
+      executeGenerateLeagueFixtures();
     }
   }
 
@@ -494,8 +638,8 @@ export default function AdminDashboard() {
 
     const existingPlayer = tournamentPlayers.find(p => p.name === form.name);
     if (!existingPlayer) {
-       setError('Please select a valid player from the registered players list.');
-       return;
+      setError('Please select a valid player from the registered players list.');
+      return;
     }
 
     const points = parseInt(form.points);
@@ -629,6 +773,15 @@ export default function AdminDashboard() {
               <label className="form-label">Sport</label>
               <select className="form-input" value={tournamentSport} onChange={e => setTournamentSport(e.target.value)} required>
                 <option value="Badminton">Badminton</option>
+                <option value="Table Tennis">Table Tennis</option>
+                <option value="Pickleball">Pickleball</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Category</label>
+              <select className="form-input" value={tournamentCategory} onChange={e => setTournamentCategory(e.target.value)} required>
+                <option value="Adults">Adults</option>
+                <option value="Kids">Kids</option>
               </select>
             </div>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Create Tournament</button>
@@ -696,7 +849,9 @@ export default function AdminDashboard() {
         <Modal
           title={pendingConfirmation.type === 'auction'
             ? 'End Auction?'
-            : `Delete ${pendingConfirmation.type === 'event' ? 'Event Type' : pendingConfirmation.type === 'player' ? 'Player' : 'Fixture'}?`}
+            : pendingConfirmation.type === 'generateLeague'
+              ? 'Generate League Fixtures?'
+              : `Delete ${pendingConfirmation.type === 'event' ? 'Event Type' : pendingConfirmation.type === 'player' ? 'Player' : 'Fixture'}?`}
           onClose={() => setPendingConfirmation(null)}
         >
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
@@ -705,16 +860,20 @@ export default function AdminDashboard() {
               <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>
                 {pendingConfirmation.type === 'auction'
                   ? 'End the live auction?'
-                  : `Delete “${pendingConfirmation.name}”?`}
+                  : pendingConfirmation.type === 'generateLeague'
+                    ? 'Generate round robin league fixtures for all groups?'
+                    : `Delete “${pendingConfirmation.name}”?`}
               </p>
               <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 {pendingConfirmation.type === 'auction'
                   ? 'Players will be synced to their teams and the auction will be marked as ended.'
-                  : pendingConfirmation.type === 'event'
-                    ? 'This will permanently remove the event type and update the remaining event numbering.'
-                    : pendingConfirmation.type === 'player'
-                      ? 'This will permanently remove the registered player from this tournament.'
-                    : 'This action cannot be undone.'}
+                  : pendingConfirmation.type === 'generateLeague'
+                    ? 'This will delete any existing league fixtures and generate new round robin fixtures for all groups.'
+                    : pendingConfirmation.type === 'event'
+                      ? 'This will permanently remove the event type and update the remaining event numbering.'
+                      : pendingConfirmation.type === 'player'
+                        ? 'This will permanently remove the registered player from this tournament.'
+                        : 'This action cannot be undone.'}
               </p>
             </div>
           </div>
@@ -730,7 +889,9 @@ export default function AdminDashboard() {
               <Trash2 size={16} />
               {pendingConfirmation.type === 'auction'
                 ? 'End Auction'
-                : pendingConfirmation.type === 'player' ? 'Delete Player' : 'Delete'}
+                : pendingConfirmation.type === 'generateLeague'
+                  ? 'Generate Fixtures'
+                  : pendingConfirmation.type === 'player' ? 'Delete Player' : 'Delete'}
             </button>
           </div>
         </Modal>
@@ -800,7 +961,7 @@ export default function AdminDashboard() {
             <div className="form-group">
               <label className="form-label">Event Type</label>
               <select className="form-input" value={eventName} onChange={e => setEventName(e.target.value)} required>
-                {EVENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                {currentEventTypes.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Add Event</button>
@@ -815,7 +976,7 @@ export default function AdminDashboard() {
             <div className="form-group">
               <label className="form-label">Event Name</label>
               <select className="form-input" value={editEventName} onChange={e => setEditEventName(e.target.value)} required>
-                {EVENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                {currentEventTypes.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Save Changes</button>
@@ -827,19 +988,44 @@ export default function AdminDashboard() {
       {showFixtureForm && (
         <Modal title="Add Match Fixture" onClose={() => setShowFixtureForm(false)}>
           <form onSubmit={handleAddFixture}>
-            <div className="form-group">
-              <label className="form-label">Team 1</label>
-              <select className="form-input" value={fixtureTeam1} onChange={e => setFixtureTeam1(e.target.value)} required>
-                <option value="">-- Select Team 1 --</option>
-                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label className="form-label" style={{ margin: 0 }}>Team 1</label>
+                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' }}><input type="radio" checked={fixtureTeam1Type === 'team'} onChange={() => setFixtureTeam1Type('team')} /> Select Team</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' }}><input type="radio" checked={fixtureTeam1Type === 'placeholder'} onChange={() => setFixtureTeam1Type('placeholder')} /> Placeholder</label>
+                </div>
+              </div>
+              {fixtureTeam1Type === 'team' ? (
+                <select className="form-input" value={fixtureTeam1} onChange={e => setFixtureTeam1(e.target.value)} required>
+                  <option value="">-- Select Team 1 --</option>
+                  {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              ) : (
+                <>
+                  <input type="text" className="form-input" placeholder="A:1 OR :1 OR 1afa4a69:winner" value={fixtureTeam1Placeholder} onChange={e => setFixtureTeam1Placeholder(e.target.value)} required />
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>Format: <code>Group:Position</code>, <code>:Position</code> or <code>MatchID:status</code></div>
+                </>
+              )}
             </div>
-            <div className="form-group">
-              <label className="form-label">Team 2</label>
-              <select className="form-input" value={fixtureTeam2} onChange={e => setFixtureTeam2(e.target.value)} required>
-                <option value="">-- Select Team 2 --</option>
-                {teams.filter(t => t.id !== fixtureTeam1).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label className="form-label" style={{ margin: 0 }}>Team 2</label>
+                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' }}><input type="radio" checked={fixtureTeam2Type === 'team'} onChange={() => setFixtureTeam2Type('team')} /> Select Team</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' }}><input type="radio" checked={fixtureTeam2Type === 'placeholder'} onChange={() => setFixtureTeam2Type('placeholder')} /> Placeholder</label>
+                </div>
+              </div>
+              {fixtureTeam2Type === 'team' ? (
+                <select className="form-input" value={fixtureTeam2} onChange={e => setFixtureTeam2(e.target.value)} required>
+                  <option value="">-- Select Team 2 --</option>
+                  {teams.filter(t => fixtureTeam1Type !== 'team' || t.id !== fixtureTeam1).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              ) : (
+                <>
+                  <input type="text" className="form-input" placeholder="B:2 OR :2 OR 1afa4a69:loser" value={fixtureTeam2Placeholder} onChange={e => setFixtureTeam2Placeholder(e.target.value)} required />
+                </>
+              )}
             </div>
             <div className="form-group">
               <label className="form-label">Match Type</label>
@@ -865,19 +1051,44 @@ export default function AdminDashboard() {
       {showEditFixtureForm && editingFixture && (
         <Modal title="Edit Match Fixture" onClose={() => { setShowEditFixtureForm(false); setEditingFixture(null); }}>
           <form onSubmit={handleEditFixture}>
-            <div className="form-group">
-              <label className="form-label">Team 1</label>
-              <select className="form-input" value={editFixtureTeam1} onChange={e => setEditFixtureTeam1(e.target.value)} required>
-                <option value="">-- Select Team 1 --</option>
-                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label className="form-label" style={{ margin: 0 }}>Team 1</label>
+                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' }}><input type="radio" checked={editFixtureTeam1Type === 'team'} onChange={() => setEditFixtureTeam1Type('team')} /> Select Team</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' }}><input type="radio" checked={editFixtureTeam1Type === 'placeholder'} onChange={() => setEditFixtureTeam1Type('placeholder')} /> Placeholder</label>
+                </div>
+              </div>
+              {editFixtureTeam1Type === 'team' ? (
+                <select className="form-input" value={editFixtureTeam1} onChange={e => setEditFixtureTeam1(e.target.value)} required>
+                  <option value="">-- Select Team 1 --</option>
+                  {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              ) : (
+                <>
+                  <input type="text" className="form-input" placeholder="A:1 OR :1 OR 1afa4a69:winner" value={editFixtureTeam1Placeholder} onChange={e => setEditFixtureTeam1Placeholder(e.target.value)} required />
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>Format: <code>Group:Position</code>, <code>:Position</code> or <code>MatchID:status</code></div>
+                </>
+              )}
             </div>
-            <div className="form-group">
-              <label className="form-label">Team 2</label>
-              <select className="form-input" value={editFixtureTeam2} onChange={e => setEditFixtureTeam2(e.target.value)} required>
-                <option value="">-- Select Team 2 --</option>
-                {teams.filter(t => t.id !== editFixtureTeam1).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label className="form-label" style={{ margin: 0 }}>Team 2</label>
+                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' }}><input type="radio" checked={editFixtureTeam2Type === 'team'} onChange={() => setEditFixtureTeam2Type('team')} /> Select Team</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' }}><input type="radio" checked={editFixtureTeam2Type === 'placeholder'} onChange={() => setEditFixtureTeam2Type('placeholder')} /> Placeholder</label>
+                </div>
+              </div>
+              {editFixtureTeam2Type === 'team' ? (
+                <select className="form-input" value={editFixtureTeam2} onChange={e => setEditFixtureTeam2(e.target.value)} required>
+                  <option value="">-- Select Team 2 --</option>
+                  {teams.filter(t => editFixtureTeam1Type !== 'team' || t.id !== editFixtureTeam1).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              ) : (
+                <>
+                  <input type="text" className="form-input" placeholder="B:2 OR :2 OR 1afa4a69:loser" value={editFixtureTeam2Placeholder} onChange={e => setEditFixtureTeam2Placeholder(e.target.value)} required />
+                </>
+              )}
             </div>
             <div className="form-group">
               <label className="form-label">Match Type</label>
@@ -917,7 +1128,7 @@ export default function AdminDashboard() {
               { key: 'events', icon: <ListChecks size={16} />, label: 'Event Types' },
               { key: 'fixtures', icon: <Calendar size={16} />, label: 'Match Fixtures' },
               { key: 'auction', icon: <Gavel size={16} />, label: 'Auction' },
-            ].map(tab => (
+            ].filter(tab => !(tab.key === 'auction' && selectedTournament?.category === 'Kids')).map(tab => (
               <button
                 key={tab.key}
                 className={`btn ${activeTab === tab.key ? 'btn-primary' : 'btn-outline'}`}
@@ -978,7 +1189,7 @@ export default function AdminDashboard() {
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.5rem' }}>
                             {team.players_list.map((p, idx) => (
                               <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.2rem 0.6rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-full)', fontSize: '0.8rem' }}>
-                                {typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p}
+                                {typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p}
                                 <button onClick={() => handleRemovePlayer(team.id, idx)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0', lineHeight: 1 }}>
                                   <X size={12} />
                                 </button>
@@ -990,9 +1201,9 @@ export default function AdminDashboard() {
                           <form onSubmit={handleAddPlayer} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             <input className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem', flex: 2, minWidth: '120px' }} placeholder="Select player..." list={`players-list-${team.id}`} value={playerName} onChange={e => setPlayerName(e.target.value)} required />
                             <datalist id={`players-list-${team.id}`}>
-                               {tournamentPlayers.filter(p => !isPlayerAssigned(p.name)).map(p => (
-                                  <option key={p.id} value={p.name} />
-                               ))}
+                              {tournamentPlayers.filter(p => !isPlayerAssigned(p.name)).map(p => (
+                                <option key={p.id} value={p.name} />
+                              ))}
                             </datalist>
                             <button type="submit" className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>Add</button>
                             <button type="button" className="btn btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={() => { setShowPlayerForm(null); setPlayerName(''); }}>Cancel</button>
@@ -1019,14 +1230,23 @@ export default function AdminDashboard() {
               <form onSubmit={handleGlobalAddPlayer} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
                 <input className="form-input" placeholder="Player name" value={newPlayerName} onChange={e => setNewPlayerName(e.target.value)} required style={{ flex: 1, minWidth: '200px' }} />
                 <select className="form-input" value={newPlayerGender} onChange={e => setNewPlayerGender(e.target.value)} required style={{ width: '120px' }}>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
+                  {selectedTournament.category === 'Kids' ? (
+                    <>
+                      <option value="Junior">Junior</option>
+                      <option value="Senior">Senior</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </>
+                  )}
                 </select>
                 <button type="submit" className="btn btn-primary">
                   <Plus size={16} /> Register Player
                 </button>
               </form>
-              
+
               {tournamentPlayers.length === 0 ? (
                 <p style={{ color: 'var(--text-secondary)' }}>No players registered yet. Add players using the form above.</p>
               ) : (
@@ -1035,23 +1255,71 @@ export default function AdminDashboard() {
                     <thead>
                       <tr>
                         <th>Name</th>
-                        <th>Gender</th>
+                        <th>{selectedTournament.category === 'Kids' ? 'Category' : 'Gender'}</th>
                         <th style={{ textAlign: 'right' }}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {tournamentPlayers.map(p => (
                         <tr key={p.id}>
-                          <td>{p.name}</td>
-                          <td>{p.gender}</td>
-                          <td style={{ textAlign: 'right' }}>
-                            <button onClick={() => openEditPlayer(p)} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '0.25rem' }} title="Edit player">
-                              <Edit size={16} />
-                            </button>
-                            <button onClick={() => handleGlobalDeletePlayer(p.id)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '0.25rem' }}>
-                              <Trash2 size={16} />
-                            </button>
-                          </td>
+                          {editingPlayerId === p.id ? (
+                            <>
+                              <td>
+                                <input
+                                  type="text"
+                                  className="form-input"
+                                  value={editPlayerForm.name}
+                                  onChange={e => setEditPlayerForm({ ...editPlayerForm, name: e.target.value })}
+                                />
+                              </td>
+                              <td>
+                                <select
+                                  className="form-input"
+                                  value={editPlayerForm.gender}
+                                  onChange={e => setEditPlayerForm({ ...editPlayerForm, gender: e.target.value })}
+                                >
+                                  {selectedTournament.category === 'Kids' ? (
+                                    <>
+                                      <option value="Junior">Junior</option>
+                                      <option value="Senior">Senior</option>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <option value="Male">Male</option>
+                                      <option value="Female">Female</option>
+                                    </>
+                                  )}
+                                </select>
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <button onClick={() => handleEditPlayerSave(p.id)} style={{ background: 'none', border: 'none', color: 'var(--success-color, #10b981)', cursor: 'pointer', padding: '0.25rem', marginRight: '0.5rem' }}>
+                                  <Check size={16} />
+                                </button>
+                                <button onClick={() => setEditingPlayerId(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem' }}>
+                                  <X size={16} />
+                                </button>
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td>{p.name}</td>
+                              <td>{p.gender}</td>
+                              <td style={{ textAlign: 'right' }}>
+                                <button
+                                  onClick={() => {
+                                    setEditingPlayerId(p.id);
+                                    setEditPlayerForm({ name: p.name, gender: p.gender });
+                                  }}
+                                  style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '0.25rem', marginRight: '0.5rem' }}
+                                >
+                                  <Edit size={16} />
+                                </button>
+                                <button onClick={() => handleGlobalDeletePlayer(p.id)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '0.25rem' }}>
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            </>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -1066,7 +1334,7 @@ export default function AdminDashboard() {
             <div className="glass-card animate-fade-in">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <h3 style={{ margin: 0 }}>Event Types</h3>
-                <button className="btn btn-primary" style={{ fontSize: '0.875rem' }} onClick={() => setShowEventForm(true)}>
+                <button className="btn btn-primary" style={{ fontSize: '0.875rem' }} onClick={() => { setEventName(currentEventTypes[0]); setShowEventForm(true); }}>
                   <Plus size={16} /> Add Event
                 </button>
               </div>
@@ -1092,7 +1360,7 @@ export default function AdminDashboard() {
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                               <button
                                 onClick={() => {
-                                  const baseType = EVENT_TYPES.find(t => ev.name.startsWith(t)) || EVENT_TYPES[0];
+                                  const baseType = currentEventTypes.find(t => ev.name.startsWith(t)) || currentEventTypes[0];
                                   setEditingEvent(ev);
                                   setEditEventName(baseType);
                                   setShowEditEventForm(true);
@@ -1120,9 +1388,14 @@ export default function AdminDashboard() {
             <div className="glass-card animate-fade-in">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <h3 style={{ margin: 0 }}>Match Fixtures</h3>
-                <button className="btn btn-primary" style={{ fontSize: '0.875rem' }} onClick={() => setShowFixtureForm(true)} disabled={teams.length < 2}>
-                  <Plus size={16} /> Add Fixture
-                </button>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button className="btn btn-outline" style={{ fontSize: '0.875rem' }} onClick={() => setPendingConfirmation({ type: 'generateLeague' })} disabled={teams.length < 2}>
+                    <Calendar size={16} /> Generate Fixtures
+                  </button>
+                  <button className="btn btn-primary" style={{ fontSize: '0.875rem' }} onClick={() => setShowFixtureForm(true)} disabled={teams.length < 2}>
+                    <Plus size={16} /> Add Fixture
+                  </button>
+                </div>
               </div>
 
 
@@ -1146,7 +1419,15 @@ export default function AdminDashboard() {
                     <tbody>
                       {fixtures.map(f => (
                         <tr key={f.id}>
-                          <td style={{ fontWeight: 600 }}>{getTeamName(f.team1_id)} <span style={{ color: 'var(--text-secondary)' }}>vs</span> {getTeamName(f.team2_id)}</td>
+                          <td style={{ fontWeight: 600 }}>
+                            <div>
+                              {f.is_frozen && <Lock size={14} style={{ color: 'var(--accent-danger)', marginRight: '0.5rem', verticalAlign: 'middle' }} />}
+                              {getTeamName(f.team1_id, f.team1_placeholder)} <span style={{ color: 'var(--text-secondary)' }}>vs</span> {getTeamName(f.team2_id, f.team2_placeholder)}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 'normal', marginTop: '0.25rem' }}>
+                              ID: {f.id}
+                            </div>
+                          </td>
                           <td><span style={{ textTransform: 'capitalize' }}>{f.match_type.replace('_', ' ')}</span></td>
                           <td>{f.date_time ? new Date(f.date_time).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : <span style={{ color: 'var(--text-secondary)' }}>Not Scheduled</span>}</td>
                           <td>
@@ -1156,20 +1437,46 @@ export default function AdminDashboard() {
                           </td>
                           <td>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                              <button
-                                onClick={() => {
-                                  setEditingFixture(f);
-                                  setEditFixtureTeam1(f.team1_id);
-                                  setEditFixtureTeam2(f.team2_id);
-                                  setEditFixtureType(f.match_type);
-                                  setEditFixtureDateTime(f.date_time || '');
-                                  setEditFixtureStatus(f.status);
-                                  setShowEditFixtureForm(true);
-                                }}
-                                style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '4px' }}
-                              >
-                                <Edit size={16} />
-                              </button>
+                              {f.is_frozen ? (
+                                <button
+                                  onClick={() => handleUnlockFixture(f.id)}
+                                  style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '4px' }}
+                                  title="Unlock Fixture"
+                                >
+                                  <Lock size={16} />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setEditingFixture(f);
+                                    if (f.team1_placeholder) {
+                                      setEditFixtureTeam1Type('placeholder');
+                                      setEditFixtureTeam1Placeholder(f.team1_placeholder);
+                                      setEditFixtureTeam1(f.team1_id || '');
+                                    } else {
+                                      setEditFixtureTeam1Type('team');
+                                      setEditFixtureTeam1(f.team1_id || '');
+                                      setEditFixtureTeam1Placeholder('');
+                                    }
+                                    if (f.team2_placeholder) {
+                                      setEditFixtureTeam2Type('placeholder');
+                                      setEditFixtureTeam2Placeholder(f.team2_placeholder);
+                                      setEditFixtureTeam2(f.team2_id || '');
+                                    } else {
+                                      setEditFixtureTeam2Type('team');
+                                      setEditFixtureTeam2(f.team2_id || '');
+                                      setEditFixtureTeam2Placeholder('');
+                                    }
+                                    setEditFixtureType(f.match_type);
+                                    setEditFixtureDateTime(f.date_time || '');
+                                    setEditFixtureStatus(f.status);
+                                    setShowEditFixtureForm(true);
+                                  }}
+                                  style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '4px' }}
+                                >
+                                  <Edit size={16} />
+                                </button>
+                              )}
                               <button onClick={() => handleDeleteFixture(f.id)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '4px' }}>
                                 <Trash2 size={16} />
                               </button>
@@ -1185,7 +1492,7 @@ export default function AdminDashboard() {
           )}
 
           {/* ──── Auction Tab ──── */}
-          {activeTab === 'auction' && (
+          {activeTab === 'auction' && selectedTournament?.category !== 'Kids' && (
             <div className="glass-card animate-fade-in">
               {(!auction || auction.status === 'idle') && (
                 <>
@@ -1336,6 +1643,30 @@ export default function AdminDashboard() {
           </button>
         </div>
       )}
+
+      {validationError && (
+        <Modal
+          title="Invalid Match ID"
+          onClose={() => setValidationError(null)}
+        >
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <AlertTriangle size={24} color="var(--accent-danger)" style={{ flexShrink: 0 }} />
+            <div>
+              <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>
+                {validationError}
+              </p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                Please create the match fixture first before referencing its Match ID as a placeholder.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+            <button className="btn btn-primary" onClick={() => setValidationError(null)}>
+              OK
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -1376,6 +1707,9 @@ function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, se
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <datalist id="available-players">
+        {[...availablePlayers].sort((a, b) => a.name.localeCompare(b.name)).map(p => <option key={p.id} value={p.name} />)}
+      </datalist>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '-1rem' }}>
         <button onClick={() => setZoomLevel(z => Math.max(0.1, Number((z - 0.1).toFixed(1))))} className="btn btn-outline" style={{ padding: '0.5rem' }} title="Zoom Out"><ZoomOut size={16} /></button>
         <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)', minWidth: '40px', justifyContent: 'center' }}>{Math.round(zoomLevel * 100)}%</span>
@@ -1423,7 +1757,7 @@ function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, se
                           {player ? player.name : '—'}
                         </td>
                         <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: player ? 'var(--text-secondary)' : 'rgba(255,255,255,0.1)', fontSize: '0.8rem' }}>
-                          {player ? (player.gender === 'Male' ? 'M' : 'F') : '—'}
+                          {player ? (player.gender === 'Male' ? 'M' : player.gender === 'Female' ? 'F' : player.gender) : '—'}
                         </td>
                         <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: player ? 600 : 400, color: player ? 'var(--accent-primary)' : 'rgba(255,255,255,0.1)' }}>
                           {player ? player.points : '—'}
@@ -1455,23 +1789,22 @@ function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, se
                       <React.Fragment key={`add-${team.id}`}>
                         <td style={{ padding: '0.4rem 0.25rem', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}></td>
                         <td colSpan={2} style={{ padding: '0.4rem 0.25rem' }}>
-                          <select
+                          <input
+                            list="available-players"
                             className="form-input"
-                            style={{ padding: '0.3rem 2rem 0.3rem 0.5rem', fontSize: '0.8rem', width: '100%', minWidth: '80px' }}
+                            style={{ padding: '0.3rem 0.5rem', fontSize: '0.8rem', width: '100%', minWidth: '80px' }}
+                            placeholder={isFull ? 'Team is full' : 'Search player...'}
                             disabled={isFull}
                             value={form.name}
                             onChange={e => {
-                               const val = e.target.value;
-                               const selected = availablePlayers.find(p => p.name === val);
-                               setAuctionPlayerForms(prev => ({
-                                 ...prev,
-                                 [team.id]: { ...form, name: val, gender: selected?.gender || form.gender },
-                               }));
+                              const val = e.target.value;
+                              const selected = availablePlayers.find(p => p.name === val);
+                              setAuctionPlayerForms(prev => ({
+                                ...prev,
+                                [team.id]: { ...form, name: val, gender: selected?.gender || form.gender },
+                              }));
                             }}
-                          >
-                            <option value="">{isFull ? 'Team is full' : 'Select a player'}</option>
-                            {sortedAvailablePlayers.map(p => <option key={p.id} value={p.name}>{p.name} ({p.gender === 'Male' ? 'M' : 'F'})</option>)}
-                          </select>
+                          />
                         </td>
                         <td style={{ padding: '0.4rem 0.25rem' }}>
                           <input

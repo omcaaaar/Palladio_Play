@@ -1,20 +1,22 @@
 import { useEffect, useState } from 'react';
-import { Eye, Gavel, RefreshCw, Trophy } from 'lucide-react';
+import { Eye, Gavel, Trophy } from 'lucide-react';
 import * as api from '../api/client';
 
 export default function OwnerDashboard() {
   const [tournaments, setTournaments] = useState([]);
   const [auctionByTournament, setAuctionByTournament] = useState({});
+  const [selectedTid, setSelectedTid] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  async function loadAuctions() {
-    setLoading(true);
-    setError('');
+  async function loadAuctions(isBackground = false) {
+    if (!isBackground) setLoading(true);
+    if (!isBackground) setError('');
     try {
       const tournamentList = await api.getTournaments();
+      const sorted = tournamentList.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
       const auctionEntries = await Promise.all(
-        tournamentList.map(async (tournament) => {
+        sorted.map(async (tournament) => {
           const [auction, teams] = await Promise.all([
             api.getPublicAuction(tournament.id),
             api.getTeams(tournament.id),
@@ -22,17 +24,27 @@ export default function OwnerDashboard() {
           return [tournament.id, { auction, teams }];
         }),
       );
-      setTournaments(tournamentList);
+      setTournaments(sorted);
       setAuctionByTournament(Object.fromEntries(auctionEntries));
+      
+      setSelectedTid(prev => {
+        if (!prev && sorted.length > 0) return sorted[0].id;
+        if (prev && !sorted.find(t => t.id === prev)) return sorted.length > 0 ? sorted[0].id : '';
+        return prev;
+      });
     } catch (err) {
-      setError(err.message);
+      if (!isBackground) setError(err.message);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   }
 
   useEffect(() => {
     loadAuctions();
+    const intervalId = setInterval(() => {
+      loadAuctions(true);
+    }, 5000);
+    return () => clearInterval(intervalId);
   }, []);
 
   return (
@@ -40,7 +52,7 @@ export default function OwnerDashboard() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
         <div>
           <h1>Owner Auction View</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Read-only auction points for every tournament</p>
+          <p style={{ color: 'var(--text-secondary)' }}>Read-only auction points for the tournament</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-secondary)' }}>
           <Eye size={18} />
@@ -57,7 +69,7 @@ export default function OwnerDashboard() {
         </div>
       )}
 
-      {loading ? (
+      {loading && !selectedTid ? (
         <p style={{ color: 'var(--text-secondary)' }}>Loading auction points...</p>
       ) : tournaments.length === 0 ? (
         <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
@@ -65,9 +77,11 @@ export default function OwnerDashboard() {
           <h3>No tournaments available</h3>
           <p style={{ color: 'var(--text-secondary)' }}>Auction points will appear here after an admin creates a tournament.</p>
         </div>
-      ) : (
+      ) : selectedTid ? (
         <div style={{ display: 'grid', gap: '1.5rem' }}>
-          {tournaments.map((tournament) => {
+          {(() => {
+            const tournament = tournaments.find(t => t.id === selectedTid);
+            if (!tournament) return null;
             const tournamentAuction = auctionByTournament[tournament.id];
             const auction = tournamentAuction?.auction;
             const teams = tournamentAuction?.teams || [];
@@ -75,13 +89,24 @@ export default function OwnerDashboard() {
             const hasAuction = auction && auction.status !== 'idle';
 
             return (
-              <section key={tournament.id} className="glass-card">
+              <section key={tournament.id} className="glass-card" style={auction?.status === 'live' ? { borderColor: 'rgba(239, 68, 68, 0.3)' } : {}}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <Gavel size={20} color="var(--accent-primary)" />
-                    <h3 style={{ margin: 0 }}>{tournament.name}</h3>
+                    <Gavel size={20} color={auction?.status === 'live' ? "#ef4444" : (auction?.status === 'ended' ? "#10b981" : "var(--accent-primary)")} />
+                    <h3 style={{ margin: 0, color: auction?.status === 'live' ? '#ef4444' : (auction?.status === 'ended' ? '#10b981' : 'var(--text-primary)') }}>
+                      {tournament.name} {hasAuction ? 'Auction' : ''}
+                    </h3>
                   </div>
-                  {hasAuction && <span className={`badge badge-${auction.status === 'live' ? 'in-progress' : 'completed'}`}>{auction.status}</span>}
+                  {hasAuction && auction.status === 'live' && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '0.3rem 0.75rem', borderRadius: 'var(--radius-full)', fontSize: '0.8rem', fontWeight: 600 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1.5s infinite' }} /> LIVE
+                    </span>
+                  )}
+                  {hasAuction && auction.status === 'ended' && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.3rem 0.75rem', borderRadius: 'var(--radius-full)', fontSize: '0.8rem', fontWeight: 600 }}>
+                      COMPLETED
+                    </span>
+                  )}
                 </div>
 
                 {!hasAuction ? (
@@ -151,9 +176,9 @@ export default function OwnerDashboard() {
                 )}
               </section>
             );
-          })}
+          })()}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

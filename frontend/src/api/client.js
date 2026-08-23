@@ -20,10 +20,10 @@ export const getTournaments = async () => {
   return data.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 };
 export const getTournamentFull = (tid) => request(`/api/public/tournaments/${tid}`);
-export const createTournament = (name, sport) =>
+export const createTournament = (name, sport, category) =>
   request('/api/admin/tournaments', {
     method: 'POST',
-    body: JSON.stringify({ name, sport }),
+    body: JSON.stringify({ name, sport, category }),
   });
 export const updateTournament = (tid, updateData) =>
   request(`/api/admin/tournaments/${tid}`, {
@@ -68,6 +68,12 @@ export const deletePlayer = (tid, playerId) =>
   request(`/api/admin/tournaments/${tid}/players/${playerId}`, {
     method: 'DELETE',
   });
+export const updatePlayer = (tid, playerId, data) =>
+  request(`/api/admin/tournaments/${tid}/players/${playerId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+
 
 // ── Events ───────────────────────────────────────────────────
 export const getEvents = (tid) => request(`/api/admin/tournaments/${tid}/events`);
@@ -101,6 +107,11 @@ export const updateFixture = (tid, fixtureId, data) =>
   request(`/api/admin/tournaments/${tid}/fixtures/${fixtureId}`, {
     method: 'PUT',
     body: JSON.stringify(data),
+  });
+
+export const generateLeagueFixtures = (tid) =>
+  request(`/api/admin/tournaments/${tid}/generate-league-fixtures`, {
+    method: 'POST',
   });
 
 
@@ -144,6 +155,16 @@ export const completeScorecard = (tid, scorecardId, winner) =>
   request(`/api/referee/tournaments/${tid}/scorecards/${scorecardId}/complete`, {
     method: 'PUT',
     body: JSON.stringify({ winner }),
+  });
+
+export const abandonScorecard = (tid, scorecardId) =>
+  request(`/api/referee/tournaments/${tid}/scorecards/${scorecardId}/abandon`, {
+    method: 'PUT',
+  });
+
+export const abandonFixture = (tid, fixtureId) =>
+  request(`/api/referee/tournaments/${tid}/fixtures/${fixtureId}/abandon`, {
+    method: 'PUT',
   });
 
 // ── Auction ──────────────────────────────────────────────────

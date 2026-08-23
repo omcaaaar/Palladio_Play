@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShieldAlert, Plus, Minus, Check, ChevronRight, ChevronLeft, ArrowLeft, X, Pencil } from 'lucide-react';
+import { ShieldAlert, Plus, Minus, Check, ChevronRight, ChevronLeft, ArrowLeft, X, Pencil, AlertTriangle, Lock } from 'lucide-react';
 import * as api from '../api/client';
 
 /*
@@ -32,12 +32,23 @@ function getFilteredPlayers(players, eventName, playerSlot, otherPlayerName = ''
   if (lowerName.includes("men's")) {
     return filtered.filter(p => typeof p === 'object' ? p.gender === 'Male' : true);
   }
+  if (lowerName.includes("junior")) {
+    return filtered.filter(p => typeof p === 'object' ? p.gender === 'Junior' : true);
+  }
+  if (lowerName.includes("senior")) {
+    return filtered.filter(p => typeof p === 'object' ? p.gender === 'Senior' : true);
+  }
   if (lowerName.includes("mixed")) {
     if (otherPlayerName) {
       const otherPlayer = players.find(p => (typeof p === 'object' ? p.name : p) === otherPlayerName);
       if (otherPlayer && typeof otherPlayer === 'object') {
-        const oppGender = otherPlayer.gender === 'Male' ? 'Female' : 'Male';
-        return filtered.filter(p => typeof p === 'object' ? p.gender === oppGender : true);
+        if (otherPlayer.gender === 'Male' || otherPlayer.gender === 'Female') {
+          const oppGender = otherPlayer.gender === 'Male' ? 'Female' : 'Male';
+          return filtered.filter(p => typeof p === 'object' ? p.gender === oppGender : true);
+        } else if (otherPlayer.gender === 'Junior' || otherPlayer.gender === 'Senior') {
+          const oppCat = otherPlayer.gender === 'Junior' ? 'Senior' : 'Junior';
+          return filtered.filter(p => typeof p === 'object' ? p.gender === oppCat : true);
+        }
       }
     }
   }
@@ -71,6 +82,9 @@ export default function RefereeDashboard() {
   const [activeScorecard, setActiveScorecard] = useState(null);
 
   const [error, setError] = useState('');
+  const [showLockConfirm, setShowLockConfirm] = useState(false);
+  const [showAbandonFixtureConfirm, setShowAbandonFixtureConfirm] = useState(false);
+  const [abandoningScorecard, setAbandoningScorecard] = useState(null);
 
   useEffect(() => {
     api.getTournaments().then(setTournaments).catch(e => setError(e.message));
@@ -108,6 +122,7 @@ export default function RefereeDashboard() {
   }
 
   function getTeamName(id) {
+    if (!id) return 'TBD';
     return teams.find(t => t.id === id)?.name || id;
   }
 
@@ -253,17 +268,11 @@ export default function RefereeDashboard() {
         setStep(STEPS.SCORING);
       } catch (err) { setError(err.message); }
     } else if (sc.status === 'completed') {
-      try {
-        // Reopen the scorecard back to in_progress and clear the winner
-        const res = await api.updateScorecard(selectedTournament.id, sc.id, {
-          ...sc,
-          status: 'in_progress',
-          winner: null
-        });
-        setActiveScorecard(res.scorecard);
-        setStep(STEPS.SCORING);
-        setExistingScorecards(prev => prev.map(s => s.id === sc.id ? res.scorecard : s));
-      } catch (err) { setError(err.message); }
+      // Just open the scorecard. If the referee modifies the score later,
+      // the backend updateScore logic will automatically handle changing
+      // the status back to in_progress if it's no longer completed.
+      setActiveScorecard(sc);
+      setStep(STEPS.SCORING);
     } else {
       setActiveScorecard(sc);
       setStep(STEPS.SCORING);
@@ -366,6 +375,46 @@ export default function RefereeDashboard() {
     else if (step === STEPS.SELECT_FIXTURE) { setStep(STEPS.SELECT_TOURNAMENT); setSelectedTournament(null); }
   }
 
+  async function handleLockMatch() {
+    try {
+      await api.updateFixture(selectedTournament.id, selectedFixture.id, { is_frozen: true });
+      // Refresh fixtures list
+      const full = await api.getTournamentFull(selectedTournament.id);
+      setFixtures(full.fixtures || []);
+
+      setStep(STEPS.SELECT_FIXTURE);
+      setSelectedFixture(null);
+      setShowLockConfirm(false);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleAbandonFixture() {
+    try {
+      await api.abandonFixture(selectedTournament.id, selectedFixture.id);
+      const full = await api.getTournamentFull(selectedTournament.id);
+      setFixtures(full.fixtures || []);
+      setStep(STEPS.SELECT_FIXTURE);
+      setSelectedFixture(null);
+      setShowAbandonFixtureConfirm(false);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleAbandonScorecard() {
+    if (!abandoningScorecard) return;
+    try {
+      await api.abandonScorecard(selectedTournament.id, abandoningScorecard.id);
+      const scs = await api.getScorecardsForFixture(selectedTournament.id, selectedFixture.id);
+      setExistingScorecards(scs);
+      setAbandoningScorecard(null);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   const team1Name = selectedFixture ? getTeamName(selectedFixture.team1_id) : '';
   const team2Name = selectedFixture ? getTeamName(selectedFixture.team2_id) : '';
   const team1Players = selectedFixture ? getTeamPlayers(selectedFixture.team1_id) : [];
@@ -449,20 +498,31 @@ export default function RefereeDashboard() {
                 </thead>
                 <tbody>
                   {fixtures.slice().sort((a, b) => {
-                    if (a.status === 'completed' && b.status !== 'completed') return 1;
-                    if (a.status !== 'completed' && b.status === 'completed') return -1;
+                    const aIsDone = a.status === 'completed' || a.status === 'abandoned';
+                    const bIsDone = b.status === 'completed' || b.status === 'abandoned';
+                    if (aIsDone && !bIsDone) return 1;
+                    if (!aIsDone && bIsDone) return -1;
                     return 0;
                   }).map(f => (
                     <tr key={f.id}>
                       <td style={{ fontWeight: 600 }}>{getTeamName(f.team1_id)} <span style={{ color: 'var(--text-secondary)' }}>vs</span> {getTeamName(f.team2_id)}</td>
                       <td style={{ textTransform: 'capitalize' }}>{f.match_type.replace('_', ' ')}</td>
                       <td>
-                        <span className={`badge badge-${f.status === 'completed' ? 'completed' : (f.status === 'in_progress' ? 'in-progress' : (f.status === 'on_hold' ? 'on-hold' : 'pending'))}`}>
+                        <span className={`badge badge-${f.status === 'completed' ? 'completed' : (f.status === 'in_progress' ? 'in-progress' : (f.status === 'on_hold' ? 'on-hold' : (f.status === 'abandoned' ? 'abandoned' : 'pending')))}`}>
                           {f.status.replace('_', ' ')}
                         </span>
                       </td>
                       <td>
-                        <button className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={() => selectFixture(f)}>
+                        <button
+                          className={`btn ${f.is_frozen ? '' : 'btn-primary'}`}
+                          style={{
+                            padding: '0.4rem 0.8rem',
+                            fontSize: '0.8rem',
+                            ...(f.is_frozen ? { background: 'rgba(255, 255, 255, 0.1)', color: 'var(--text-secondary)', cursor: 'not-allowed', borderColor: 'transparent' } : {})
+                          }}
+                          onClick={() => selectFixture(f)}
+                          disabled={f.is_frozen}
+                        >
                           <ChevronRight size={14} /> Select
                         </button>
                       </td>
@@ -505,7 +565,7 @@ export default function RefereeDashboard() {
                           <option value="">-- Select --</option>
                           {getFilteredPlayers(team1Players, ev.name, 1, lineup.team1Player2).map(p => {
                             const name = typeof p === 'object' ? p.name : p;
-                            const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p;
+                            const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p;
                             return <option key={name} value={name}>{label}</option>;
                           })}
                         </select>
@@ -518,7 +578,7 @@ export default function RefereeDashboard() {
                             {getFilteredPlayers(team1Players, ev.name, 2, lineup.team1Player1)
                               .map(p => {
                                 const name = typeof p === 'object' ? p.name : p;
-                                const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p;
+                                const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p;
                                 return <option key={name} value={name}>{label}</option>;
                               })
                             }
@@ -538,7 +598,7 @@ export default function RefereeDashboard() {
                           <option value="">-- Select --</option>
                           {getFilteredPlayers(team2Players, ev.name, 1, lineup.team2Player2).map(p => {
                             const name = typeof p === 'object' ? p.name : p;
-                            const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p;
+                            const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p;
                             return <option key={name} value={name}>{label}</option>;
                           })}
                         </select>
@@ -551,7 +611,7 @@ export default function RefereeDashboard() {
                             {getFilteredPlayers(team2Players, ev.name, 2, lineup.team2Player1)
                               .map(p => {
                                 const name = typeof p === 'object' ? p.name : p;
-                                const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p;
+                                const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p;
                                 return <option key={name} value={name}>{label}</option>;
                               })
                             }
@@ -654,11 +714,11 @@ export default function RefereeDashboard() {
                         ))}
                       </td>
                       <td>
-                        <span className={`badge badge-${sc.status === 'completed' ? 'completed' : (sc.status === 'in_progress' ? 'in-progress' : 'pending')}`}>
+                        <span className={`badge badge-${sc.status === 'completed' ? 'completed' : (sc.status === 'in_progress' ? 'in-progress' : (sc.status === 'abandoned' ? 'abandoned' : 'pending'))}`}>
                           {sc.status === 'completed' ? (sc.winner === 'team1' ? `${team1Name} Won` : (sc.winner === 'team2' ? `${team2Name} Won` : 'Completed')) : sc.status.replace('_', ' ')}
                         </span>
                         <div style={{ display: 'inline-flex', gap: '0.5rem', marginLeft: '0.5rem' }}>
-                          {sc.status !== 'completed' ? (
+                          {sc.status !== 'completed' && sc.status !== 'abandoned' ? (
                             <button className="btn btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => handleStartScorecard(sc)}>
                               {sc.status === 'pending' ? 'Start' : 'Resume'}
                             </button>
@@ -670,6 +730,11 @@ export default function RefereeDashboard() {
                           <button className="btn btn-outline" style={{ padding: '0.3rem 0.5rem' }} onClick={() => openEditLineup(sc)}>
                             <Pencil size={14} />
                           </button>
+                          {sc.status !== 'completed' && sc.status !== 'abandoned' && (
+                            <button className="btn btn-outline" style={{ padding: '0.3rem 0.5rem', color: 'var(--accent-danger)', borderColor: 'rgba(239, 68, 68, 0.2)' }} onClick={() => setAbandoningScorecard(sc)} title="Abandon Event">
+                              <X size={14} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -677,6 +742,24 @@ export default function RefereeDashboard() {
                 </tbody>
               </table>
             </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem', gap: '1rem' }}>
+            <button
+              className="btn btn-outline"
+              style={{ color: 'var(--accent-primary)', borderColor: 'var(--accent-primary)', padding: '0.75rem 1.5rem' }}
+              onClick={() => setShowLockConfirm(true)}
+            >
+              Lock Match
+            </button>
+            {selectedFixture.match_type === 'league' && (
+              <button
+                className="btn btn-outline"
+                style={{ color: 'var(--accent-danger)', borderColor: 'var(--accent-danger)', padding: '0.75rem 1.5rem' }}
+                onClick={() => setShowAbandonFixtureConfirm(true)}
+              >
+                Abandon Match
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -811,7 +894,7 @@ export default function RefereeDashboard() {
                             <option value="">-- Select --</option>
                             {getFilteredPlayers(team1Players, getEventName(editingScorecard.event_id), 1, editLineupData.team1Player2).map(p => {
                               const name = typeof p === 'object' ? p.name : p;
-                              const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p;
+                              const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p;
                               return <option key={name} value={name}>{label}</option>;
                             })}
                           </select>
@@ -824,7 +907,7 @@ export default function RefereeDashboard() {
                               {getFilteredPlayers(team1Players, getEventName(editingScorecard.event_id), 2, editLineupData.team1Player1)
                                 .map(p => {
                                   const name = typeof p === 'object' ? p.name : p;
-                                  const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p;
+                                  const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p;
                                   return <option key={name} value={name}>{label}</option>;
                                 })
                               }
@@ -840,7 +923,7 @@ export default function RefereeDashboard() {
                             <option value="">-- Select --</option>
                             {getFilteredPlayers(team2Players, getEventName(editingScorecard.event_id), 1, editLineupData.team2Player2).map(p => {
                               const name = typeof p === 'object' ? p.name : p;
-                              const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p;
+                              const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p;
                               return <option key={name} value={name}>{label}</option>;
                             })}
                           </select>
@@ -853,7 +936,7 @@ export default function RefereeDashboard() {
                               {getFilteredPlayers(team2Players, getEventName(editingScorecard.event_id), 2, editLineupData.team2Player1)
                                 .map(p => {
                                   const name = typeof p === 'object' ? p.name : p;
-                                  const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p;
+                                  const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p;
                                   return <option key={name} value={name}>{label}</option>;
                                 })
                               }
@@ -893,6 +976,121 @@ export default function RefereeDashboard() {
           </div>
         </div>
       )}
+
+      {/* Lock Confirmation Modal */}
+      {showLockConfirm && (
+        <Modal
+          title="Lock Match?"
+          onClose={() => setShowLockConfirm(false)}
+        >
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <AlertTriangle size={24} color="var(--accent-danger)" style={{ flexShrink: 0 }} />
+            <div>
+              <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>
+                Lock this match scorecard?
+              </p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                You will not be able to modify the scorecard once it's locked.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+            <button className="btn btn-outline" onClick={() => setShowLockConfirm(false)}>
+              Cancel
+            </button>
+            <button
+              className="btn"
+              onClick={handleLockMatch}
+              style={{ background: 'var(--accent-danger)', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Lock size={16} />
+              Lock Match
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Abandon Match Confirmation Modal */}
+      {showAbandonFixtureConfirm && (
+        <Modal
+          title="Abandon Match?"
+          onClose={() => setShowAbandonFixtureConfirm(false)}
+        >
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <AlertTriangle size={24} color="var(--accent-danger)" style={{ flexShrink: 0 }} />
+            <div>
+              <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>
+                Abandon this match?
+              </p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                All pending and in-progress events will be marked as abandoned. No scores will be calculated for this match. This action cannot be undone.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+            <button className="btn btn-outline" onClick={() => setShowAbandonFixtureConfirm(false)}>
+              Cancel
+            </button>
+            <button
+              className="btn"
+              onClick={handleAbandonFixture}
+              style={{ background: 'var(--accent-danger)', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <X size={16} />
+              Abandon Match
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Abandon Event Confirmation Modal */}
+      {abandoningScorecard && (
+        <Modal
+          title="Abandon Event?"
+          onClose={() => setAbandoningScorecard(null)}
+        >
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <AlertTriangle size={24} color="var(--accent-danger)" style={{ flexShrink: 0 }} />
+            <div>
+              <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>
+                Abandon {getEventName(abandoningScorecard.event_id)}?
+              </p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                This event will not count towards the match score.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+            <button className="btn btn-outline" onClick={() => setAbandoningScorecard(null)}>
+              Cancel
+            </button>
+            <button
+              className="btn"
+              onClick={handleAbandonScorecard}
+              style={{ background: 'var(--accent-danger)', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <X size={16} />
+              Abandon Event
+            </button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function Modal({ title, onClose, children }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem',
+    }} onClick={onClose}>
+      <div className="glass-card animate-fade-in" style={{ maxWidth: '480px', width: '100%', background: 'var(--bg-secondary)', backdropFilter: 'none' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h3 style={{ margin: 0 }}>{title}</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><X size={20} /></button>
+        </div>
+        {children}
+      </div>
     </div>
   );
 }

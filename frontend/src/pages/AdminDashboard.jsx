@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Plus, Users, Calendar, Trash2, ChevronRight, Trophy, X, ListChecks, Edit, Gavel, Check, ZoomIn, ZoomOut, AlertTriangle, Lock } from 'lucide-react';
 import * as api from '../api/client';
+import CustomDatePicker from '../components/CustomDatePicker';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('tournaments');
@@ -985,7 +986,39 @@ export default function AdminDashboard() {
             </div>
             <div className="form-group">
               <label className="form-label">Date & Time (Optional)</label>
-              <input type="datetime-local" className="form-input" value={fixtureDateTime} onChange={e => setFixtureDateTime(e.target.value)} />
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Date</div>
+                  <CustomDatePicker
+                    value={fixtureDateTime ? fixtureDateTime.split('T')[0] : ''}
+                    onChange={newDate => {
+                      if (!newDate) {
+                        setFixtureDateTime('');
+                      } else {
+                        const currentTime = (fixtureDateTime && fixtureDateTime.includes('T')) ? fixtureDateTime.split('T')[1].substring(0, 5) : '09:00';
+                        setFixtureDateTime(`${newDate}T${currentTime}`);
+                      }
+                    }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Time</div>
+                  <input 
+                    type="time" 
+                    className="form-input" 
+                    value={(fixtureDateTime && fixtureDateTime.includes('T')) ? fixtureDateTime.split('T')[1].substring(0, 5) : ''} 
+                    onChange={e => {
+                      const newTime = e.target.value;
+                      if (newTime && fixtureDateTime) {
+                        const currentDate = fixtureDateTime.split('T')[0];
+                        setFixtureDateTime(`${currentDate}T${newTime}`);
+                      }
+                    }}
+                    disabled={!fixtureDateTime}
+                    style={{ opacity: !fixtureDateTime ? 0.5 : 1, cursor: !fixtureDateTime ? 'not-allowed' : 'auto' }}
+                  />
+                </div>
+              </div>
             </div>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Add Fixture</button>
           </form>
@@ -1048,7 +1081,39 @@ export default function AdminDashboard() {
             </div>
             <div className="form-group">
               <label className="form-label">Date & Time (Optional)</label>
-              <input type="datetime-local" className="form-input" value={editFixtureDateTime} onChange={e => setEditFixtureDateTime(e.target.value)} />
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Date</div>
+                  <CustomDatePicker
+                    value={editFixtureDateTime ? editFixtureDateTime.split('T')[0] : ''}
+                    onChange={newDate => {
+                      if (!newDate) {
+                        setEditFixtureDateTime('');
+                      } else {
+                        const currentTime = (editFixtureDateTime && editFixtureDateTime.includes('T')) ? editFixtureDateTime.split('T')[1].substring(0, 5) : '09:00';
+                        setEditFixtureDateTime(`${newDate}T${currentTime}`);
+                      }
+                    }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Time</div>
+                  <input 
+                    type="time" 
+                    className="form-input" 
+                    value={(editFixtureDateTime && editFixtureDateTime.includes('T')) ? editFixtureDateTime.split('T')[1].substring(0, 5) : ''} 
+                    onChange={e => {
+                      const newTime = e.target.value;
+                      if (newTime && editFixtureDateTime) {
+                        const currentDate = editFixtureDateTime.split('T')[0];
+                        setEditFixtureDateTime(`${currentDate}T${newTime}`);
+                      }
+                    }}
+                    disabled={!editFixtureDateTime}
+                    style={{ opacity: !editFixtureDateTime ? 0.5 : 1, cursor: !editFixtureDateTime ? 'not-allowed' : 'auto' }}
+                  />
+                </div>
+              </div>
             </div>
             <div className="form-group">
               <label className="form-label">Status</label>

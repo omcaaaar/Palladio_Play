@@ -306,9 +306,16 @@ table {
   text-align: left;
 }
 
+.match-name {
+  justify-content: center;
+}
+
 th, td {
   padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--glass-border);
+  vertical-align: middle;
+  line-height: 1.35;
+  text-align: center;
 }
 
 th {

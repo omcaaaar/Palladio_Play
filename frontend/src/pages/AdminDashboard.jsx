@@ -36,7 +36,6 @@ export default function AdminDashboard() {
   const [showFixtureForm, setShowFixtureForm] = useState(false);
   const [showEditFixtureForm, setShowEditFixtureForm] = useState(false);
   const [showEditEventForm, setShowEditEventForm] = useState(false);
-  const [showEditPlayerForm, setShowEditPlayerForm] = useState(false);
   const [showPlayerForm, setShowPlayerForm] = useState(null); // team id or null
   const [showDeleteTournamentConfirm, setShowDeleteTournamentConfirm] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState(null);
@@ -80,9 +79,6 @@ export default function AdminDashboard() {
   const [fixtureDateTime, setFixtureDateTime] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [playerGender, setPlayerGender] = useState('Male');
-  const [editingPlayer, setEditingPlayer] = useState(null);
-  const [editPlayerName, setEditPlayerName] = useState('');
-  const [editPlayerGender, setEditPlayerGender] = useState('Male');
 
   // Edit Fixture Form states
   const [editingFixture, setEditingFixture] = useState(null);
@@ -446,71 +442,21 @@ export default function AdminDashboard() {
     } catch (err) { setError(err.message); }
   }
 
+  function handleGlobalDeletePlayer(playerId) {
+    const p = tournamentPlayers.find(x => x.id === playerId);
+    if (p && isPlayerAssigned(p.name)) {
+      setError('Cannot delete player as they are already assigned to a team or auction.');
+      return;
+    }
+    setPendingConfirmation({ type: 'player', id: playerId, name: p?.name || 'this player' });
+  }
+
   async function handleEditPlayerSave(playerId) {
-    const name = editPlayerForm.name.trim();
-    if (!name) return;
-    if (tournamentPlayers.some(p => p.id !== playerId && p.name.toLowerCase() === name.toLowerCase())) {
+    if (!editPlayerForm.name.trim()) return;
+    if (tournamentPlayers.some(p => p.id !== playerId && p.name.toLowerCase() === editPlayerForm.name.trim().toLowerCase())) {
       setError('A player with this name already exists.');
       return;
     }
-    try {
-      const res = await api.updatePlayer(selectedTournament.id, playerId, {
-        name,
-        gender: editPlayerForm.gender,
-      });
-      setTournamentPlayers(tournamentPlayers.map(p => p.id === playerId ? res.player : p));
-      setEditingPlayerId(null);
-      setEditPlayerForm({ name: '', gender: '' });
-    } catch (err) { setError(err.message); }
-  }
-
-  function openEditPlayer(player) {
-    setEditingPlayer(player);
-    setEditPlayerName(player.name);
-    setEditPlayerGender(player.gender);
-    setShowEditPlayerForm(true);
-  }
-
-  async function handleEditPlayer(e) {
-    e.preventDefault();
-    const name = editPlayerName.trim();
-    if (!name) return;
-    if (tournamentPlayers.some(p => p.id !== editingPlayer.id && p.name.toLowerCase() === name.toLowerCase())) {
-      setError('A player with this name already exists.');
-      return;
-    }
-    try {
-      const res = await api.updatePlayer(selectedTournament.id, editingPlayer.id, { name, gender: editPlayerGender });
-      setTournamentPlayers(tournamentPlayers.map(p => p.id === editingPlayer.id ? res.player : p));
-      setShowEditPlayerForm(false);
-      setEditingPlayer(null);
-    } catch (err) { setError(err.message); }
-  }
-
-    function handleGlobalDeletePlayer(playerId) {
-      const p = tournamentPlayers.find(x => x.id === playerId);
-      if (p && isPlayerAssigned(p.name)) {
-         setError('Cannot delete player as they are already assigned to a team or auction.');
-         return;
-      }
-      setPendingConfirmation({ type: 'player', id: playerId, name: p?.name || 'this player' });
-    }
-
-    async function executeDeletePlayer(playerId) {
-      try {
-          await api.deletePlayer(selectedTournament.id, playerId);
-          setTournamentPlayers(tournamentPlayers.filter(x => x.id !== playerId));
-        setPendingConfirmation(null);
-      } catch (err) { setError(err.message); }
-  }
-
-  function handleDeleteEvent(eventId) {
-    const eventObj = events.find(e => e.id === eventId);
-    const eventNameStr = eventObj ? eventObj.name : 'this event';
-    setPendingConfirmation({ type: 'event', id: eventId, name: eventNameStr });
-  }
-
-  async function executeDeleteEvent(eventId, eventNameStr) {
     try {
       const res = await api.updatePlayer(selectedTournament.id, playerId, { name: editPlayerForm.name.trim(), gender: editPlayerForm.gender });
       setTournamentPlayers(tournamentPlayers.map(p => p.id === playerId ? res.player : p));
@@ -922,25 +868,6 @@ export default function AdminDashboard() {
             <div className="form-group">
               <label className="form-label">Tournament Name</label>
               <input className="form-input" placeholder="e.g. Badminton Championship 2026" value={editTournamentName} onChange={e => setEditTournamentName(e.target.value)} required />
-            </div>
-            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Save Changes</button>
-          </form>
-        </Modal>
-      )}
-
-      {showEditPlayerForm && editingPlayer && (
-        <Modal title="Edit Registered Player" onClose={() => { setShowEditPlayerForm(false); setEditingPlayer(null); }}>
-          <form onSubmit={handleEditPlayer}>
-            <div className="form-group">
-              <label className="form-label">Player Name</label>
-              <input className="form-input" value={editPlayerName} onChange={e => setEditPlayerName(e.target.value)} required />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Gender</label>
-              <select className="form-input" value={editPlayerGender} onChange={e => setEditPlayerGender(e.target.value)} required>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-              </select>
             </div>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Save Changes</button>
           </form>
@@ -1802,7 +1729,6 @@ function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, se
                     const players = team_players[team.id] || [];
                     const isFull = players.length >= max_players;
                     const form = auctionPlayerForms?.[team.id] || { name: '', gender: 'Male', points: '' };
-                    const sortedAvailablePlayers = [...availablePlayers].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
                     return (
                       <React.Fragment key={`add-${team.id}`}>
                         <td style={{ padding: '0.4rem 0.25rem', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}></td>

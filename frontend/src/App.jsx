@@ -8,7 +8,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import RefereeDashboard from './pages/RefereeDashboard';
 import BroadcasterDashboard from './pages/BroadcasterDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
-import { AuctionPage, MvpPage, PlayerEventsPage, PlayerStatsPage, ResultsPage, SchedulePage, SquadsPage, StandingsPage } from './pages/PublicPages';
+import { MvpPage, PlayerEventsPage, PlayerStatsPage, ResultsPage, SchedulePage, SquadsPage, StandingsPage } from './pages/PublicPages';
 
 function Navbar({ user, logout }) {
   const location = useLocation();
@@ -64,7 +64,7 @@ function App() {
 
   const handleLogout = () => {
     setUser(null);
-    navigate('/login');
+    navigate('/');
   };
 
   return (
@@ -75,7 +75,6 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/schedule" element={<SchedulePage />} />
           <Route path="/results" element={<ResultsPage />} />
-          <Route path="/auction" element={<AuctionPage />} />
           <Route path="/standings" element={<StandingsPage />} />
           <Route path="/squads" element={<SquadsPage />} />
           <Route path="/player-events" element={<PlayerEventsPage />} />

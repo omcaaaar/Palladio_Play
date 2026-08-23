@@ -59,15 +59,16 @@ export const addPlayer = (tid, data) =>
     method: 'POST',
     body: JSON.stringify(data),
   });
+export const deletePlayer = (tid, playerId) =>
+  request(`/api/admin/tournaments/${tid}/players/${playerId}`, {
+    method: 'DELETE',
+  });
 export const updatePlayer = (tid, playerId, data) =>
   request(`/api/admin/tournaments/${tid}/players/${playerId}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
-export const deletePlayer = (tid, playerId) =>
-  request(`/api/admin/tournaments/${tid}/players/${playerId}`, {
-    method: 'DELETE',
-  });
+
 
 // ── Events ───────────────────────────────────────────────────
 export const getEvents = (tid) => request(`/api/admin/tournaments/${tid}/events`);

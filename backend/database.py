@@ -132,16 +132,6 @@ def add_player(tournament_id: str, player_data: dict):
         data["players"].append(player_data)
         _write(tournament_id, data)
 
-def update_player(tournament_id: str, player_id: str, update_data: dict) -> dict | None:
-    data = _read(tournament_id)
-    if data and "players" in data:
-        for i, player in enumerate(data["players"]):
-            if player["id"] == player_id:
-                data["players"][i].update(update_data)
-                _write(tournament_id, data)
-                return data["players"][i]
-    return None
-
 def delete_player(tournament_id: str, player_id: str) -> bool:
     data = _read(tournament_id)
     if data and "players" in data:

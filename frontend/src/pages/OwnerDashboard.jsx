@@ -57,10 +57,22 @@ export default function OwnerDashboard() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-secondary)' }}>
           <Eye size={18} />
           <span style={{ fontWeight: 600 }}>Read Only</span>
-          <button className="btn btn-outline" onClick={loadAuctions} disabled={loading} title="Refresh auction data" style={{ padding: '0.5rem' }}>
-            <RefreshCw size={16} />
-          </button>
         </div>
+      </div>
+
+      <div className="glass-card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
+        <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontWeight: 500 }}>Select Tournament</label>
+        <select 
+          className="form-input" 
+          value={selectedTid} 
+          onChange={(e) => setSelectedTid(e.target.value)}
+          disabled={loading || tournaments.length === 0}
+        >
+          {tournaments.length === 0 ? <option value="">No tournaments found</option> : null}
+          {tournaments.map(t => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </select>
       </div>
 
       {error && (
@@ -126,9 +138,8 @@ export default function OwnerDashboard() {
 
                       return (
                         <div key={team.id} style={{ border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem', background: 'rgba(59, 130, 246, 0.08)' }}>
+                          <div style={{ padding: '0.85rem 1rem', background: 'rgba(59, 130, 246, 0.08)' }}>
                             <h4 style={{ margin: 0 }}>{team.name}</h4>
-                            <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>{pointsUsed} pts</span>
                           </div>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', padding: '0.75rem 1rem', borderBottom: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)' }}>
                             {[

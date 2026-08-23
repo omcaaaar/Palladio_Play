@@ -12,7 +12,7 @@ export default function AdminDashboard() {
   const [events, setEvents] = useState([]);
   const [fixtures, setFixtures] = useState([]);
   const [tournamentPlayers, setTournamentPlayers] = useState([]);
-  
+
   // Player tab states
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerGender, setNewPlayerGender] = useState('Male');
@@ -372,8 +372,8 @@ export default function AdminDashboard() {
     if (!team) return;
     const existingPlayer = tournamentPlayers.find(p => p.name === playerName);
     if (!existingPlayer) {
-       setError('Please select a valid player from the registered players list.');
-       return;
+      setError('Please select a valid player from the registered players list.');
+      return;
     }
     try {
       const updatedPlayers = [...(team.players_list || []), { name: existingPlayer.name, gender: existingPlayer.gender }];
@@ -419,9 +419,9 @@ export default function AdminDashboard() {
       }
     }
     if (auction && auction.status === 'live' && auction.team_players) {
-        for (const tId in auction.team_players) {
-           if (auction.team_players[tId].some(p => p.name.toLowerCase() === name.toLowerCase())) return true;
-        }
+      for (const tId in auction.team_players) {
+        if (auction.team_players[tId].some(p => p.name.toLowerCase() === name.toLowerCase())) return true;
+      }
     }
     return false;
   }
@@ -430,8 +430,8 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!newPlayerName.trim()) return;
     if (tournamentPlayers.some(p => p.name.toLowerCase() === newPlayerName.trim().toLowerCase())) {
-       setError('A player with this name already exists.');
-       return;
+      setError('A player with this name already exists.');
+      return;
     }
     try {
       const res = await api.addPlayer(selectedTournament.id, { name: newPlayerName.trim(), gender: newPlayerGender });
@@ -440,21 +440,21 @@ export default function AdminDashboard() {
     } catch (err) { setError(err.message); }
   }
 
-    function handleGlobalDeletePlayer(playerId) {
-      const p = tournamentPlayers.find(x => x.id === playerId);
-      if (p && isPlayerAssigned(p.name)) {
-         setError('Cannot delete player as they are already assigned to a team or auction.');
-         return;
-      }
-      setPendingConfirmation({ type: 'player', id: playerId, name: p?.name || 'this player' });
+  function handleGlobalDeletePlayer(playerId) {
+    const p = tournamentPlayers.find(x => x.id === playerId);
+    if (p && isPlayerAssigned(p.name)) {
+      setError('Cannot delete player as they are already assigned to a team or auction.');
+      return;
     }
+    setPendingConfirmation({ type: 'player', id: playerId, name: p?.name || 'this player' });
+  }
 
-    async function executeDeletePlayer(playerId) {
-      try {
-          await api.deletePlayer(selectedTournament.id, playerId);
-          setTournamentPlayers(tournamentPlayers.filter(x => x.id !== playerId));
-        setPendingConfirmation(null);
-      } catch (err) { setError(err.message); }
+  async function executeDeletePlayer(playerId) {
+    try {
+      await api.deletePlayer(selectedTournament.id, playerId);
+      setTournamentPlayers(tournamentPlayers.filter(x => x.id !== playerId));
+      setPendingConfirmation(null);
+    } catch (err) { setError(err.message); }
   }
 
   function handleDeleteEvent(eventId) {
@@ -587,8 +587,8 @@ export default function AdminDashboard() {
 
     const existingPlayer = tournamentPlayers.find(p => p.name === form.name);
     if (!existingPlayer) {
-       setError('Please select a valid player from the registered players list.');
-       return;
+      setError('Please select a valid player from the registered players list.');
+      return;
     }
 
     const points = parseInt(form.points);
@@ -800,7 +800,7 @@ export default function AdminDashboard() {
             ? 'End Auction?'
             : pendingConfirmation.type === 'generateLeague'
               ? 'Generate League Fixtures?'
-            : `Delete ${pendingConfirmation.type === 'event' ? 'Event Type' : pendingConfirmation.type === 'player' ? 'Player' : 'Fixture'}?`}
+              : `Delete ${pendingConfirmation.type === 'event' ? 'Event Type' : pendingConfirmation.type === 'player' ? 'Player' : 'Fixture'}?`}
           onClose={() => setPendingConfirmation(null)}
         >
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
@@ -811,18 +811,18 @@ export default function AdminDashboard() {
                   ? 'End the live auction?'
                   : pendingConfirmation.type === 'generateLeague'
                     ? 'Generate round robin league fixtures for all groups?'
-                  : `Delete “${pendingConfirmation.name}”?`}
+                    : `Delete “${pendingConfirmation.name}”?`}
               </p>
               <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 {pendingConfirmation.type === 'auction'
                   ? 'Players will be synced to their teams and the auction will be marked as ended.'
                   : pendingConfirmation.type === 'generateLeague'
                     ? 'This will delete any existing league fixtures and generate new round robin fixtures for all groups.'
-                  : pendingConfirmation.type === 'event'
-                    ? 'This will permanently remove the event type and update the remaining event numbering.'
-                    : pendingConfirmation.type === 'player'
-                      ? 'This will permanently remove the registered player from this tournament.'
-                    : 'This action cannot be undone.'}
+                    : pendingConfirmation.type === 'event'
+                      ? 'This will permanently remove the event type and update the remaining event numbering.'
+                      : pendingConfirmation.type === 'player'
+                        ? 'This will permanently remove the registered player from this tournament.'
+                        : 'This action cannot be undone.'}
               </p>
             </div>
           </div>
@@ -840,7 +840,7 @@ export default function AdminDashboard() {
                 ? 'End Auction'
                 : pendingConfirmation.type === 'generateLeague'
                   ? 'Generate Fixtures'
-                : pendingConfirmation.type === 'player' ? 'Delete Player' : 'Delete'}
+                  : pendingConfirmation.type === 'player' ? 'Delete Player' : 'Delete'}
             </button>
           </div>
         </Modal>
@@ -1131,9 +1131,9 @@ export default function AdminDashboard() {
                           <form onSubmit={handleAddPlayer} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             <input className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem', flex: 2, minWidth: '120px' }} placeholder="Select player..." list={`players-list-${team.id}`} value={playerName} onChange={e => setPlayerName(e.target.value)} required />
                             <datalist id={`players-list-${team.id}`}>
-                               {tournamentPlayers.filter(p => !isPlayerAssigned(p.name)).map(p => (
-                                  <option key={p.id} value={p.name} />
-                               ))}
+                              {tournamentPlayers.filter(p => !isPlayerAssigned(p.name)).map(p => (
+                                <option key={p.id} value={p.name} />
+                              ))}
                             </datalist>
                             <button type="submit" className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>Add</button>
                             <button type="button" className="btn btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={() => { setShowPlayerForm(null); setPlayerName(''); }}>Cancel</button>
@@ -1176,7 +1176,7 @@ export default function AdminDashboard() {
                   <Plus size={16} /> Register Player
                 </button>
               </form>
-              
+
               {tournamentPlayers.length === 0 ? (
                 <p style={{ color: 'var(--text-secondary)' }}>No players registered yet. Add players using the form above.</p>
               ) : (
@@ -1351,10 +1351,10 @@ export default function AdminDashboard() {
                                     setEditFixtureStatus(f.status);
                                     setShowEditFixtureForm(true);
                                   }}
-                                style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '4px' }}
-                              >
-                                <Edit size={16} />
-                              </button>
+                                  style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '4px' }}
+                                >
+                                  <Edit size={16} />
+                                </button>
                               )}
                               <button onClick={() => handleDeleteFixture(f.id)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '4px' }}>
                                 <Trash2 size={16} />
@@ -1587,7 +1587,7 @@ function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, se
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <datalist id="available-players">
-        {availablePlayers.map(p => <option key={p.id} value={p.name} />)}
+        {[...availablePlayers].sort((a, b) => a.name.localeCompare(b.name)).map(p => <option key={p.id} value={p.name} />)}
       </datalist>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '-1rem' }}>
         <button onClick={() => setZoomLevel(z => Math.max(0.1, Number((z - 0.1).toFixed(1))))} className="btn btn-outline" style={{ padding: '0.5rem' }} title="Zoom Out"><ZoomOut size={16} /></button>
@@ -1675,12 +1675,12 @@ function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, se
                             disabled={isFull}
                             value={form.name}
                             onChange={e => {
-                               const val = e.target.value;
-                               const selected = availablePlayers.find(p => p.name === val);
-                               setAuctionPlayerForms(prev => ({
-                                 ...prev,
-                                 [team.id]: { ...form, name: val, gender: selected?.gender || form.gender },
-                               }));
+                              const val = e.target.value;
+                              const selected = availablePlayers.find(p => p.name === val);
+                              setAuctionPlayerForms(prev => ({
+                                ...prev,
+                                [team.id]: { ...form, name: val, gender: selected?.gender || form.gender },
+                              }));
                             }}
                           />
                         </td>

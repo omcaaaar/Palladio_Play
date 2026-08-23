@@ -193,8 +193,8 @@ export default function Dashboard() {
 
   const standings = calculateStandings();
   const groups = [...new Set(teams.map(t => t.group).filter(Boolean))];
-  const scheduleFixtures = fixtures.filter(f => f.status !== 'completed');
-  const resultsFixtures = fixtures.filter(f => f.status === 'completed');
+  const scheduleFixtures = fixtures.filter(f => f.status !== 'completed' && f.status !== 'abandoned');
+  const resultsFixtures = fixtures.filter(f => f.status === 'completed' || f.status === 'abandoned');
 
   // ── Player event count ──
   function getPlayerEventCounts() {
@@ -518,7 +518,7 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {resultsFixtures.map(f => {
-                  const fScorecards = scorecards.filter(sc => sc.fixture_id === f.id && sc.status === 'completed');
+                  const fScorecards = scorecards.filter(sc => sc.fixture_id === f.id && (sc.status === 'completed' || sc.status === 'abandoned'));
                   let t1pts = 0, t2pts = 0;
                   fScorecards.forEach(sc => {
                     const ev = events.find(e => e.id === sc.event_id);
@@ -526,7 +526,7 @@ export default function Dashboard() {
                     if (sc.winner === 'team1') t1pts += pts;
                     else if (sc.winner === 'team2') t2pts += pts;
                   });
-                  const winnerName = t1pts > t2pts ? getTeamName(f.team1_id, f.team1_placeholder) : (t2pts > t1pts ? getTeamName(f.team2_id, f.team2_placeholder) : 'Draw');
+                  const winnerName = f.status === 'abandoned' ? 'Abandoned' : (t1pts > t2pts ? getTeamName(f.team1_id, f.team1_placeholder) : (t2pts > t1pts ? getTeamName(f.team2_id, f.team2_placeholder) : 'Draw'));
                   return (
                     <React.Fragment key={f.id}>
                       <tr onClick={() => toggleFixture(f.id)} style={{ cursor: 'pointer' }} className="hoverable-row">
@@ -541,7 +541,7 @@ export default function Dashboard() {
                           <span style={{ fontWeight: 600 }}>{t1pts} - {t2pts}</span>
                         </td>
                         <td>
-                          <span className="badge badge-completed">{winnerName}</span>
+                          <span className={`badge ${f.status === 'abandoned' ? 'badge-abandoned' : 'badge-completed'}`}>{winnerName}</span>
                         </td>
                       </tr>
                       {expandedFixtures[f.id] && (
@@ -799,6 +799,8 @@ function FixtureEventsOverview({ fixture, events, scorecards, getTeamName }) {
                   <span style={{ color: 'var(--text-primary)' }}>
                     {sc.sets.map(s => `${s.team1_score}-${s.team2_score}`).join(' | ')}
                   </span>
+                ) : sc?.status === 'abandoned' ? (
+                  <span className="badge badge-abandoned" style={{ padding: '0.2rem 0.5rem' }}>Abandoned</span>
                 ) : (
                   <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Upcoming</span>
                 )}

@@ -370,7 +370,7 @@ def resolve_placeholders(tournament_id: str):
                 return []
                 
             league_fixtures = [f for f in fixtures if f.get("match_type") == "league" and f.get("team1_id") in grp_teams and f.get("team2_id") in grp_teams]
-            all_completed = all(f.get("status") == "completed" for f in league_fixtures)
+            all_completed = all(f.get("status") in ["completed", "abandoned"] for f in league_fixtures)
             
             if all_completed and league_fixtures:
                 group_standings[grp] = calculate_standings(tournament_id, grp)

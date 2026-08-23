@@ -72,6 +72,8 @@ export default function RefereeDashboard() {
 
   const [error, setError] = useState('');
   const [showLockConfirm, setShowLockConfirm] = useState(false);
+  const [showAbandonFixtureConfirm, setShowAbandonFixtureConfirm] = useState(false);
+  const [abandoningScorecard, setAbandoningScorecard] = useState(null);
 
   useEffect(() => {
     api.getTournaments().then(setTournaments).catch(e => setError(e.message));
@@ -368,10 +370,35 @@ export default function RefereeDashboard() {
       // Refresh fixtures list
       const full = await api.getTournamentFull(selectedTournament.id);
       setFixtures(full.fixtures || []);
-      
+
       setStep(STEPS.SELECT_FIXTURE);
       setSelectedFixture(null);
       setShowLockConfirm(false);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleAbandonFixture() {
+    try {
+      await api.abandonFixture(selectedTournament.id, selectedFixture.id);
+      const full = await api.getTournamentFull(selectedTournament.id);
+      setFixtures(full.fixtures || []);
+      setStep(STEPS.SELECT_FIXTURE);
+      setSelectedFixture(null);
+      setShowAbandonFixtureConfirm(false);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleAbandonScorecard() {
+    if (!abandoningScorecard) return;
+    try {
+      await api.abandonScorecard(selectedTournament.id, abandoningScorecard.id);
+      const scs = await api.getScorecardsForFixture(selectedTournament.id, selectedFixture.id);
+      setExistingScorecards(scs);
+      setAbandoningScorecard(null);
     } catch (err) {
       setError(err.message);
     }
@@ -460,26 +487,28 @@ export default function RefereeDashboard() {
                 </thead>
                 <tbody>
                   {fixtures.slice().sort((a, b) => {
-                    if (a.status === 'completed' && b.status !== 'completed') return 1;
-                    if (a.status !== 'completed' && b.status === 'completed') return -1;
+                    const aIsDone = a.status === 'completed' || a.status === 'abandoned';
+                    const bIsDone = b.status === 'completed' || b.status === 'abandoned';
+                    if (aIsDone && !bIsDone) return 1;
+                    if (!aIsDone && bIsDone) return -1;
                     return 0;
                   }).map(f => (
                     <tr key={f.id}>
                       <td style={{ fontWeight: 600 }}>{getTeamName(f.team1_id)} <span style={{ color: 'var(--text-secondary)' }}>vs</span> {getTeamName(f.team2_id)}</td>
                       <td style={{ textTransform: 'capitalize' }}>{f.match_type.replace('_', ' ')}</td>
                       <td>
-                        <span className={`badge badge-${f.status === 'completed' ? 'completed' : (f.status === 'in_progress' ? 'in-progress' : (f.status === 'on_hold' ? 'on-hold' : 'pending'))}`}>
+                        <span className={`badge badge-${f.status === 'completed' ? 'completed' : (f.status === 'in_progress' ? 'in-progress' : (f.status === 'on_hold' ? 'on-hold' : (f.status === 'abandoned' ? 'abandoned' : 'pending')))}`}>
                           {f.status.replace('_', ' ')}
                         </span>
                       </td>
                       <td>
-                        <button 
-                          className={`btn ${f.is_frozen ? '' : 'btn-primary'}`} 
-                          style={{ 
-                            padding: '0.4rem 0.8rem', 
+                        <button
+                          className={`btn ${f.is_frozen ? '' : 'btn-primary'}`}
+                          style={{
+                            padding: '0.4rem 0.8rem',
                             fontSize: '0.8rem',
                             ...(f.is_frozen ? { background: 'rgba(255, 255, 255, 0.1)', color: 'var(--text-secondary)', cursor: 'not-allowed', borderColor: 'transparent' } : {})
-                          }} 
+                          }}
                           onClick={() => selectFixture(f)}
                           disabled={f.is_frozen}
                         >
@@ -674,11 +703,11 @@ export default function RefereeDashboard() {
                         ))}
                       </td>
                       <td>
-                        <span className={`badge badge-${sc.status === 'completed' ? 'completed' : (sc.status === 'in_progress' ? 'in-progress' : 'pending')}`}>
+                        <span className={`badge badge-${sc.status === 'completed' ? 'completed' : (sc.status === 'in_progress' ? 'in-progress' : (sc.status === 'abandoned' ? 'abandoned' : 'pending'))}`}>
                           {sc.status === 'completed' ? (sc.winner === 'team1' ? `${team1Name} Won` : (sc.winner === 'team2' ? `${team2Name} Won` : 'Completed')) : sc.status.replace('_', ' ')}
                         </span>
                         <div style={{ display: 'inline-flex', gap: '0.5rem', marginLeft: '0.5rem' }}>
-                          {sc.status !== 'completed' ? (
+                          {sc.status !== 'completed' && sc.status !== 'abandoned' ? (
                             <button className="btn btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => handleStartScorecard(sc)}>
                               {sc.status === 'pending' ? 'Start' : 'Resume'}
                             </button>
@@ -690,6 +719,11 @@ export default function RefereeDashboard() {
                           <button className="btn btn-outline" style={{ padding: '0.3rem 0.5rem' }} onClick={() => openEditLineup(sc)}>
                             <Pencil size={14} />
                           </button>
+                          {sc.status !== 'completed' && sc.status !== 'abandoned' && (
+                            <button className="btn btn-outline" style={{ padding: '0.3rem 0.5rem', color: 'var(--accent-danger)', borderColor: 'rgba(239, 68, 68, 0.2)' }} onClick={() => setAbandoningScorecard(sc)} title="Abandon Event">
+                              <X size={14} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -698,14 +732,23 @@ export default function RefereeDashboard() {
               </table>
             </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
-            <button 
-              className="btn btn-outline" 
-              style={{ color: 'var(--accent-primary)', borderColor: 'var(--accent-primary)', padding: '0.75rem 1.5rem' }} 
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem', gap: '1rem' }}>
+            <button
+              className="btn btn-outline"
+              style={{ color: 'var(--accent-primary)', borderColor: 'var(--accent-primary)', padding: '0.75rem 1.5rem' }}
               onClick={() => setShowLockConfirm(true)}
             >
               Lock Match
             </button>
+            {selectedFixture.match_type === 'league' && (
+              <button
+                className="btn btn-outline"
+                style={{ color: 'var(--accent-danger)', borderColor: 'var(--accent-danger)', padding: '0.75rem 1.5rem' }}
+                onClick={() => setShowAbandonFixtureConfirm(true)}
+              >
+                Abandon Match
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -951,6 +994,72 @@ export default function RefereeDashboard() {
             >
               <Lock size={16} />
               Lock Match
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Abandon Match Confirmation Modal */}
+      {showAbandonFixtureConfirm && (
+        <Modal
+          title="Abandon Match?"
+          onClose={() => setShowAbandonFixtureConfirm(false)}
+        >
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <AlertTriangle size={24} color="var(--accent-danger)" style={{ flexShrink: 0 }} />
+            <div>
+              <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>
+                Abandon this match?
+              </p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                All pending and in-progress events will be marked as abandoned. No scores will be calculated for this match. This action cannot be undone.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+            <button className="btn btn-outline" onClick={() => setShowAbandonFixtureConfirm(false)}>
+              Cancel
+            </button>
+            <button
+              className="btn"
+              onClick={handleAbandonFixture}
+              style={{ background: 'var(--accent-danger)', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <X size={16} />
+              Abandon Match
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Abandon Event Confirmation Modal */}
+      {abandoningScorecard && (
+        <Modal
+          title="Abandon Event?"
+          onClose={() => setAbandoningScorecard(null)}
+        >
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <AlertTriangle size={24} color="var(--accent-danger)" style={{ flexShrink: 0 }} />
+            <div>
+              <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>
+                Abandon {getEventName(abandoningScorecard.event_id)}?
+              </p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                This event will not count towards the match score.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+            <button className="btn btn-outline" onClick={() => setAbandoningScorecard(null)}>
+              Cancel
+            </button>
+            <button
+              className="btn"
+              onClick={handleAbandonScorecard}
+              style={{ background: 'var(--accent-danger)', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <X size={16} />
+              Abandon Event
             </button>
           </div>
         </Modal>

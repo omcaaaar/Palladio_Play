@@ -146,6 +146,16 @@ export const completeScorecard = (tid, scorecardId, winner) =>
     body: JSON.stringify({ winner }),
   });
 
+export const abandonScorecard = (tid, scorecardId) =>
+  request(`/api/referee/tournaments/${tid}/scorecards/${scorecardId}/abandon`, {
+    method: 'PUT',
+  });
+
+export const abandonFixture = (tid, fixtureId) =>
+  request(`/api/referee/tournaments/${tid}/fixtures/${fixtureId}/abandon`, {
+    method: 'PUT',
+  });
+
 // ── Auction ──────────────────────────────────────────────────
 export const getAuction = (tid) => request(`/api/admin/tournaments/${tid}/auction`);
 export const updateAuction = (tid, data) =>

@@ -8,6 +8,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import RefereeDashboard from './pages/RefereeDashboard';
 import BroadcasterDashboard from './pages/BroadcasterDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
+import { AuctionPage, PlayerEventsPage, PlayerStatsPage, ResultsPage, SchedulePage, SquadsPage, StandingsPage } from './pages/PublicPages';
 
 function Navbar({ user, logout }) {
   const location = useLocation();
@@ -63,7 +64,7 @@ function App() {
 
   const handleLogout = () => {
     setUser(null);
-    navigate('/');
+    navigate('/login');
   };
 
   return (
@@ -72,6 +73,13 @@ function App() {
       <main className="container">
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/schedule" element={<SchedulePage />} />
+          <Route path="/results" element={<ResultsPage />} />
+          <Route path="/auction" element={<AuctionPage />} />
+          <Route path="/standings" element={<StandingsPage />} />
+          <Route path="/squads" element={<SquadsPage />} />
+          <Route path="/player-events" element={<PlayerEventsPage />} />
+          <Route path="/player-stats" element={<PlayerStatsPage />} />
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/owner-login" element={<Login onLogin={handleLogin} fixedRole="owner" />} />
           <Route path="/admin/*" element={user?.role === 'admin' ? <AdminDashboard /> : <Login onLogin={handleLogin} />} />

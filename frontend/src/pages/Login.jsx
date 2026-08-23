@@ -49,7 +49,7 @@ export default function Login({ onLogin, fixedRole = '' }) {
           <h1>Welcome to Palladio Play</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Select your role to continue</p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', maxWidth: '500px', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
           {/* Broadcaster */}
           <button className="glass-card" onClick={() => handleSelectRole('broadcaster')}
             style={{ cursor: 'pointer', textAlign: 'center', padding: '2rem 1rem', border: '1px solid var(--glass-border)', transition: 'all 0.2s' }}>

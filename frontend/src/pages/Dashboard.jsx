@@ -131,8 +131,8 @@ export default function Dashboard() {
       teamMap[t.id] = { id: t.id, name: t.name, group: t.group, played: 0, won: 0, lost: 0, points: 0, eventDiff: 0, setPointDiff: 0 };
     });
 
-    // Only consider completed fixtures
-    const completedFixtures = fixtures.filter(f => f.status === 'completed');
+    // Only consider completed league fixtures
+    const completedFixtures = fixtures.filter(f => f.status === 'completed' && f.match_type === 'league');
 
     completedFixtures.forEach(f => {
       const t1 = teamMap[f.team1_id];
@@ -436,7 +436,7 @@ export default function Dashboard() {
 
       {/* ── Standings ── */}
       <div className="glass-card" style={{ marginBottom: '1.5rem' }}>
-        <h3>Standings</h3>
+        <h3>League Standings</h3>
         {groups.length > 0 ? (
           groups.map(g => (
             <div key={g} style={{ marginBottom: '1.5rem' }}>

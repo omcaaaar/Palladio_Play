@@ -8,7 +8,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import RefereeDashboard from './pages/RefereeDashboard';
 import BroadcasterDashboard from './pages/BroadcasterDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
-import { AuctionPage, PlayerEventsPage, PlayerStatsPage, ResultsPage, SchedulePage, SquadsPage, StandingsPage } from './pages/PublicPages';
+import { AuctionPage, MvpPage, PlayerEventsPage, PlayerStatsPage, ResultsPage, SchedulePage, SquadsPage, StandingsPage } from './pages/PublicPages';
 
 function Navbar({ user, logout }) {
   const location = useLocation();
@@ -80,6 +80,7 @@ function App() {
           <Route path="/squads" element={<SquadsPage />} />
           <Route path="/player-events" element={<PlayerEventsPage />} />
           <Route path="/player-stats" element={<PlayerStatsPage />} />
+          <Route path="/mvp" element={<MvpPage />} />
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/owner-login" element={<Login onLogin={handleLogin} fixedRole="owner" />} />
           <Route path="/admin/*" element={user?.role === 'admin' ? <AdminDashboard /> : <Login onLogin={handleLogin} />} />

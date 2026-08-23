@@ -11,6 +11,7 @@ const tiles = [
   { title: 'Squads', description: 'Browse teams, owners, and players', path: '/squads', icon: Users, tone: 'violet' },
   { title: 'Player Event', description: 'See events played by every player', path: '/player-events', icon: UserRound, tone: 'cyan' },
   { title: 'Player Stats', description: 'Compare player performance across events', path: '/player-stats', icon: BarChart3, tone: 'orange' },
+  { title: 'Tournament MVP', description: 'Find the most valuable player', path: '/mvp', icon: Trophy, tone: 'gold' },
 ];
 
 export default function Dashboard() {

@@ -86,7 +86,7 @@ export default function BroadcasterDashboard() {
   const getScoreboardData = () => {
     const currentData = tournamentDataRef.current;
     if (!currentData) return null;
-    const { fixtures, teams, scorecards } = currentData;
+    const { fixtures, teams, scorecards, events } = currentData;
     if (!fixtures || fixtures.length === 0) return null;
 
     const activeFixture = fixtures.find(f => f.status === 'in_progress');
@@ -96,39 +96,67 @@ export default function BroadcasterDashboard() {
     const team2 = teams.find(t => t.id === activeFixture.team2_id);
 
     const matches = (scorecards || []).filter(s => s.fixture_id === activeFixture.id);
-    // Sort matches by sequence to keep order consistent
-    matches.sort((a, b) => {
-      const eventA = currentData.events.find(e => e.id === a.event_id);
-      const eventB = currentData.events.find(e => e.id === b.event_id);
-      return (eventA?.sequence || 0) - (eventB?.sequence || 0);
+
+    // Calculate overall wins for team1 and team2 in this fixture
+    let team1Wins = 0;
+    let team2Wins = 0;
+    matches.forEach(m => {
+      if (m.winner === 'team1') team1Wins++;
+      else if (m.winner === 'team2') team2Wins++;
     });
 
+    // Find the currently active match (event)
+    let activeMatch = matches.find(m => m.status === 'in_progress');
+
+    // If no match is in progress, maybe one is pending or we just finished one.
+    // Let's fallback to the last completed one or first pending one if no active match.
+    if (!activeMatch) {
+      const completedMatches = matches.filter(m => m.status === 'completed');
+      if (completedMatches.length > 0) {
+        // Get the last completed match based on sequence or just the last in array
+        activeMatch = completedMatches[completedMatches.length - 1];
+      } else {
+        const pendingMatches = matches.filter(m => m.status === 'pending');
+        if (pendingMatches.length > 0) {
+          activeMatch = pendingMatches[0];
+        } else {
+          return null; // No matches at all
+        }
+      }
+    }
+
+    const currentEvent = events?.find(e => e.id === activeMatch.event_id);
+    const eventName = currentEvent?.name || 'Event';
+
+    const numSets = activeMatch.num_sets || 1;
     const team1Scores = [];
     const team2Scores = [];
 
-    matches.forEach(match => {
-      const currentSet = match.current_set || 0;
-      const setInfo = match.sets && match.sets[currentSet] ? match.sets[currentSet] : { team1_score: 0, team2_score: 0 };
+    for (let i = 0; i < numSets; i++) {
+      const setInfo = activeMatch.sets && activeMatch.sets[i] ? activeMatch.sets[i] : { team1_score: 0, team2_score: 0 };
       team1Scores.push(setInfo.team1_score);
       team2Scores.push(setInfo.team2_score);
-    });
+    }
 
     return {
-      team1: { name: team1?.name || 'Team 1', scores: team1Scores },
-      team2: { name: team2?.name || 'Team 2', scores: team2Scores }
+      team1: { name: team1?.name || 'Team 1', wins: team1Wins, scores: team1Scores },
+      team2: { name: team2?.name || 'Team 2', wins: team2Wins, scores: team2Scores },
+      eventName: eventName,
+      numSets: numSets
     };
   };
 
   const drawScoreboard = (ctx, width, height, data) => {
     const isLandscape = width > height;
-    const sbWidth = isLandscape ? Math.min(width * 0.4, 450) : Math.min(width * 0.7, 320);
-    const sbHeight = isLandscape ? Math.max(height * 0.15, 80) : Math.max(height * 0.1, 70);
+    const sbWidth = isLandscape ? Math.min(width * 0.38, 420) : Math.min(width * 0.65, 300);
+    const sbHeight = isLandscape ? Math.max(height * 0.16, 80) : Math.max(height * 0.12, 70);
 
     const padding = isLandscape ? 40 : 20;
     const x = width - sbWidth - padding;
     const y = padding;
 
-    ctx.fillStyle = 'rgba(20, 20, 24, 0.3)';
+    // Background
+    ctx.fillStyle = 'rgba(20, 20, 24, 0.4)';
     ctx.beginPath();
     if (ctx.roundRect) {
       ctx.roundRect(x, y, sbWidth, sbHeight, 12);
@@ -137,19 +165,34 @@ export default function BroadcasterDashboard() {
     }
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    const nameWidth = sbWidth * 0.4;
+    const winsWidth = sbWidth * 0.15;
+    const eventWidth = sbWidth - nameWidth - winsWidth;
+
+    // Draw horizontal lines (2 lines for 3 rows)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(x, y + sbHeight / 2);
-    ctx.lineTo(x + sbWidth, y + sbHeight / 2);
+    const rowHeight = sbHeight / 3;
+    ctx.moveTo(x, y + rowHeight);
+    ctx.lineTo(x + sbWidth, y + rowHeight);
+    ctx.moveTo(x, y + rowHeight * 2);
+    ctx.lineTo(x + sbWidth, y + rowHeight * 2);
 
-    const nameWidth = sbWidth * 0.4;
-    const cols = 7;
-    const colWidth = (sbWidth - nameWidth) / cols;
+    // Draw vertical lines
+    // 1. Between Name and Wins
+    ctx.moveTo(x + nameWidth, y);
+    ctx.lineTo(x + nameWidth, y + sbHeight);
+    // 2. Between Wins and Event
+    ctx.moveTo(x + nameWidth + winsWidth, y);
+    ctx.lineTo(x + nameWidth + winsWidth, y + sbHeight);
 
-    for (let i = 0; i <= cols; i++) {
-      const cx = x + nameWidth + i * colWidth;
-      ctx.moveTo(cx, y);
+    // 3. Sub-columns in Event section (only in Team 1 and Team 2 rows)
+    const numSets = data.numSets || 1;
+    const subColWidth = eventWidth / numSets;
+    for (let i = 1; i < numSets; i++) {
+      const cx = x + nameWidth + winsWidth + i * subColWidth;
+      ctx.moveTo(cx, y + rowHeight); // Start from row 2
       ctx.lineTo(cx, y + sbHeight);
     }
     ctx.stroke();
@@ -157,30 +200,46 @@ export default function BroadcasterDashboard() {
     ctx.fillStyle = '#ffffff';
     ctx.textBaseline = 'middle';
 
-    const nameFont = `bold ${Math.max(10, sbHeight * 0.22)}px Inter, sans-serif`;
-    const scoreFontSize = Math.max(8, Math.min(sbHeight * 0.20, colWidth * 0.55));
-    const scoreFont = `bold ${scoreFontSize}px Inter, sans-serif`;
+    const headerFont = `bold ${Math.max(10, sbHeight * 0.15)}px Inter, sans-serif`;
+    const nameFont = `bold ${Math.max(11, sbHeight * 0.18)}px Inter, sans-serif`;
+    const scoreFont = `bold ${Math.max(12, sbHeight * 0.2)}px Inter, sans-serif`;
 
-    const team1Y = y + sbHeight * 0.25;
-    const team2Y = y + sbHeight * 0.75;
+    const headerY = y + rowHeight / 2;
+    const team1Y = y + rowHeight * 1.5;
+    const team2Y = y + rowHeight * 2.5;
 
-    ctx.font = nameFont;
-    ctx.textAlign = 'left';
+    // Draw Headers
+    ctx.font = headerFont;
+    ctx.textAlign = 'center';
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
     ctx.shadowBlur = 2;
     ctx.shadowOffsetX = 1;
     ctx.shadowOffsetY = 1;
 
+    ctx.fillStyle = '#4ade80'; // Green for wins header
+    ctx.fillText("Wins", x + nameWidth + winsWidth / 2, headerY);
+
+    ctx.fillStyle = '#ffffff'; // Revert to white
+    ctx.fillText(data.eventName, x + nameWidth + winsWidth + eventWidth / 2, headerY, eventWidth - 10);
+
+    // Draw Names
+    ctx.font = nameFont;
+    ctx.textAlign = 'left';
     const maxNameWidth = nameWidth - 16;
     ctx.fillText(data.team1.name, x + 8, team1Y, maxNameWidth);
     ctx.fillText(data.team2.name, x + 8, team2Y, maxNameWidth);
 
-    ctx.shadowColor = 'transparent';
+    // Draw Wins
+    ctx.fillStyle = '#4ade80'; // Green for wins count
     ctx.font = scoreFont;
     ctx.textAlign = 'center';
+    ctx.fillText(data.team1.wins.toString(), x + nameWidth + winsWidth / 2, team1Y);
+    ctx.fillText(data.team2.wins.toString(), x + nameWidth + winsWidth / 2, team2Y);
+    ctx.fillStyle = '#ffffff'; // Revert to white for scores
 
-    for (let i = 0; i < cols; i++) {
-      const cx = x + nameWidth + i * colWidth + colWidth / 2;
+    // Draw Scores
+    for (let i = 0; i < numSets; i++) {
+      const cx = x + nameWidth + winsWidth + i * subColWidth + subColWidth / 2;
       const score1 = data.team1.scores[i] !== undefined ? data.team1.scores[i] : '-';
       const score2 = data.team2.scores[i] !== undefined ? data.team2.scores[i] : '-';
 
@@ -416,10 +475,10 @@ export default function BroadcasterDashboard() {
               <button
                 className={`btn`}
                 onClick={handleToggleLive}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.5rem', 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
                   width: '100%',
                   justifyContent: 'center',
                   background: tournamentData?.tournament?.is_live ? 'rgba(16, 185, 129, 0.2)' : 'var(--glass-bg)',

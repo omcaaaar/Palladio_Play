@@ -1,59 +1,64 @@
-import json
 import os
+from functools import lru_cache
 from typing import List
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data", "tournaments")
-os.makedirs(DATA_DIR, exist_ok=True)
+import certifi
+from dotenv import load_dotenv
+from pymongo import MongoClient
 
-def _get_filepath(tournament_id: str) -> str:
-    return os.path.join(DATA_DIR, f"{tournament_id}.json")
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
+MONGODB_URI = os.getenv("MONGODB_URI")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE", "palladio_play")
+MONGODB_COLLECTION = os.getenv("MONGODB_COLLECTION", "tournaments")
+MONGODB_TIMEOUT = int(os.getenv("MONGODB_SERVER_SELECTION_TIMEOUT_MS", "5000"))
+
+@lru_cache(maxsize=1)
+def _get_collection():
+    if not MONGODB_URI:
+        raise RuntimeError("MONGODB_URI is not configured. Add it to backend/.env.")
+    client = MongoClient(
+        MONGODB_URI,
+        serverSelectionTimeoutMS=MONGODB_TIMEOUT,
+        tlsCAFile=certifi.where(),
+    )
+    client.admin.command("ping")
+    return client[MONGODB_DATABASE][MONGODB_COLLECTION]
 
 def _read(tournament_id: str) -> dict | None:
-    filepath = _get_filepath(tournament_id)
-    if os.path.exists(filepath):
-        with open(filepath, 'r') as f:
-            data = json.load(f)
-            
-        # Clean scorecards statuses to match their score state
-        updated = False
-        if data and "scorecards" in data:
-            for s in data["scorecards"]:
-                # Check if score of any set is non-zero
-                is_non_zero = any(
-                    set_score.get("team1_score", 0) > 0 or set_score.get("team2_score", 0) > 0
-                    for set_score in s.get("sets", [])
-                )
-                if s["status"] == "in_progress" and not is_non_zero:
-                    s["status"] = "pending"
-                    updated = True
-                elif s["status"] == "pending" and is_non_zero:
-                    s["status"] = "in_progress"
-                    updated = True
-                    
-        if updated:
-            # Write back the cleaned data to persist self-healing fixes
-            with open(filepath, 'w') as f:
-                json.dump(data, f, indent=2)
-            
-        return data
-    return None
+    document = _get_collection().find_one({"_id": tournament_id})
+    if not document:
+        return None
+
+    document.pop("_id", None)
+    updated = False
+    for scorecard in document.get("scorecards", []):
+        is_non_zero = any(
+            set_score.get("team1_score", 0) > 0 or set_score.get("team2_score", 0) > 0
+            for set_score in scorecard.get("sets", [])
+        )
+        if scorecard["status"] == "in_progress" and not is_non_zero:
+            scorecard["status"] = "pending"
+            updated = True
+        elif scorecard["status"] == "pending" and is_non_zero:
+            scorecard["status"] = "in_progress"
+            updated = True
+
+    if updated:
+        _write(tournament_id, document)
+    return document
 
 def _write(tournament_id: str, data: dict):
-    filepath = _get_filepath(tournament_id)
-    with open(filepath, 'w') as f:
-        json.dump(data, f, indent=2)
+    _get_collection().replace_one(
+        {"_id": tournament_id},
+        {"_id": tournament_id, **data},
+        upsert=True,
+    )
 
 # ── Tournament ────────────────────────────────────────────────
 
 def get_all_tournaments() -> List[dict]:
-    tournaments = []
-    for filename in os.listdir(DATA_DIR):
-        if filename.endswith(".json"):
-            with open(os.path.join(DATA_DIR, filename), 'r') as f:
-                data = json.load(f)
-                if "tournament" in data:
-                    tournaments.append(data["tournament"])
-    return tournaments
+    return [document["tournament"] for document in _get_collection().find({}, {"_id": 0, "tournament": 1}) if "tournament" in document]
 
 def add_tournament(tournament_data: dict):
     tid = tournament_data["id"]
@@ -80,11 +85,7 @@ def update_tournament(tournament_id: str, update_data: dict) -> dict | None:
     return None
 
 def delete_tournament(tournament_id: str) -> bool:
-    filepath = _get_filepath(tournament_id)
-    if os.path.exists(filepath):
-        os.remove(filepath)
-        return True
-    return False
+    return _get_collection().delete_one({"_id": tournament_id}).deleted_count > 0
 
 # ── Teams ─────────────────────────────────────────────────────
 

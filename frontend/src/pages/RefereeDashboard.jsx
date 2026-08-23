@@ -32,12 +32,23 @@ function getFilteredPlayers(players, eventName, playerSlot, otherPlayerName = ''
   if (lowerName.includes("men's")) {
     return filtered.filter(p => typeof p === 'object' ? p.gender === 'Male' : true);
   }
+  if (lowerName.includes("junior")) {
+    return filtered.filter(p => typeof p === 'object' ? p.gender === 'Junior' : true);
+  }
+  if (lowerName.includes("senior")) {
+    return filtered.filter(p => typeof p === 'object' ? p.gender === 'Senior' : true);
+  }
   if (lowerName.includes("mixed")) {
     if (otherPlayerName) {
       const otherPlayer = players.find(p => (typeof p === 'object' ? p.name : p) === otherPlayerName);
       if (otherPlayer && typeof otherPlayer === 'object') {
-        const oppGender = otherPlayer.gender === 'Male' ? 'Female' : 'Male';
-        return filtered.filter(p => typeof p === 'object' ? p.gender === oppGender : true);
+        if (otherPlayer.gender === 'Male' || otherPlayer.gender === 'Female') {
+          const oppGender = otherPlayer.gender === 'Male' ? 'Female' : 'Male';
+          return filtered.filter(p => typeof p === 'object' ? p.gender === oppGender : true);
+        } else if (otherPlayer.gender === 'Junior' || otherPlayer.gender === 'Senior') {
+          const oppCat = otherPlayer.gender === 'Junior' ? 'Senior' : 'Junior';
+          return filtered.filter(p => typeof p === 'object' ? p.gender === oppCat : true);
+        }
       }
     }
   }
@@ -554,7 +565,7 @@ export default function RefereeDashboard() {
                           <option value="">-- Select --</option>
                           {getFilteredPlayers(team1Players, ev.name, 1, lineup.team1Player2).map(p => {
                             const name = typeof p === 'object' ? p.name : p;
-                            const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p;
+                            const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p;
                             return <option key={name} value={name}>{label}</option>;
                           })}
                         </select>
@@ -567,7 +578,7 @@ export default function RefereeDashboard() {
                             {getFilteredPlayers(team1Players, ev.name, 2, lineup.team1Player1)
                               .map(p => {
                                 const name = typeof p === 'object' ? p.name : p;
-                                const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p;
+                                const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p;
                                 return <option key={name} value={name}>{label}</option>;
                               })
                             }
@@ -587,7 +598,7 @@ export default function RefereeDashboard() {
                           <option value="">-- Select --</option>
                           {getFilteredPlayers(team2Players, ev.name, 1, lineup.team2Player2).map(p => {
                             const name = typeof p === 'object' ? p.name : p;
-                            const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p;
+                            const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p;
                             return <option key={name} value={name}>{label}</option>;
                           })}
                         </select>
@@ -600,7 +611,7 @@ export default function RefereeDashboard() {
                             {getFilteredPlayers(team2Players, ev.name, 2, lineup.team2Player1)
                               .map(p => {
                                 const name = typeof p === 'object' ? p.name : p;
-                                const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p;
+                                const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p;
                                 return <option key={name} value={name}>{label}</option>;
                               })
                             }
@@ -883,7 +894,7 @@ export default function RefereeDashboard() {
                             <option value="">-- Select --</option>
                             {getFilteredPlayers(team1Players, getEventName(editingScorecard.event_id), 1, editLineupData.team1Player2).map(p => {
                               const name = typeof p === 'object' ? p.name : p;
-                              const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p;
+                              const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p;
                               return <option key={name} value={name}>{label}</option>;
                             })}
                           </select>
@@ -896,7 +907,7 @@ export default function RefereeDashboard() {
                               {getFilteredPlayers(team1Players, getEventName(editingScorecard.event_id), 2, editLineupData.team1Player1)
                                 .map(p => {
                                   const name = typeof p === 'object' ? p.name : p;
-                                  const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p;
+                                  const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p;
                                   return <option key={name} value={name}>{label}</option>;
                                 })
                               }
@@ -912,7 +923,7 @@ export default function RefereeDashboard() {
                             <option value="">-- Select --</option>
                             {getFilteredPlayers(team2Players, getEventName(editingScorecard.event_id), 1, editLineupData.team2Player2).map(p => {
                               const name = typeof p === 'object' ? p.name : p;
-                              const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p;
+                              const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p;
                               return <option key={name} value={name}>{label}</option>;
                             })}
                           </select>
@@ -925,7 +936,7 @@ export default function RefereeDashboard() {
                               {getFilteredPlayers(team2Players, getEventName(editingScorecard.event_id), 2, editLineupData.team2Player1)
                                 .map(p => {
                                   const name = typeof p === 'object' ? p.name : p;
-                                  const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p;
+                                  const label = typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p;
                                   return <option key={name} value={name}>{label}</option>;
                                 })
                               }

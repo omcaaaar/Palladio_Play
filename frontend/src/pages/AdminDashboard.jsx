@@ -46,18 +46,27 @@ export default function AdminDashboard() {
   // Form states
   const [tournamentName, setTournamentName] = useState('');
   const [tournamentSport, setTournamentSport] = useState('Badminton');
+  const [tournamentCategory, setTournamentCategory] = useState('Adults');
   const [editTournamentName, setEditTournamentName] = useState('');
   const [teamName, setTeamName] = useState('');
   const [teamOwners, setTeamOwners] = useState('');
   const [teamGroup, setTeamGroup] = useState('');
-  const EVENT_TYPES = [
+  const EVENT_TYPES_ADULTS = [
     "Men's Singles",
     "Men's Doubles",
     "Women's Singles",
     "Women's Doubles",
     "Mixed Doubles"
   ];
-  const [eventName, setEventName] = useState(EVENT_TYPES[0]);
+  const EVENT_TYPES_KIDS = [
+    "Junior Singles",
+    "Senior Singles",
+    "Junior Doubles",
+    "Senior Doubles",
+    "Mixed Doubles"
+  ];
+  const currentEventTypes = selectedTournament?.category === 'Kids' ? EVENT_TYPES_KIDS : EVENT_TYPES_ADULTS;
+  const [eventName, setEventName] = useState(EVENT_TYPES_ADULTS[0]);
   const [fixtureTeam1, setFixtureTeam1] = useState('');
   const [fixtureTeam2, setFixtureTeam2] = useState('');
   const [fixtureTeam1Type, setFixtureTeam1Type] = useState('team');
@@ -91,6 +100,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (selectedTournament) {
       loadTournamentData(selectedTournament.id);
+      setNewPlayerGender(selectedTournament.category === 'Kids' ? 'Junior' : 'Male');
     }
   }, [selectedTournament]);
 
@@ -127,12 +137,13 @@ export default function AdminDashboard() {
   async function handleCreateTournament(e) {
     e.preventDefault();
     try {
-      const res = await api.createTournament(tournamentName, tournamentSport);
+      const res = await api.createTournament(tournamentName, tournamentSport, tournamentCategory);
       setTournaments([...tournaments, res.tournament]);
       setSelectedTournament(res.tournament);
       setActiveTab('teams');
       setTournamentName('');
       setTournamentSport('Badminton');
+      setTournamentCategory('Adults');
       setShowTournamentForm(false);
     } catch (err) { setError(err.message); }
   }
@@ -195,7 +206,7 @@ export default function AdminDashboard() {
       const updatedEvents = await api.getEvents(selectedTournament.id);
       setEvents(updatedEvents);
 
-      setEventName(EVENT_TYPES[0]);
+      setEventName(currentEventTypes[0]);
       setShowEventForm(false);
     } catch (err) { setError(err.message); }
   }
@@ -219,7 +230,7 @@ export default function AdminDashboard() {
         name: finalName,
       });
 
-      const oldBaseType = EVENT_TYPES.find(t => editingEvent.name.startsWith(t));
+      const oldBaseType = currentEventTypes.find(t => editingEvent.name.startsWith(t));
       if (oldBaseType && oldBaseType !== editEventName) {
         const remainingOld = events.filter(e => e.id !== editingEvent.id && e.name.startsWith(oldBaseType));
         if (remainingOld.length === 1) {
@@ -456,7 +467,7 @@ export default function AdminDashboard() {
     try {
       await api.deleteEvent(selectedTournament.id, eventId);
 
-      const baseType = EVENT_TYPES.find(t => eventNameStr.startsWith(t));
+      const baseType = currentEventTypes.find(t => eventNameStr.startsWith(t));
       if (baseType) {
         const remainingEvents = events.filter(e => e.id !== eventId && e.name.startsWith(baseType));
 
@@ -715,6 +726,13 @@ export default function AdminDashboard() {
                 <option value="Pickleball">Pickleball</option>
               </select>
             </div>
+            <div className="form-group">
+              <label className="form-label">Category</label>
+              <select className="form-input" value={tournamentCategory} onChange={e => setTournamentCategory(e.target.value)} required>
+                <option value="Adults">Adults</option>
+                <option value="Kids">Kids</option>
+              </select>
+            </div>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Create Tournament</button>
           </form>
         </Modal>
@@ -873,7 +891,7 @@ export default function AdminDashboard() {
             <div className="form-group">
               <label className="form-label">Event Type</label>
               <select className="form-input" value={eventName} onChange={e => setEventName(e.target.value)} required>
-                {EVENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                {currentEventTypes.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Add Event</button>
@@ -888,7 +906,7 @@ export default function AdminDashboard() {
             <div className="form-group">
               <label className="form-label">Event Name</label>
               <select className="form-input" value={editEventName} onChange={e => setEditEventName(e.target.value)} required>
-                {EVENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                {currentEventTypes.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Save Changes</button>
@@ -1101,7 +1119,7 @@ export default function AdminDashboard() {
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.5rem' }}>
                             {team.players_list.map((p, idx) => (
                               <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.2rem 0.6rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-full)', fontSize: '0.8rem' }}>
-                                {typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : 'F'})` : p}
+                                {typeof p === 'object' ? `${p.name} (${p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : p.gender})` : p}
                                 <button onClick={() => handleRemovePlayer(team.id, idx)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0', lineHeight: 1 }}>
                                   <X size={12} />
                                 </button>
@@ -1142,8 +1160,17 @@ export default function AdminDashboard() {
               <form onSubmit={handleGlobalAddPlayer} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
                 <input className="form-input" placeholder="Player name" value={newPlayerName} onChange={e => setNewPlayerName(e.target.value)} required style={{ flex: 1, minWidth: '200px' }} />
                 <select className="form-input" value={newPlayerGender} onChange={e => setNewPlayerGender(e.target.value)} required style={{ width: '120px' }}>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
+                  {selectedTournament.category === 'Kids' ? (
+                    <>
+                      <option value="Junior">Junior</option>
+                      <option value="Senior">Senior</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </>
+                  )}
                 </select>
                 <button type="submit" className="btn btn-primary">
                   <Plus size={16} /> Register Player
@@ -1158,7 +1185,7 @@ export default function AdminDashboard() {
                     <thead>
                       <tr>
                         <th>Name</th>
-                        <th>Gender</th>
+                        <th>{selectedTournament.category === 'Kids' ? 'Category' : 'Gender'}</th>
                         <th style={{ textAlign: 'right' }}>Action</th>
                       </tr>
                     </thead>
@@ -1186,7 +1213,7 @@ export default function AdminDashboard() {
             <div className="glass-card animate-fade-in">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <h3 style={{ margin: 0 }}>Event Types</h3>
-                <button className="btn btn-primary" style={{ fontSize: '0.875rem' }} onClick={() => setShowEventForm(true)}>
+                <button className="btn btn-primary" style={{ fontSize: '0.875rem' }} onClick={() => { setEventName(currentEventTypes[0]); setShowEventForm(true); }}>
                   <Plus size={16} /> Add Event
                 </button>
               </div>
@@ -1212,7 +1239,7 @@ export default function AdminDashboard() {
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                               <button
                                 onClick={() => {
-                                  const baseType = EVENT_TYPES.find(t => ev.name.startsWith(t)) || EVENT_TYPES[0];
+                                  const baseType = currentEventTypes.find(t => ev.name.startsWith(t)) || currentEventTypes[0];
                                   setEditingEvent(ev);
                                   setEditEventName(baseType);
                                   setShowEditEventForm(true);
@@ -1609,7 +1636,7 @@ function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, se
                           {player ? player.name : '—'}
                         </td>
                         <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: player ? 'var(--text-secondary)' : 'rgba(255,255,255,0.1)', fontSize: '0.8rem' }}>
-                          {player ? (player.gender === 'Male' ? 'M' : 'F') : '—'}
+                          {player ? (player.gender === 'Male' ? 'M' : player.gender === 'Female' ? 'F' : player.gender) : '—'}
                         </td>
                         <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: player ? 600 : 400, color: player ? 'var(--accent-primary)' : 'rgba(255,255,255,0.1)' }}>
                           {player ? player.points : '—'}

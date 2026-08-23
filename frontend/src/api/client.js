@@ -20,10 +20,10 @@ export const getTournaments = async () => {
   return data.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 };
 export const getTournamentFull = (tid) => request(`/api/public/tournaments/${tid}`);
-export const createTournament = (name, sport) =>
+export const createTournament = (name, sport, category) =>
   request('/api/admin/tournaments', {
     method: 'POST',
-    body: JSON.stringify({ name, sport }),
+    body: JSON.stringify({ name, sport, category }),
   });
 export const updateTournament = (tid, updateData) =>
   request(`/api/admin/tournaments/${tid}`, {

@@ -745,7 +745,7 @@ function DashboardAuctionTable({ auction, teams }) {
                           {player ? player.name : '—'}
                         </td>
                         <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: player ? 'var(--text-secondary)' : 'rgba(255,255,255,0.1)', fontSize: '0.8rem' }}>
-                          {player ? (player.gender === 'Male' ? 'M' : 'F') : '—'}
+                          {player ? (player.gender === 'Male' ? 'M' : player.gender === 'Female' ? 'F' : player.gender) : '—'}
                         </td>
                       </React.Fragment>
                     );

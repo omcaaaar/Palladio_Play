@@ -17,16 +17,16 @@ export function useTournamentData() {
       setAuction(live?.status === 'live' ? live : null);
     } catch (error) { console.error('Failed to load tournament:', error); }
   };
-  useEffect(() => { api.getTournaments().then(items => { setTournaments(items); if (items[0]) setSelectedTid(items[0].id); }); }, []);
+  useEffect(() => { api.getTournaments().then(items => { setTournaments(items); const savedTid = localStorage.getItem('selectedTournamentId'); const initialTid = items.some(item => item.id === savedTid) ? savedTid : items[0]?.id || ''; if (initialTid) { setSelectedTid(initialTid); localStorage.setItem('selectedTournamentId', initialTid); } }); }, []);
   useEffect(() => { if (selectedTid) load(selectedTid); }, [selectedTid]);
   useEffect(() => { socket.current = api.connectLiveScores(message => { if (selectedTid && ['score_update', 'scorecard_created', 'scorecard_completed', 'scorecard_updated', 'tournament_updated'].includes(message.type)) load(selectedTid); }); return () => socket.current?.close(); }, [selectedTid]);
   useEffect(() => { if (!selectedTid) return undefined; const timer = setInterval(() => api.getPublicAuction(selectedTid).then(next => setAuction(next?.status === 'live' ? next : null)).catch(() => setAuction(null)), 5000); return () => clearInterval(timer); }, [selectedTid]);
-  return { tournaments, selectedTid, setSelectedTid, data, auction };
+  const selectTournament = tid => { setSelectedTid(tid); localStorage.setItem('selectedTournamentId', tid); };
+  return { tournaments, selectedTid, setSelectedTid: selectTournament, data, auction };
 }
 
 function PageFrame({ title, subtitle, children, context }) { return <div className="public-page animate-fade-in"><div className="page-topline"><div><p className="eyebrow">TOURNAMENT VIEW</p><h1>{title}</h1><p className="dashboard-subtitle">{subtitle}</p></div><Link to="/" className="btn btn-outline">Back to hub</Link></div>{context}{children}</div>; }
-function TournamentSelect({ tournaments, selectedTid, setSelectedTid }) { return tournaments.length ? <select className="form-input tournament-select" value={selectedTid} onChange={event => setSelectedTid(event.target.value)}>{tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select> : <p className="empty-state">No tournaments available.</p>; }
-function usePublicPage(title, subtitle) { const state = useTournamentData(); const context = <TournamentSelect {...state} />; if (!state.data) return { state, context, page: <PageFrame title={title} subtitle={subtitle} context={context}><p className="empty-state">{state.tournaments.length ? 'Loading tournament...' : 'No tournaments available.'}</p></PageFrame> }; return { state, context, page: null }; }
+function usePublicPage(title, subtitle) { const state = useTournamentData(); if (!state.data) return { state, context: null, page: <PageFrame title={title} subtitle={subtitle}><p className="empty-state">{state.tournaments.length ? 'Loading tournament...' : 'No tournaments available.'}</p></PageFrame> }; return { state, context: null, page: null }; }
 function details(data) { const teams = data.teams || [], events = data.events || [], scorecards = data.scorecards || []; return { teams, events, scorecards, players: data.players || [], auction: data.auction, fixtures: [...(data.fixtures || [])].sort((a, b) => new Date(a.date_time || 0) - new Date(b.date_time || 0)), getTeam: id => teams.find(team => team.id === id)?.name || id }; }
 
 export function SchedulePage() { const { state, page, context } = usePublicPage('Schedule', 'Upcoming fixtures and match details.'); if (page) return page; const d = details(state.data); return <PageFrame title="Schedule" subtitle="Upcoming fixtures and match details." context={context}><FixtureList {...d} fixtures={d.fixtures.filter(f => f.status !== 'completed')} empty="No upcoming matches scheduled." /></PageFrame>; }

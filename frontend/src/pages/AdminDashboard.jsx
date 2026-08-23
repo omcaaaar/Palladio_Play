@@ -446,6 +446,24 @@ export default function AdminDashboard() {
     } catch (err) { setError(err.message); }
   }
 
+  async function handleEditPlayerSave(playerId) {
+    const name = editPlayerForm.name.trim();
+    if (!name) return;
+    if (tournamentPlayers.some(p => p.id !== playerId && p.name.toLowerCase() === name.toLowerCase())) {
+      setError('A player with this name already exists.');
+      return;
+    }
+    try {
+      const res = await api.updatePlayer(selectedTournament.id, playerId, {
+        name,
+        gender: editPlayerForm.gender,
+      });
+      setTournamentPlayers(tournamentPlayers.map(p => p.id === playerId ? res.player : p));
+      setEditingPlayerId(null);
+      setEditPlayerForm({ name: '', gender: '' });
+    } catch (err) { setError(err.message); }
+  }
+
   function openEditPlayer(player) {
     setEditingPlayer(player);
     setEditPlayerName(player.name);

@@ -1058,7 +1058,7 @@ export default function AdminDashboard() {
               { key: 'events', icon: <ListChecks size={16} />, label: 'Event Types' },
               { key: 'fixtures', icon: <Calendar size={16} />, label: 'Match Fixtures' },
               { key: 'auction', icon: <Gavel size={16} />, label: 'Auction' },
-            ].map(tab => (
+            ].filter(tab => !(tab.key === 'auction' && selectedTournament?.category === 'Kids')).map(tab => (
               <button
                 key={tab.key}
                 className={`btn ${activeTab === tab.key ? 'btn-primary' : 'btn-outline'}`}
@@ -1371,7 +1371,7 @@ export default function AdminDashboard() {
           )}
 
           {/* ──── Auction Tab ──── */}
-          {activeTab === 'auction' && (
+          {activeTab === 'auction' && selectedTournament?.category !== 'Kids' && (
             <div className="glass-card animate-fade-in">
               {(!auction || auction.status === 'idle') && (
                 <>

@@ -1,3 +1,4 @@
+import json
 import os
 from functools import lru_cache
 from typing import List
@@ -12,6 +13,15 @@ MONGODB_URI = os.getenv("MONGODB_URI")
 MONGODB_DATABASE = os.getenv("MONGODB_DATABASE", "palladio_play")
 MONGODB_COLLECTION = os.getenv("MONGODB_COLLECTION", "tournaments")
 MONGODB_TIMEOUT = int(os.getenv("MONGODB_SERVER_SELECTION_TIMEOUT_MS", "5000"))
+DATABASE_BACKEND = os.getenv("DATABASE_BACKEND", "mongo").lower()
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data", "tournaments")
+os.makedirs(DATA_DIR, exist_ok=True)
+
+if DATABASE_BACKEND not in {"mongo", "local"}:
+    raise RuntimeError("DATABASE_BACKEND must be either 'mongo' or 'local'.")
+
+def _get_filepath(tournament_id: str) -> str:
+    return os.path.join(DATA_DIR, f"{tournament_id}.json")
 
 @lru_cache(maxsize=1)
 def _get_collection():
@@ -26,11 +36,19 @@ def _get_collection():
     return client[MONGODB_DATABASE][MONGODB_COLLECTION]
 
 def _read(tournament_id: str) -> dict | None:
-    document = _get_collection().find_one({"_id": tournament_id})
+    if DATABASE_BACKEND == "local":
+        filepath = _get_filepath(tournament_id)
+        if not os.path.exists(filepath):
+            return None
+        with open(filepath, encoding="utf-8") as file:
+            document = json.load(file)
+    else:
+        document = _get_collection().find_one({"_id": tournament_id})
     if not document:
         return None
 
-    document.pop("_id", None)
+    if DATABASE_BACKEND == "mongo":
+        document.pop("_id", None)
     updated = False
     for scorecard in document.get("scorecards", []):
         is_non_zero = any(
@@ -49,15 +67,28 @@ def _read(tournament_id: str) -> dict | None:
     return document
 
 def _write(tournament_id: str, data: dict):
-    _get_collection().replace_one(
-        {"_id": tournament_id},
-        {"_id": tournament_id, **data},
-        upsert=True,
-    )
+    if DATABASE_BACKEND == "local":
+        with open(_get_filepath(tournament_id), "w", encoding="utf-8") as file:
+            json.dump(data, file, indent=2)
+    else:
+        _get_collection().replace_one(
+            {"_id": tournament_id},
+            {"_id": tournament_id, **data},
+            upsert=True,
+        )
 
 # ── Tournament ────────────────────────────────────────────────
 
 def get_all_tournaments() -> List[dict]:
+    if DATABASE_BACKEND == "local":
+        tournaments = []
+        for filename in os.listdir(DATA_DIR):
+            if filename.endswith(".json"):
+                with open(os.path.join(DATA_DIR, filename), encoding="utf-8") as file:
+                    document = json.load(file)
+                if "tournament" in document:
+                    tournaments.append(document["tournament"])
+        return tournaments
     return [document["tournament"] for document in _get_collection().find({}, {"_id": 0, "tournament": 1}) if "tournament" in document]
 
 def add_tournament(tournament_data: dict):
@@ -85,6 +116,12 @@ def update_tournament(tournament_id: str, update_data: dict) -> dict | None:
     return None
 
 def delete_tournament(tournament_id: str) -> bool:
+    if DATABASE_BACKEND == "local":
+        filepath = _get_filepath(tournament_id)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            return True
+        return False
     return _get_collection().delete_one({"_id": tournament_id}).deleted_count > 0
 
 # ── Teams ─────────────────────────────────────────────────────

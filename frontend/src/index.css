@@ -138,7 +138,6 @@ h1 {
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-family: inherit;
-  font-size: 1rem;
   transition: all 0.2s ease;
 }
 

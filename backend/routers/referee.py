@@ -180,9 +180,14 @@ async def update_score(tid: str, scorecard_id: str, body: dict, request: Request
     if not sc:
         raise HTTPException(404, "Scorecard not found")
 
-    key = f"{team}_score"
-    new_score = max(0, sc["sets"][set_index][key] + delta)
-    sc["sets"][set_index][key] = new_score
+    scores = body.get("scores")
+    if isinstance(scores, dict):
+        sc["sets"][set_index]["team1_score"] = max(0, int(scores.get("team1_score", 0)))
+        sc["sets"][set_index]["team2_score"] = max(0, int(scores.get("team2_score", 0)))
+    else:
+        key = f"{team}_score"
+        new_score = max(0, sc["sets"][set_index][key] + delta)
+        sc["sets"][set_index][key] = new_score
 
     # Check for automatic match completion
     team1_wins = 0

@@ -130,8 +130,14 @@ def update_player_availability(tid: str, availability: PlayerAvailability):
                 "name": player["name"],
                 "gender": player["gender"],
             })
-    database.replace_players(tid, selected_players)
-    return {"message": "Season player availability updated", "players": selected_players}
+    if not database.replace_players(tid, selected_players):
+        raise HTTPException(404, "Tournament not found")
+    tournament_data = database.get_tournament_data(tid)
+    return {
+        "message": "Season player availability updated",
+        "players": selected_players,
+        "tournament": tournament_data["tournament"],
+    }
 
 @router.delete("/tournaments/{tid}/players/{player_id}")
 def delete_player(tid: str, player_id: str):

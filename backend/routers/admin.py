@@ -70,7 +70,7 @@ def list_players(tid: str):
 
 @router.post("/tournaments/{tid}/players")
 def add_player(tid: str, player: TournamentPlayer):
-    data = player.model_dump()
+    data = player.model_dump(exclude_unset=True)
     data["tournament_id"] = tid
     # Check for uniqueness
     existing_players = database.get_players(tid)
@@ -88,7 +88,7 @@ def delete_player(tid: str, player_id: str):
 
 @router.put("/tournaments/{tid}/players/{player_id}")
 def update_player(tid: str, player_id: str, player: TournamentPlayer):
-    data = player.model_dump()
+    data = player.model_dump(exclude_unset=True)
     data["tournament_id"] = tid
     data["id"] = player_id
     # Check for uniqueness if name is provided

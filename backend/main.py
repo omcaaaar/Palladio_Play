@@ -5,7 +5,7 @@ import json
 import subprocess
 import asyncio
 
-from routers import admin, referee, public
+from routers import admin, referee, public, registration
 
 app = FastAPI(title="Palladio Play API")
 
@@ -22,6 +22,7 @@ app.add_middleware(
 app.include_router(admin.router)
 app.include_router(referee.router)
 app.include_router(public.router)
+app.include_router(registration.router)
 
 # WebSocket connection manager
 class ConnectionManager:

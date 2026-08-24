@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Activity, Trophy, Users, ChevronDown, ChevronRight, Gavel, AlertCircle, Clock, CalendarDays, ListChecks, UserRound, BarChart3, Play } from 'lucide-react';
+import { Activity, Trophy, Users, ChevronDown, ChevronRight, Gavel, AlertCircle, Clock, CalendarDays, ListChecks, UserRound, BarChart3, Play, Edit, ClipboardList } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import * as api from '../api/client';
 
@@ -47,7 +47,12 @@ export default function Dashboard() {
   useEffect(() => {
     api.getTournaments().then(data => {
       setTournaments(data);
-      if (data.length > 0) setSelectedTid(data[0].id);
+      const savedTid = localStorage.getItem('selectedTournamentId');
+      const initialTid = data.some(t => t.id === savedTid) ? savedTid : (data.length > 0 ? data[0].id : '');
+      if (initialTid) {
+        setSelectedTid(initialTid);
+        localStorage.setItem('selectedTournamentId', initialTid);
+      }
     });
   }, []);
 
@@ -234,7 +239,10 @@ export default function Dashboard() {
 
       {/* Tournament selector */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <select className="form-input" style={{ maxWidth: '400px' }} value={selectedTid} onChange={e => setSelectedTid(e.target.value)}>
+        <select className="form-input" style={{ maxWidth: '400px' }} value={selectedTid} onChange={e => {
+          setSelectedTid(e.target.value);
+          localStorage.setItem('selectedTournamentId', e.target.value);
+        }}>
           {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
       </div>
@@ -348,6 +356,54 @@ export default function Dashboard() {
           <DashboardAuctionTable auction={liveAuction} teams={teams} />
         </div>
       )}
+
+      {/* ── Registration Tiles ── */}
+      {(() => {
+        const tournament = tournamentData?.tournament || {};
+        const deadline = tournament.registration_deadline;
+        const players = tournamentData?.players || [];
+        const hasSquads = (tournamentData?.teams || []).some(t => t.players_list && t.players_list.length > 0);
+
+        const showRegister = deadline && new Date(deadline) > new Date();
+        const showRegisteredPlayers = players.length > 0 && !hasSquads;
+
+        const formatDeadlineShort = (d) => {
+          try {
+            return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+          } catch { return ''; }
+        };
+
+        if (!showRegister && !showRegisteredPlayers) return null;
+
+        return (
+          <div className="dashboard-tiles" style={{ marginBottom: '0.5rem' }}>
+            {showRegister && (
+              <Link to={`/register?tid=${selectedTid}`} className="dashboard-tile tile-green" style={{ borderColor: 'rgba(16, 185, 129, 0.4)' }}>
+                <span className="tile-icon" aria-hidden="true">
+                  <Edit size={25} strokeWidth={2.25} />
+                </span>
+                <span className="tile-copy">
+                  <strong>Register Now</strong>
+                  <span>Register before {formatDeadlineShort(deadline)}</span>
+                </span>
+                <span className="tile-arrow" aria-hidden="true">→</span>
+              </Link>
+            )}
+            {showRegisteredPlayers && (
+              <Link to={`/registered-players?tid=${selectedTid}`} className="dashboard-tile tile-cyan">
+                <span className="tile-icon" aria-hidden="true">
+                  <ClipboardList size={25} strokeWidth={2.25} />
+                </span>
+                <span className="tile-copy">
+                  <strong>Registered Players ({players.length})</strong>
+                  <span>View who has registered so far</span>
+                </span>
+                <span className="tile-arrow" aria-hidden="true">→</span>
+              </Link>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ── Navigation Tiles ── */}
       <div className="dashboard-tiles">

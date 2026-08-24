@@ -20,10 +20,10 @@ export const getTournaments = async () => {
   return data.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 };
 export const getTournamentFull = (tid) => request(`/api/public/tournaments/${tid}`);
-export const createTournament = (name, sport, category) =>
+export const createTournament = (data) =>
   request('/api/admin/tournaments', {
     method: 'POST',
-    body: JSON.stringify({ name, sport, category }),
+    body: JSON.stringify(data),
   });
 export const updateTournament = (tid, updateData) =>
   request(`/api/admin/tournaments/${tid}`, {
@@ -179,6 +179,27 @@ export const endAuction = (tid) =>
     method: 'POST',
   });
 export const getPublicAuction = (tid) => request(`/api/public/tournaments/${tid}/auction`);
+
+// ── Registration ─────────────────────────────────────────────
+export const getRegistrationInfo = (tid) =>
+  request(`/api/registration/tournaments/${tid}/registration-info`);
+
+export const getRegisteredPlayers = (tid) =>
+  request(`/api/registration/tournaments/${tid}/registered-players`);
+
+export async function registerPlayer(tid, formData) {
+  // Uses FormData (multipart) instead of JSON because of file upload
+  const res = await fetch(`${API}/api/registration/tournaments/${tid}/register`, {
+    method: 'POST',
+    body: formData, // Don't set Content-Type — browser sets it with boundary
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || 'Registration failed');
+  }
+  return res.json();
+}
 
 // ── WebSocket ────────────────────────────────────────────────
 export function connectLiveScores(onMessage) {

@@ -429,3 +429,13 @@ select.form-input option {
   .page-topline { flex-direction: column; }
   .page-topline .btn { align-self: flex-start; }
 }
+
+/* Hide number input spin buttons */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}

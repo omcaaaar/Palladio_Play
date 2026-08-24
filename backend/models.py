@@ -14,6 +14,13 @@ class Tournament(BaseModel):
     youtube_link: str = ""
     is_live: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+    # Registration fields (all optional — admin can create tournament without these)
+    start_date: str = ""          # DD-MM-YYYY
+    end_date: str = ""            # DD-MM-YYYY
+    registration_deadline: str = ""  # ISO datetime string
+    entry_fees: int = 0           # Amount in rupees
+    upi_payment_number: str = ""  # Phone number for UPI payment
+    kids_age_limit: int = 12      # Only relevant for Kids category
 
 
 class Player(BaseModel):
@@ -24,7 +31,19 @@ class TournamentPlayer(BaseModel):
     id: str = Field(default_factory=generate_id)
     tournament_id: str = ""
     name: str
-    gender: str  # "Male" or "Female"
+    gender: str  # "Male" or "Female" for Adults, "Junior" or "Senior" for Kids
+    # Extended registration fields (optional — only present for self-registered players)
+    first_name: str = ""
+    last_name: str = ""
+    mobile: str = ""
+    wing: str = ""
+    flat_no: str = ""
+    age: Optional[int] = None
+    expertise: str = ""           # "Beginner", "Intermediate", "Expert"
+    played_state_national: str = ""  # "Yes" or "No"
+    photo_url: str = ""
+    payment_confirmed: bool = False
+    registered_at: str = ""
 
 
 class Team(BaseModel):

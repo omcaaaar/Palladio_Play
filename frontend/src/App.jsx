@@ -8,6 +8,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import RefereeDashboard from './pages/RefereeDashboard';
 import BroadcasterDashboard from './pages/BroadcasterDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
+import PlayerRegistration from './pages/PlayerRegistration';
+import RegisteredPlayers from './pages/RegisteredPlayers';
 import { MvpPage, PlayerEventsPage, PlayerStatsPage, ResultsPage, SchedulePage, SquadsPage, StandingsPage } from './pages/PublicPages';
 
 function Navbar({ user, logout }) {
@@ -80,6 +82,8 @@ function App() {
           <Route path="/player-events" element={<PlayerEventsPage />} />
           <Route path="/player-stats" element={<PlayerStatsPage />} />
           <Route path="/mvp" element={<MvpPage />} />
+          <Route path="/register" element={<PlayerRegistration />} />
+          <Route path="/registered-players" element={<RegisteredPlayers />} />
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/owner-login" element={<Login onLogin={handleLogin} fixedRole="owner" />} />
           <Route path="/admin/*" element={user?.role === 'admin' ? <AdminDashboard /> : <Login onLogin={handleLogin} />} />

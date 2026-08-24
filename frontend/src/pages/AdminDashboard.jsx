@@ -50,6 +50,13 @@ export default function AdminDashboard() {
   const [tournamentName, setTournamentName] = useState('');
   const [tournamentSport, setTournamentSport] = useState('Badminton');
   const [tournamentCategory, setTournamentCategory] = useState('Adults');
+  const [tournamentStartDate, setTournamentStartDate] = useState('');
+  const [tournamentEndDate, setTournamentEndDate] = useState('');
+  const [tournamentDeadline, setTournamentDeadline] = useState('');
+  const [tournamentDeadlineTime, setTournamentDeadlineTime] = useState('23:59');
+  const [tournamentEntryFees, setTournamentEntryFees] = useState('');
+  const [tournamentUpiNumber, setTournamentUpiNumber] = useState('');
+  const [tournamentKidsAgeLimit, setTournamentKidsAgeLimit] = useState(12);
   const [editTournamentName, setEditTournamentName] = useState('');
   const [teamName, setTeamName] = useState('');
   const [teamOwners, setTeamOwners] = useState('');
@@ -140,13 +147,35 @@ export default function AdminDashboard() {
   async function handleCreateTournament(e) {
     e.preventDefault();
     try {
-      const res = await api.createTournament(tournamentName, tournamentSport, tournamentCategory);
+      const data = {
+        name: tournamentName,
+        sport: tournamentSport,
+        category: tournamentCategory,
+      };
+      // Only include optional fields if they have values
+      if (tournamentStartDate) data.start_date = tournamentStartDate;
+      if (tournamentEndDate) data.end_date = tournamentEndDate;
+      if (tournamentDeadline) {
+        data.registration_deadline = `${tournamentDeadline}T${tournamentDeadlineTime || '23:59'}`;
+      }
+      if (tournamentEntryFees) data.entry_fees = parseInt(tournamentEntryFees) || 0;
+      if (tournamentUpiNumber) data.upi_payment_number = tournamentUpiNumber;
+      if (tournamentCategory === 'Kids') data.kids_age_limit = parseInt(tournamentKidsAgeLimit) || 12;
+
+      const res = await api.createTournament(data);
       setTournaments([...tournaments, res.tournament]);
       setSelectedTournament(res.tournament);
       setActiveTab('teams');
       setTournamentName('');
       setTournamentSport('Badminton');
       setTournamentCategory('Adults');
+      setTournamentStartDate('');
+      setTournamentEndDate('');
+      setTournamentDeadline('');
+      setTournamentDeadlineTime('23:59');
+      setTournamentEntryFees('');
+      setTournamentUpiNumber('');
+      setTournamentKidsAgeLimit(12);
       setShowTournamentForm(false);
     } catch (err) { setError(err.message); }
   }
@@ -459,7 +488,7 @@ export default function AdminDashboard() {
       return;
     }
     try {
-      const res = await api.updatePlayer(selectedTournament.id, playerId, { name: editPlayerForm.name.trim(), gender: editPlayerForm.gender });
+      const res = await api.updatePlayer(selectedTournament.id, playerId, { name: editPlayerForm.name.trim(), gender: editPlayerForm.gender, expertise: editPlayerForm.expertise || '' });
       setTournamentPlayers(tournamentPlayers.map(p => p.id === playerId ? res.player : p));
       setEditingPlayerId(null);
     } catch (err) { setError(err.message); }
@@ -749,7 +778,53 @@ export default function AdminDashboard() {
                 <option value="Kids">Kids</option>
               </select>
             </div>
-            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Create Tournament</button>
+
+            {/* Divider */}
+            <div style={{ borderTop: '1px solid var(--glass-border)', margin: '1.25rem 0', position: 'relative' }}>
+              <span style={{ position: 'absolute', top: '-0.7rem', left: '50%', transform: 'translateX(-50%)', background: 'var(--bg-card)', padding: '0 0.75rem', fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Registration (Optional)</span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Start Date</label>
+                <CustomDatePicker value={tournamentStartDate} onChange={setTournamentStartDate} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">End Date</label>
+                <CustomDatePicker value={tournamentEndDate} onChange={setTournamentEndDate} />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Registration Deadline</label>
+                <CustomDatePicker value={tournamentDeadline} onChange={setTournamentDeadline} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Deadline Time</label>
+                <input type="time" className="form-input" value={tournamentDeadlineTime} onChange={e => setTournamentDeadlineTime(e.target.value)} disabled={!tournamentDeadline} style={{ opacity: !tournamentDeadline ? 0.5 : 1 }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Entry Fees (₹)</label>
+                <input type="number" className="form-input" placeholder="e.g. 200" value={tournamentEntryFees} onChange={e => setTournamentEntryFees(e.target.value)} min="0" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">UPI Payment Number</label>
+                <input type="tel" className="form-input" placeholder="e.g. 9876543210" value={tournamentUpiNumber} onChange={e => setTournamentUpiNumber(e.target.value)} maxLength={10} />
+              </div>
+            </div>
+
+            {tournamentCategory === 'Kids' && (
+              <div className="form-group">
+                <label className="form-label">Kids Age Limit (Junior ≤ this age, Senior &gt; this age)</label>
+                <input type="number" className="form-input" value={tournamentKidsAgeLimit} onChange={e => setTournamentKidsAgeLimit(e.target.value)} min="1" max="18" />
+              </div>
+            )}
+
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>Create Tournament</button>
           </form>
         </Modal>
       )}
@@ -1266,6 +1341,7 @@ export default function AdminDashboard() {
                       <tr>
                         <th>Name</th>
                         <th>{selectedTournament.category === 'Kids' ? 'Category' : 'Gender'}</th>
+                        <th>Expertise</th>
                         <th style={{ textAlign: 'right' }}>Action</th>
                       </tr>
                     </thead>
@@ -1301,6 +1377,18 @@ export default function AdminDashboard() {
                                   )}
                                 </select>
                               </td>
+                              <td>
+                                <select
+                                  className="form-input"
+                                  value={editPlayerForm.expertise || ''}
+                                  onChange={e => setEditPlayerForm({ ...editPlayerForm, expertise: e.target.value })}
+                                >
+                                  <option value="">—</option>
+                                  <option value="Beginner">Beginner</option>
+                                  <option value="Intermediate">Intermediate</option>
+                                  <option value="Expert">Expert</option>
+                                </select>
+                              </td>
                               <td style={{ textAlign: 'right' }}>
                                 <button onClick={() => handleEditPlayerSave(p.id)} style={{ background: 'none', border: 'none', color: 'var(--success-color, #10b981)', cursor: 'pointer', padding: '0.25rem', marginRight: '0.5rem' }}>
                                   <Check size={16} />
@@ -1314,11 +1402,12 @@ export default function AdminDashboard() {
                             <>
                               <td>{p.name}</td>
                               <td>{p.gender}</td>
+                              <td><span style={{ color: p.expertise ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: '0.85rem' }}>{p.expertise || '—'}</span></td>
                               <td style={{ textAlign: 'right' }}>
                                 <button
                                   onClick={() => {
                                     setEditingPlayerId(p.id);
-                                    setEditPlayerForm({ name: p.name, gender: p.gender });
+                                    setEditPlayerForm({ name: p.name, gender: p.gender, expertise: p.expertise || '' });
                                   }}
                                   style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '0.25rem', marginRight: '0.5rem' }}
                                 >

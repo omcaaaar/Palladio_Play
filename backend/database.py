@@ -192,6 +192,17 @@ def update_player(tournament_id: str, player_id: str, player_data: dict) -> bool
                 return True
     return False
 
+def check_duplicate_registration(tournament_id: str, mobile: str) -> bool:
+    """Check if a player with the given mobile number is already registered."""
+    if not mobile:
+        return False
+    data = _read(tournament_id)
+    if data and "players" in data:
+        for p in data["players"]:
+            if p.get("mobile") and p["mobile"] == mobile:
+                return True
+    return False
+
 
 # ── Events ────────────────────────────────────────────────────
 

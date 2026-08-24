@@ -5,6 +5,7 @@ import { Trophy, LogIn, LogOut } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminPlayers from './pages/AdminPlayers';
 import RefereeDashboard from './pages/RefereeDashboard';
 import BroadcasterDashboard from './pages/BroadcasterDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
@@ -72,7 +73,7 @@ function App() {
       <Navbar user={user} logout={handleLogout} />
       <main className="container">
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Dashboard user={user} />} />
           <Route path="/schedule" element={<SchedulePage />} />
           <Route path="/results" element={<ResultsPage />} />
           <Route path="/standings" element={<StandingsPage />} />
@@ -82,6 +83,7 @@ function App() {
           <Route path="/mvp" element={<MvpPage />} />
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/owner-login" element={<Login onLogin={handleLogin} fixedRole="owner" />} />
+          <Route path="/admin/players" element={user?.role === 'admin' ? <AdminPlayers /> : <Login onLogin={handleLogin} />} />
           <Route path="/admin/*" element={user?.role === 'admin' ? <AdminDashboard /> : <Login onLogin={handleLogin} />} />
           <Route path="/referee/*" element={user?.role === 'referee' ? <RefereeDashboard /> : <Login onLogin={handleLogin} />} />
           <Route path="/broadcaster/*" element={user?.role === 'broadcaster' ? <BroadcasterDashboard /> : <Login onLogin={handleLogin} />} />

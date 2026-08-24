@@ -69,6 +69,26 @@ export const updatePlayer = (tid, playerId, data) =>
     body: JSON.stringify(data),
   });
 
+// ── Global Players ──────────────────────────────────────────
+export const getGlobalPlayers = () => request('/api/admin/players');
+export const addGlobalPlayer = (data) =>
+  request('/api/admin/players', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+export const updateGlobalPlayer = (playerId, data) =>
+  request(`/api/admin/players/${playerId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+export const deleteGlobalPlayer = (playerId) =>
+  request(`/api/admin/players/${playerId}`, { method: 'DELETE' });
+export const updatePlayerAvailability = (tid, playerIds) =>
+  request(`/api/admin/tournaments/${tid}/players/availability`, {
+    method: 'PUT',
+    body: JSON.stringify({ player_ids: playerIds }),
+  });
+
 
 // ── Events ───────────────────────────────────────────────────
 export const getEvents = (tid) => request(`/api/admin/tournaments/${tid}/events`);

@@ -23,8 +23,17 @@ class Player(BaseModel):
 class TournamentPlayer(BaseModel):
     id: str = Field(default_factory=generate_id)
     tournament_id: str = ""
+    global_player_id: Optional[str] = None
     name: str
     gender: str  # "Male" or "Female"
+
+class GlobalPlayer(BaseModel):
+    id: str = Field(default_factory=generate_id)
+    name: str
+    gender: str
+
+class PlayerAvailability(BaseModel):
+    player_ids: List[str] = []
 
 
 class Team(BaseModel):

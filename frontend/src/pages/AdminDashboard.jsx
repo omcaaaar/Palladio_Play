@@ -1134,7 +1134,6 @@ export default function AdminDashboard() {
           <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
             {[
               { key: 'teams', icon: <Users size={16} />, label: 'Teams & Players' },
-              { key: 'players', icon: <Users size={16} />, label: 'Players' },
               { key: 'events', icon: <ListChecks size={16} />, label: 'Event Types' },
               { key: 'fixtures', icon: <Calendar size={16} />, label: 'Match Fixtures' },
               { key: 'auction', icon: <Gavel size={16} />, label: 'Auction' },
@@ -1226,114 +1225,6 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ──── Players Tab ──── */}
-          {activeTab === 'players' && (
-            <div className="glass-card animate-fade-in">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 style={{ margin: 0 }}>Registered Players</h3>
-              </div>
-              <form onSubmit={handleGlobalAddPlayer} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-                <input className="form-input" placeholder="Player name" value={newPlayerName} onChange={e => setNewPlayerName(e.target.value)} required style={{ flex: 1, minWidth: '200px' }} />
-                <select className="form-input" value={newPlayerGender} onChange={e => setNewPlayerGender(e.target.value)} required style={{ width: '120px' }}>
-                  {selectedTournament.category === 'Kids' ? (
-                    <>
-                      <option value="Junior">Junior</option>
-                      <option value="Senior">Senior</option>
-                    </>
-                  ) : (
-                    <>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                    </>
-                  )}
-                </select>
-                <button type="submit" className="btn btn-primary">
-                  <Plus size={16} /> Register Player
-                </button>
-              </form>
-
-              {tournamentPlayers.length === 0 ? (
-                <p style={{ color: 'var(--text-secondary)' }}>No players registered yet. Add players using the form above.</p>
-              ) : (
-                <div className="table-container">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>{selectedTournament.category === 'Kids' ? 'Category' : 'Gender'}</th>
-                        <th style={{ textAlign: 'right' }}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tournamentPlayers.map(p => (
-                        <tr key={p.id}>
-                          {editingPlayerId === p.id ? (
-                            <>
-                              <td>
-                                <input
-                                  type="text"
-                                  className="form-input"
-                                  value={editPlayerForm.name}
-                                  onChange={e => setEditPlayerForm({ ...editPlayerForm, name: e.target.value })}
-                                />
-                              </td>
-                              <td>
-                                <select
-                                  className="form-input"
-                                  value={editPlayerForm.gender}
-                                  onChange={e => setEditPlayerForm({ ...editPlayerForm, gender: e.target.value })}
-                                >
-                                  {selectedTournament.category === 'Kids' ? (
-                                    <>
-                                      <option value="Junior">Junior</option>
-                                      <option value="Senior">Senior</option>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <option value="Male">Male</option>
-                                      <option value="Female">Female</option>
-                                    </>
-                                  )}
-                                </select>
-                              </td>
-                              <td style={{ textAlign: 'right' }}>
-                                <button onClick={() => handleEditPlayerSave(p.id)} style={{ background: 'none', border: 'none', color: 'var(--success-color, #10b981)', cursor: 'pointer', padding: '0.25rem', marginRight: '0.5rem' }}>
-                                  <Check size={16} />
-                                </button>
-                                <button onClick={() => setEditingPlayerId(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem' }}>
-                                  <X size={16} />
-                                </button>
-                              </td>
-                            </>
-                          ) : (
-                            <>
-                              <td>{p.name}</td>
-                              <td>{p.gender}</td>
-                              <td style={{ textAlign: 'right' }}>
-                                <button
-                                  onClick={() => {
-                                    setEditingPlayerId(p.id);
-                                    setEditPlayerForm({ name: p.name, gender: p.gender });
-                                  }}
-                                  style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '0.25rem', marginRight: '0.5rem' }}
-                                >
-                                  <Edit size={16} />
-                                </button>
-                                <button onClick={() => handleGlobalDeletePlayer(p.id)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '0.25rem' }}>
-                                  <Trash2 size={16} />
-                                </button>
-                              </td>
-                            </>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
               )}
             </div>

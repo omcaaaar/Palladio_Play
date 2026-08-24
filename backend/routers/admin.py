@@ -1,8 +1,39 @@
 from fastapi import APIRouter, HTTPException, Request
-from models import Tournament, Team, Fixture, Event, TournamentPlayer
+from models import Tournament, Team, Fixture, Event, TournamentPlayer, GlobalPlayer, PlayerAvailability
 import database
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+# ── Global Players ───────────────────────────────────────────
+
+@router.get("/players")
+def list_global_players():
+    return database.get_global_players()
+
+@router.post("/players")
+def add_global_player(player: GlobalPlayer):
+    data = player.model_dump()
+    if any(existing["name"].lower() == data["name"].lower() for existing in database.get_global_players()):
+        raise HTTPException(400, "A player with this name already exists")
+    database.add_global_player(data)
+    return {"message": "Global player added", "player": data}
+
+@router.put("/players/{player_id}")
+def update_global_player(player_id: str, player: GlobalPlayer):
+    data = player.model_dump()
+    if any(existing["id"] != player_id and existing["name"].lower() == data["name"].lower() for existing in database.get_global_players()):
+        raise HTTPException(400, "A player with this name already exists")
+    data["id"] = player_id
+    result = database.update_global_player(player_id, data)
+    if not result:
+        raise HTTPException(404, "Player not found")
+    return {"message": "Global player updated", "player": result}
+
+@router.delete("/players/{player_id}")
+def delete_global_player(player_id: str):
+    if not database.delete_global_player(player_id):
+        raise HTTPException(404, "Player not found")
+    return {"message": "Global player deleted"}
 
 # ── Tournaments ───────────────────────────────────────────────
 
@@ -79,6 +110,28 @@ def add_player(tid: str, player: TournamentPlayer):
             raise HTTPException(400, "A player with this name already exists")
     database.add_player(tid, data)
     return {"message": "Player added", "player": data}
+
+@router.put("/tournaments/{tid}/players/availability")
+def update_player_availability(tid: str, availability: PlayerAvailability):
+    tournament = database.get_tournament_data(tid)
+    if not tournament:
+        raise HTTPException(404, "Tournament not found")
+
+    global_players = database.get_global_players()
+    global_by_id = {player["id"]: player for player in global_players}
+    selected_players = []
+    for player_id in availability.player_ids:
+        player = global_by_id.get(player_id)
+        if player:
+            selected_players.append({
+                "id": player_id,
+                "tournament_id": tid,
+                "global_player_id": player_id,
+                "name": player["name"],
+                "gender": player["gender"],
+            })
+    database.replace_players(tid, selected_players)
+    return {"message": "Season player availability updated", "players": selected_players}
 
 @router.delete("/tournaments/{tid}/players/{player_id}")
 def delete_player(tid: str, player_id: str):

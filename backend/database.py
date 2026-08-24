@@ -15,6 +15,7 @@ MONGODB_COLLECTION = os.getenv("MONGODB_COLLECTION", "tournaments")
 MONGODB_TIMEOUT = int(os.getenv("MONGODB_SERVER_SELECTION_TIMEOUT_MS", "5000"))
 DATABASE_BACKEND = os.getenv("DATABASE_BACKEND", "mongo").lower()
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data", "tournaments")
+GLOBAL_PLAYERS_ID = "__global_players__"
 os.makedirs(DATA_DIR, exist_ok=True)
 
 if DATABASE_BACKEND not in {"mongo", "local"}:
@@ -22,6 +23,9 @@ if DATABASE_BACKEND not in {"mongo", "local"}:
 
 def _get_filepath(tournament_id: str) -> str:
     return os.path.join(DATA_DIR, f"{tournament_id}.json")
+
+def _get_global_players_filepath() -> str:
+    return os.path.join(DATA_DIR, "global_players.json")
 
 @lru_cache(maxsize=1)
 def _get_collection():
@@ -124,6 +128,51 @@ def delete_tournament(tournament_id: str) -> bool:
         return False
     return _get_collection().delete_one({"_id": tournament_id}).deleted_count > 0
 
+# ── Global Players ───────────────────────────────────────────
+
+def get_global_players() -> List[dict]:
+    if DATABASE_BACKEND == "local":
+        filepath = _get_global_players_filepath()
+        if not os.path.exists(filepath):
+            return []
+        with open(filepath, encoding="utf-8") as file:
+            return json.load(file).get("players", [])
+    document = _get_collection().find_one({"_id": GLOBAL_PLAYERS_ID}, {"_id": 0, "players": 1})
+    return document.get("players", []) if document else []
+
+def _write_global_players(players: List[dict]):
+    if DATABASE_BACKEND == "local":
+        with open(_get_global_players_filepath(), "w", encoding="utf-8") as file:
+            json.dump({"players": players}, file, indent=2)
+    else:
+        _get_collection().replace_one(
+            {"_id": GLOBAL_PLAYERS_ID},
+            {"_id": GLOBAL_PLAYERS_ID, "players": players},
+            upsert=True,
+        )
+
+def add_global_player(player_data: dict):
+    players = get_global_players()
+    players.append(player_data)
+    _write_global_players(players)
+
+def update_global_player(player_id: str, player_data: dict) -> dict | None:
+    players = get_global_players()
+    for index, player in enumerate(players):
+        if player["id"] == player_id:
+            players[index].update({key: value for key, value in player_data.items() if key != "id"})
+            _write_global_players(players)
+            return players[index]
+    return None
+
+def delete_global_player(player_id: str) -> bool:
+    players = get_global_players()
+    updated_players = [player for player in players if player["id"] != player_id]
+    if len(updated_players) == len(players):
+        return False
+    _write_global_players(updated_players)
+    return True
+
 # ── Teams ─────────────────────────────────────────────────────
 
 def get_teams(tournament_id: str) -> List[dict]:
@@ -161,6 +210,14 @@ def delete_team(tournament_id: str, team_id: str) -> bool:
 def get_players(tournament_id: str) -> List[dict]:
     data = _read(tournament_id)
     return data.get("players", []) if data else []
+
+def replace_players(tournament_id: str, players: List[dict]) -> bool:
+    data = _read(tournament_id)
+    if not data:
+        return False
+    data["players"] = players
+    _write(tournament_id, data)
+    return True
 
 def add_player(tournament_id: str, player_data: dict):
     data = _read(tournament_id)

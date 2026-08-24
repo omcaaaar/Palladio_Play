@@ -28,7 +28,7 @@ const tiles = [
   { title: 'Tournament MVP', description: 'Find the most valuable player', path: '/mvp', icon: Trophy, tone: 'gold' },
 ];
 
-export default function Dashboard() {
+export default function Dashboard({ user }) {
 
   const [tournaments, setTournaments] = useState([]);
   const [selectedTid, setSelectedTid] = useState('');
@@ -122,6 +122,12 @@ export default function Dashboard() {
   const events = tournamentData.events || [];
   const scorecards = tournamentData.scorecards || [];
   const liveFixtures = fixtures.filter(f => f.status === 'in_progress');
+  const dashboardTiles = user?.role === 'admin'
+    ? [
+      ...tiles,
+      { title: 'Season Player Registry', description: 'Register players eligible for each season tournament', path: '/admin/players', icon: Users, tone: 'blue' },
+    ]
+    : tiles;
 
   function getTeamName(id, placeholder) {
     if (id) return teams.find(t => t.id === id)?.name || id;
@@ -351,7 +357,7 @@ export default function Dashboard() {
 
       {/* ── Navigation Tiles ── */}
       <div className="dashboard-tiles">
-        {tiles.map(({ title, description, path, icon: Icon, tone }) => (
+        {dashboardTiles.map(({ title, description, path, icon: Icon, tone }) => (
           <Link key={title} to={path} className={`dashboard-tile tile-${tone}`}>
             <span className="tile-icon" aria-hidden="true">
               <Icon size={25} strokeWidth={2.25} />

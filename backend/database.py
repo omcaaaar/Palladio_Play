@@ -1,6 +1,5 @@
 import json
 import os
-import uuid
 from functools import lru_cache
 from typing import List
 
@@ -99,7 +98,7 @@ def get_all_tournaments() -> List[dict]:
 def add_tournament(tournament_data: dict):
     tid = tournament_data["id"]
     data = {
-        "tournament": {**tournament_data, "players": tournament_data.get("players", [])},
+        "tournament": tournament_data,
         "teams": [],
         "fixtures": [],
         "events": [],
@@ -137,24 +136,9 @@ def get_global_players() -> List[dict]:
         if not os.path.exists(filepath):
             return []
         with open(filepath, encoding="utf-8") as file:
-            players = json.load(file).get("players", [])
-    else:
-        document = _get_collection().find_one({"_id": GLOBAL_PLAYERS_ID}, {"_id": 0, "players": 1})
-        players = document.get("players", []) if document else []
-
-    normalized_players = []
-    used_ids = set()
-    changed = False
-    for player in players:
-        player_id = player.get("id")
-        if not isinstance(player_id, str) or not player_id or player_id in used_ids:
-            player = {**player, "id": str(uuid.uuid4())[:8]}
-            changed = True
-        used_ids.add(player["id"])
-        normalized_players.append(player)
-    if changed:
-        _write_global_players(normalized_players)
-    return normalized_players
+            return json.load(file).get("players", [])
+    document = _get_collection().find_one({"_id": GLOBAL_PLAYERS_ID}, {"_id": 0, "players": 1})
+    return document.get("players", []) if document else []
 
 def _write_global_players(players: List[dict]):
     if DATABASE_BACKEND == "local":
@@ -232,7 +216,6 @@ def replace_players(tournament_id: str, players: List[dict]) -> bool:
     if not data:
         return False
     data["players"] = players
-    data.setdefault("tournament", {})["players"] = players
     _write(tournament_id, data)
     return True
 

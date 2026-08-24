@@ -79,25 +79,6 @@ function usePublicPage(title, subtitle) {
   return { state, context: null, page: null };
 }
 
-function useAllTournamentData() {
-  const [tournaments, setTournaments] = useState([]);
-  const [allData, setAllData] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.getTournaments()
-      .then(async items => {
-        setTournaments(items);
-        const data = await Promise.all(items.map(item => api.getTournamentFull(item.id)));
-        setAllData(data);
-      })
-      .catch(error => console.error('Failed to load all tournament data:', error))
-      .finally(() => setLoading(false));
-  }, []);
-
-  return { tournaments, allData, loading };
-}
-
 function details(data) {
   const teams = data.teams || [];
   const events = data.events || [];
@@ -565,11 +546,32 @@ export function PlayerEventsPage() {
 // NEW PAGES (From Redesigned Dashboard)
 // -----------------------------------------------------
 
-export function PlayerStatsPage() {
-  const { state, page, context } = usePublicPage('Player Stats', 'Compare player performance across events.');
-  const { allData, loading } = useAllTournamentData();
-  if (page || loading) return page || <PageFrame title="Player Stats" subtitle="Compare player performance across events." context={context}><p className="empty-state">Loading tournament statistics...</p></PageFrame>;
-  const stats = calculatePlayerStats(allData);
+export function PlayerStatsPage() { 
+  const { state, page, context } = usePublicPage('Player Stats', 'Compare player performance across events.'); 
+  if (page) return page; 
+  const { teams, scorecards } = details(state.data); 
+  const stats = {}; 
+  teams.forEach(team => (team.players_list || []).forEach(player => { 
+    const name = typeof player === 'object' ? player.name : player; 
+    stats[name] = { name, team: team.name, events: 0, wins: 0, setsWon: 0, setsLost: 0, pointDifference: 0 }; 
+  })); 
+  scorecards.forEach(score => { 
+    const sides = [['team1', score.winner === 'team1'], ['team2', score.winner === 'team2']]; 
+    sides.forEach(([side, won]) => { 
+      const players = [score[`${side}_player1`], score[`${side}_player2`]].filter(Boolean); 
+      players.forEach(name => { 
+        if (!stats[name]) stats[name] = { name, team: 'Unassigned', events: 0, wins: 0, setsWon: 0, setsLost: 0, pointDifference: 0 }; 
+        stats[name].events++; 
+        if (won) stats[name].wins++; 
+        (score.sets || []).forEach(set => { 
+          const own = set[`${side}_score`] || 0, opponent = set[side === 'team1' ? 'team2_score' : 'team1_score'] || 0; 
+          if (own > opponent) stats[name].setsWon++; 
+          if (own < opponent) stats[name].setsLost++; 
+          stats[name].pointDifference += own - opponent; 
+        }); 
+      }); 
+    }); 
+  }); 
   return (
     <PageFrame title="Player Stats" subtitle="Compare player performance across events." context={context}>
       <div className="table-container">
@@ -594,36 +596,7 @@ export function PlayerStatsPage() {
         </table>
       </div>
     </PageFrame>
-  );
-}
-
-function calculatePlayerStats(tournamentData) {
-  const stats = {};
-  tournamentData.forEach(data => {
-    const { teams, scorecards } = details(data);
-    teams.forEach(team => (team.players_list || []).forEach(player => {
-      const name = typeof player === 'object' ? player.name : player;
-      if (!stats[name]) stats[name] = { name, teams: new Set(), events: 0, wins: 0, setsWon: 0, setsLost: 0, pointDifference: 0 };
-      stats[name].teams.add(team.name);
-    }));
-    scorecards.forEach(score => {
-      [['team1', score.winner === 'team1'], ['team2', score.winner === 'team2']].forEach(([side, won]) => {
-        [score[`${side}_player1`], score[`${side}_player2`]].filter(Boolean).forEach(name => {
-          if (!stats[name]) stats[name] = { name, teams: new Set(), events: 0, wins: 0, setsWon: 0, setsLost: 0, pointDifference: 0 };
-          stats[name].events++;
-          if (won) stats[name].wins++;
-          (score.sets || []).forEach(set => {
-            const own = set[`${side}_score`] || 0;
-            const opponent = set[side === 'team1' ? 'team2_score' : 'team1_score'] || 0;
-            if (own > opponent) stats[name].setsWon++;
-            if (own < opponent) stats[name].setsLost++;
-            stats[name].pointDifference += own - opponent;
-          });
-        });
-      });
-    });
-  });
-  return Object.values(stats).map(player => ({ ...player, team: [...player.teams].join(', ') || 'Unassigned' }));
+  ); 
 }
 
 function mvpWeight(eventName = '') { 
@@ -633,35 +606,31 @@ function mvpWeight(eventName = '') {
   return 1; 
 }
 
-function calculateMvp(tournamentData) {
+function calculateMvp(teams, events, scorecards) { 
   const players = {}; 
-  tournamentData.forEach(data => {
-    const { teams, events, scorecards } = details(data);
-    teams.forEach(team => (team.players_list || []).forEach(player => {
-      const name = typeof player === 'object' ? player.name : player;
-      if (!players[name]) players[name] = { name, teams: new Set(), events: 0, wins: 0, losses: 0, pointDifference: 0, mvpPoints: 0 };
-      players[name].teams.add(team.name);
-    }));
-    scorecards.filter(score => score.status === 'completed' && score.winner).forEach(score => {
-      const event = events.find(item => item.id === score.event_id);
-      const weight = mvpWeight(event?.name);
-      [['team1', score.winner === 'team1'], ['team2', score.winner === 'team2']].forEach(([side, won]) => {
-        [score[`${side}_player1`], score[`${side}_player2`]].filter(Boolean).forEach(name => {
-          if (!players[name]) players[name] = { name, teams: new Set(), events: 0, wins: 0, losses: 0, pointDifference: 0, mvpPoints: 0 };
-          let pointDifference = 0;
-          (score.sets || []).forEach(set => {
-            pointDifference += (set[`${side}_score`] || 0) - (set[side === 'team1' ? 'team2_score' : 'team1_score'] || 0);
-          });
-          players[name].events++;
-          players[name].pointDifference += pointDifference;
-          if (won) players[name].wins++;
-          else players[name].losses++;
-          players[name].mvpPoints += ((won ? 10 : 3) + pointDifference * 0.2) * weight;
-        });
+  teams.forEach(team => (team.players_list || []).forEach(player => { 
+    const name = typeof player === 'object' ? player.name : player; 
+    players[name] = { name, team: team.name, events: 0, wins: 0, losses: 0, pointDifference: 0, mvpPoints: 0 }; 
+  })); 
+  scorecards.filter(score => score.status === 'completed' && score.winner).forEach(score => { 
+    const event = events.find(item => item.id === score.event_id); 
+    const weight = mvpWeight(event?.name); 
+    [['team1', score.winner === 'team1'], ['team2', score.winner === 'team2']].forEach(([side, won]) => { 
+      [score[`${side}_player1`], score[`${side}_player2`]].filter(Boolean).forEach(name => { 
+        if (!players[name]) players[name] = { name, team: 'Unassigned', events: 0, wins: 0, losses: 0, pointDifference: 0, mvpPoints: 0 }; 
+        let pointDifference = 0; 
+        (score.sets || []).forEach(set => { 
+          pointDifference += (set[`${side}_score`] || 0) - (set[side === 'team1' ? 'team2_score' : 'team1_score'] || 0); 
+        }); 
+        players[name].events++; 
+        players[name].pointDifference += pointDifference; 
+        if (won) players[name].wins++; 
+        else players[name].losses++; 
+        players[name].mvpPoints += ((won ? 10 : 3) + pointDifference * 0.2) * weight; 
       }); 
     }); 
   }); 
-  return Object.values(players).map(player => ({ ...player, team: [...player.teams].join(', ') || 'Unassigned' })).sort((a, b) => {
+  return Object.values(players).sort((a, b) => { 
     const mvpDifference = b.mvpPoints - a.mvpPoints; 
     if (Math.abs(mvpDifference) <= 0.5) return b.wins / (b.events || 1) - a.wins / (a.events || 1) || b.pointDifference - a.pointDifference; 
     return mvpDifference; 
@@ -670,9 +639,9 @@ function calculateMvp(tournamentData) {
 
 export function MvpPage() { 
   const { state, page, context } = usePublicPage('Tournament MVP', 'Identify the most valuable player using weighted match performance.'); 
-  const { allData, loading } = useAllTournamentData();
-  if (page || loading) return page || <PageFrame title="Tournament MVP" subtitle="Identify the most valuable player using weighted match performance." context={context}><p className="empty-state">Loading tournament MVP data...</p></PageFrame>;
-  const players = calculateMvp(allData); 
+  if (page) return page; 
+  const { teams, events, scorecards } = details(state.data); 
+  const players = calculateMvp(teams, events, scorecards); 
   const winner = players[0]; 
   return (
     <PageFrame title="Tournament MVP" subtitle="Identify the most valuable player using weighted match performance." context={context}>

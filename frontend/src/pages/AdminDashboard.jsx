@@ -12,7 +12,7 @@ export default function AdminDashboard() {
   const [teams, setTeams] = useState([]);
   const [events, setEvents] = useState([]);
   const [fixtures, setFixtures] = useState([]);
-  const [seasonPlayers, setSeasonPlayers] = useState([]);
+  const [tournamentPlayers, setTournamentPlayers] = useState([]);
 
   // Player tab states
   const [newPlayerName, setNewPlayerName] = useState('');
@@ -127,7 +127,7 @@ export default function AdminDashboard() {
       setEvents(e);
       setFixtures(f);
       setAuction(a);
-      setSeasonPlayers(p);
+      setTournamentPlayers(p);
       // Pre-fill auction config from saved state
       if (a && a.status !== 'idle') {
         setAuctionMaxPlayers(a.max_players || 8);
@@ -373,7 +373,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     const team = teams.find(t => t.id === showPlayerForm);
     if (!team) return;
-    const existingPlayer = seasonPlayers.find(p => p.name === playerName);
+    const existingPlayer = tournamentPlayers.find(p => p.name === playerName);
     if (!existingPlayer) {
       setError('Please select a valid player from the registered players list.');
       return;
@@ -432,19 +432,19 @@ export default function AdminDashboard() {
   async function handleGlobalAddPlayer(e) {
     e.preventDefault();
     if (!newPlayerName.trim()) return;
-    if (seasonPlayers.some(p => p.name.toLowerCase() === newPlayerName.trim().toLowerCase())) {
+    if (tournamentPlayers.some(p => p.name.toLowerCase() === newPlayerName.trim().toLowerCase())) {
       setError('A player with this name already exists.');
       return;
     }
     try {
       const res = await api.addPlayer(selectedTournament.id, { name: newPlayerName.trim(), gender: newPlayerGender });
-      setSeasonPlayers([...seasonPlayers, res.player]);
+      setTournamentPlayers([...tournamentPlayers, res.player]);
       setNewPlayerName('');
     } catch (err) { setError(err.message); }
   }
 
   function handleGlobalDeletePlayer(playerId) {
-    const p = seasonPlayers.find(x => x.id === playerId);
+    const p = tournamentPlayers.find(x => x.id === playerId);
     if (p && isPlayerAssigned(p.name)) {
       setError('Cannot delete player as they are already assigned to a team or auction.');
       return;
@@ -454,13 +454,13 @@ export default function AdminDashboard() {
 
   async function handleEditPlayerSave(playerId) {
     if (!editPlayerForm.name.trim()) return;
-    if (seasonPlayers.some(p => p.id !== playerId && p.name.toLowerCase() === editPlayerForm.name.trim().toLowerCase())) {
+    if (tournamentPlayers.some(p => p.id !== playerId && p.name.toLowerCase() === editPlayerForm.name.trim().toLowerCase())) {
       setError('A player with this name already exists.');
       return;
     }
     try {
       const res = await api.updatePlayer(selectedTournament.id, playerId, { name: editPlayerForm.name.trim(), gender: editPlayerForm.gender });
-      setSeasonPlayers(seasonPlayers.map(p => p.id === playerId ? res.player : p));
+      setTournamentPlayers(tournamentPlayers.map(p => p.id === playerId ? res.player : p));
       setEditingPlayerId(null);
     } catch (err) { setError(err.message); }
   }
@@ -468,7 +468,7 @@ export default function AdminDashboard() {
   async function executeDeletePlayer(playerId) {
     try {
       await api.deletePlayer(selectedTournament.id, playerId);
-      setSeasonPlayers(seasonPlayers.filter(x => x.id !== playerId));
+      setTournamentPlayers(tournamentPlayers.filter(x => x.id !== playerId));
       setPendingConfirmation(null);
     } catch (err) { setError(err.message); }
   }
@@ -601,7 +601,7 @@ export default function AdminDashboard() {
     const form = auctionPlayerForms[teamId];
     if (!form || !form.name || !form.points) return;
 
-    const existingPlayer = seasonPlayers.find(p => p.name === form.name);
+    const existingPlayer = tournamentPlayers.find(p => p.name === form.name);
     if (!existingPlayer) {
       setError('Please select a valid player from the registered players list.');
       return;
@@ -1208,12 +1208,12 @@ export default function AdminDashboard() {
                         )}
                         {showPlayerForm === team.id ? (
                           <form onSubmit={handleAddPlayer} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <select className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem', flex: 2, minWidth: '120px' }} value={playerName} onChange={e => setPlayerName(e.target.value)} required>
-                              <option value="">Select season player...</option>
-                              {seasonPlayers.filter(p => !isPlayerAssigned(p.name)).map(p => (
-                                <option key={p.id} value={p.name}>{p.name} ({p.gender})</option>
+                            <input className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem', flex: 2, minWidth: '120px' }} placeholder="Select player..." list={`players-list-${team.id}`} value={playerName} onChange={e => setPlayerName(e.target.value)} required />
+                            <datalist id={`players-list-${team.id}`}>
+                              {tournamentPlayers.filter(p => !isPlayerAssigned(p.name)).map(p => (
+                                <option key={p.id} value={p.name} />
                               ))}
-                            </select>
+                            </datalist>
                             <button type="submit" className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>Add</button>
                             <button type="button" className="btn btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={() => { setShowPlayerForm(null); setPlayerName(''); }}>Cancel</button>
                           </form>
@@ -1480,7 +1480,7 @@ export default function AdminDashboard() {
                     setAuctionPlayerForms={setAuctionPlayerForms}
                     onAddPlayer={handleAuctionAddPlayer}
                     onRemovePlayer={handleAuctionRemovePlayer}
-                    availablePlayers={seasonPlayers.filter(p => !isPlayerAssigned(p.name))}
+                    availablePlayers={tournamentPlayers.filter(p => !isPlayerAssigned(p.name))}
                   />
 
                   <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
@@ -1506,7 +1506,7 @@ export default function AdminDashboard() {
                   </div>
                   <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>Players have been synced to their teams. View them in the "Teams & Players" tab.</p>
 
-                  <AuctionTable auction={auction} teams={teams} editable={false} availablePlayers={seasonPlayers.filter(p => !isPlayerAssigned(p.name))} />
+                  <AuctionTable auction={auction} teams={teams} editable={false} availablePlayers={tournamentPlayers.filter(p => !isPlayerAssigned(p.name))} />
 
                   <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
                     <button className="btn btn-primary" onClick={async () => {
@@ -1608,6 +1608,9 @@ function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, se
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <datalist id="available-players">
+        {[...availablePlayers].sort((a, b) => a.name.localeCompare(b.name)).map(p => <option key={p.id} value={p.name} />)}
+      </datalist>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '-1rem' }}>
         <button onClick={() => setZoomLevel(z => Math.max(0.1, Number((z - 0.1).toFixed(1))))} className="btn btn-outline" style={{ padding: '0.5rem' }} title="Zoom Out"><ZoomOut size={16} /></button>
         <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)', minWidth: '40px', justifyContent: 'center' }}>{Math.round(zoomLevel * 100)}%</span>
@@ -1686,9 +1689,11 @@ function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, se
                       <React.Fragment key={`add-${team.id}`}>
                         <td style={{ padding: '0.4rem 0.25rem', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}></td>
                         <td colSpan={2} style={{ padding: '0.4rem 0.25rem' }}>
-                          <select
+                          <input
+                            list="available-players"
                             className="form-input"
                             style={{ padding: '0.3rem 0.5rem', fontSize: '0.8rem', width: '100%', minWidth: '80px' }}
+                            placeholder={isFull ? 'Team is full' : 'Search player...'}
                             disabled={isFull}
                             value={form.name}
                             onChange={e => {
@@ -1699,10 +1704,7 @@ function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, se
                                 [team.id]: { ...form, name: val, gender: selected?.gender || form.gender },
                               }));
                             }}
-                          >
-                            <option value="">{isFull ? 'Team is full' : 'Select player...'}</option>
-                            {[...availablePlayers].sort((a, b) => a.name.localeCompare(b.name)).map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
-                          </select>
+                          />
                         </td>
                         <td style={{ padding: '0.4rem 0.25rem' }}>
                           <input

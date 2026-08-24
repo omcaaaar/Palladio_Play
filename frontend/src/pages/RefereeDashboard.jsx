@@ -316,30 +316,20 @@ export default function RefereeDashboard() {
     if (delta > 0 && isCurrentSetFinished()) return;
     if (delta < 0 && activeScorecard.sets[activeScorecard.current_set][`${team}_score`] <= 0) return;
 
-    setActiveScorecard(current => {
-      if (!current) return current;
-      const sets = current.sets.map((set, index) => index === current.current_set
-        ? { ...set, [`${team}_score`]: Math.max(0, set[`${team}_score`] + delta) }
-        : set
-      );
-      return { ...current, sets };
-    });
+    try {
+      const res = await api.updateScore(selectedTournament.id, activeScorecard.id, {
+        set_index: activeScorecard.current_set,
+        team,
+        delta,
+      });
+      setActiveScorecard(res.scorecard);
+      setExistingScorecards(prev => prev.map(sc => sc.id === res.scorecard.id ? res.scorecard : sc));
+    } catch (err) { setError(err.message); }
   }
 
   async function handleChangeSet(setIndex) {
     if (!activeScorecard || setIndex === activeScorecard.current_set) return;
     try {
-      const currentSet = activeScorecard.sets[activeScorecard.current_set];
-      const scoreRes = await api.updateScore(selectedTournament.id, activeScorecard.id, {
-        set_index: activeScorecard.current_set,
-        scores: {
-          team1_score: currentSet.team1_score,
-          team2_score: currentSet.team2_score,
-        },
-      });
-      setActiveScorecard(scoreRes.scorecard);
-      setExistingScorecards(prev => prev.map(sc => sc.id === scoreRes.scorecard.id ? scoreRes.scorecard : sc));
-
       const res = await api.changeSet(selectedTournament.id, activeScorecard.id, setIndex);
       setActiveScorecard(res.scorecard);
       setExistingScorecards(prev => prev.map(sc => sc.id === res.scorecard.id ? res.scorecard : sc));

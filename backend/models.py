@@ -13,6 +13,7 @@ class Tournament(BaseModel):
     category: str = "Adults"  # "Adults" or "Kids"
     youtube_link: str = ""
     is_live: bool = False
+    players: List[dict] = []
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
 

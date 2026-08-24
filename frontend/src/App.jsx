@@ -8,6 +8,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import RefereeDashboard from './pages/RefereeDashboard';
 import BroadcasterDashboard from './pages/BroadcasterDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
+import OwnerPlayerProfiles from './pages/OwnerPlayerProfiles';
 import PlayerRegistration from './pages/PlayerRegistration';
 import RegisteredPlayers from './pages/RegisteredPlayers';
 import { MvpPage, PlayerEventsPage, PlayerStatsPage, ResultsPage, SchedulePage, SquadsPage, StandingsPage } from './pages/PublicPages';
@@ -89,6 +90,7 @@ function App() {
           <Route path="/admin/*" element={user?.role === 'admin' ? <AdminDashboard /> : <Login onLogin={handleLogin} />} />
           <Route path="/referee/*" element={user?.role === 'referee' ? <RefereeDashboard /> : <Login onLogin={handleLogin} />} />
           <Route path="/broadcaster/*" element={user?.role === 'broadcaster' ? <BroadcasterDashboard /> : <Login onLogin={handleLogin} />} />
+          <Route path="/owner/players" element={user?.role === 'owner' ? <OwnerPlayerProfiles /> : <Login onLogin={handleLogin} fixedRole="owner" />} />
           <Route path="/owner/*" element={user?.role === 'owner' ? <OwnerDashboard /> : <Login onLogin={handleLogin} fixedRole="owner" />} />
         </Routes>
       </main>

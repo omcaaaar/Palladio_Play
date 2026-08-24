@@ -201,14 +201,25 @@ export const endAuction = (tid) =>
 export const getPublicAuction = (tid) => request(`/api/public/tournaments/${tid}/auction`);
 
 // ── WebSocket ────────────────────────────────────────────────
-export function connectLiveScores(onMessage) {
+export function connectLiveScores(onMessage, connectionState = { active: true }) {
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsHost = isDev ? `${window.location.hostname}:8000` : window.location.host;
   const ws = new WebSocket(`${wsProtocol}//${wsHost}/ws/live-scores`);
+  let reconnectTimer = null;
   ws.onmessage = (e) => onMessage(JSON.parse(e.data));
   ws.onclose = () => {
-    // Reconnect after 3 seconds
-    setTimeout(() => connectLiveScores(onMessage), 3000);
+    if (connectionState.active) {
+      // Reconnect after 3 seconds while the owning page is still mounted.
+      reconnectTimer = setTimeout(() => {
+        if (connectionState.active) connectLiveScores(onMessage, connectionState);
+      }, 3000);
+    }
+  };
+  const close = ws.close.bind(ws);
+  ws.close = (...args) => {
+    connectionState.active = false;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    close(...args);
   };
   return ws;
 }

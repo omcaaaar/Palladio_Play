@@ -113,9 +113,9 @@ export default function PlayerRegistration() {
       setError('Please confirm your payment');
       return;
     }
-    // Mobile validation only if provided
-    if (mobile && (mobile.length !== 10 || !/^\d{10}$/.test(mobile))) {
-      setError('Mobile number must be exactly 10 digits');
+    // Mobile validation
+    if (!mobile || mobile.length !== 10 || !/^\d{10}$/.test(mobile)) {
+      setError('Mobile number is required and must be exactly 10 digits');
       return;
     }
 
@@ -314,7 +314,7 @@ export default function PlayerRegistration() {
 
           {/* Mobile */}
           <div className="form-group">
-            <label className="form-label">Mobile Number</label>
+            <label className="form-label">Mobile Number <span style={{ color: '#ef4444' }}>*</span></label>
             <input
               type="tel"
               className="form-input"
@@ -322,6 +322,7 @@ export default function PlayerRegistration() {
               value={mobile}
               onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) setMobile(v); }}
               maxLength={10}
+              required
             />
           </div>
 

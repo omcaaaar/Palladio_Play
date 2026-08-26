@@ -79,7 +79,7 @@ function usePublicPage(title, subtitle) {
   return { state, context: null, page: null };
 }
 
-function details(data) {
+export function details(data) {
   const teams = data.teams || [];
   const events = data.events || [];
   const scorecards = data.scorecards || [];
@@ -115,7 +115,7 @@ function details(data) {
   };
 }
 
-const MATCH_TYPE_LABELS = {
+export const MATCH_TYPE_LABELS = {
   qualifier_1: 'Qualifier 1',
   eliminator: 'Eliminator',
   qualifier_2: 'Qualifier 2',
@@ -128,7 +128,7 @@ const MATCH_TYPE_LABELS = {
 // OLD DASHBOARD COMPONENTS
 // -----------------------------------------------------
 
-function StandingsTable({ standings }) {
+export function StandingsTable({ standings }) {
   if (standings.length === 0) {
     return <p style={{ color: 'var(--text-secondary)' }}>No teams in this group.</p>;
   }
@@ -226,7 +226,7 @@ function FixtureEventsOverview({ fixture, events, scorecards, getTeamName }) {
 // PLAYOFF BRACKET COMPONENT
 // -----------------------------------------------------
 
-function PlayoffMatchCard({ fixture, getTeamName, events, scorecards, isFinal }) {
+export function PlayoffMatchCard({ fixture, getTeamName, events, scorecards, isFinal }) {
   const label = MATCH_TYPE_LABELS[fixture.match_type] || fixture.match_type;
   const isLive = fixture.status === 'in_progress';
   const isCompleted = fixture.status === 'completed' || fixture.status === 'abandoned';
@@ -278,7 +278,7 @@ function PlayoffMatchCard({ fixture, getTeamName, events, scorecards, isFinal })
   );
 }
 
-function ConnectorColumn({ topCount, bottomCount }) {
+export function ConnectorColumn({ topCount, bottomCount }) {
   // Renders connector lines between rounds
   if (topCount === 0 && bottomCount === 0) return null;
 
@@ -301,7 +301,7 @@ function ConnectorColumn({ topCount, bottomCount }) {
   );
 }
 
-function PlayoffBracket({ fixtures, getTeamName, events, scorecards }) {
+export function PlayoffBracket({ fixtures, getTeamName, events, scorecards }) {
   const playoffTypes = ['qualifier_1', 'eliminator', 'qualifier_2', 'semi_final', 'final'];
   const playoffFixtures = fixtures.filter(f => playoffTypes.includes(f.match_type));
 
@@ -462,10 +462,8 @@ function PlayoffBracket({ fixtures, getTeamName, events, scorecards }) {
 // PAGES
 // -----------------------------------------------------
 
-export function StandingsPage() {
-  const { state, page, context } = usePublicPage('League Standings', 'Track teams, points, and group rankings.');
-  if (page) return page;
-  const { teams, fixtures, events, scorecards, getTeamName } = details(state.data);
+export function getStandings(data) {
+  const { teams, fixtures, events, scorecards } = details(data);
   
   const teamMap = {};
   teams.forEach(t => {
@@ -517,11 +515,18 @@ export function StandingsPage() {
     t2.setPointDiff += t2SetPointDiff;
   });
 
-  const standings = Object.values(teamMap).sort((a, b) => {
+  return Object.values(teamMap).sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
     if (b.eventDiff !== a.eventDiff) return b.eventDiff - a.eventDiff;
     return b.setPointDiff - a.setPointDiff;
   });
+}
+
+export function StandingsPage() {
+  const { state, page, context } = usePublicPage('League Standings', 'Track teams, points, and group rankings.');
+  if (page) return page;
+  const { teams, fixtures, events, scorecards, getTeamName } = details(state.data);
+  const standings = getStandings(state.data);
 
   const groups = [...new Set(teams.map(t => t.group).filter(Boolean))];
 

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { getTournaments, getTournamentFull, updateTournament } from '../api/client';
 import { Tv, Play, Square, Download, AlertCircle, RefreshCw, Link as LinkIcon, Check, Activity } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { StandingsTable, PlayoffBracket, details, getStandings } from './PublicPages';
 
 export default function BroadcasterDashboard() {
   const [tournaments, setTournaments] = useState([]);
@@ -18,8 +20,21 @@ export default function BroadcasterDashboard() {
 
   const [streamKey, setStreamKey] = useState(import.meta.env.VITE_YOUTUBE_STREAM_KEY || '');
   const [isRecording, setIsRecording] = useState(false);
-  const [recordedBlobUrl, setRecordedBlobUrl] = useState(null);
   const [error, setError] = useState('');
+
+  const [overlayState, setOverlayState] = useState('none');
+  const [overlayCanvas, setOverlayCanvas] = useState(null);
+  const hiddenUiRef = useRef(null);
+  const overlayStateRef = useRef('none');
+  const overlayCanvasRef = useRef(null);
+
+  useEffect(() => {
+    overlayStateRef.current = overlayState;
+  }, [overlayState]);
+
+  useEffect(() => {
+    overlayCanvasRef.current = overlayCanvas;
+  }, [overlayCanvas]);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -27,7 +42,6 @@ export default function BroadcasterDashboard() {
   const wsRef = useRef(null);
   const animationFrameRef = useRef(null);
   const streamRef = useRef(null);
-  const recordedChunksRef = useRef([]);
 
   // Fetch score loop
   useEffect(() => {
@@ -41,6 +55,56 @@ export default function BroadcasterDashboard() {
     }
     return () => clearInterval(interval);
   }, [isRecording, selectedTournament]);
+
+  useEffect(() => {
+    if (!tournamentData) {
+      setOverlayState('none');
+      return;
+    }
+    const { fixtures } = tournamentData;
+    if (!fixtures || fixtures.length === 0) {
+      setOverlayState('none');
+      return;
+    }
+
+    const hasInProgress = fixtures.some(f => f.status === 'in_progress');
+    if (hasInProgress) {
+      setOverlayState('scorecard');
+      return;
+    }
+
+    const hasLocked = fixtures.some(f => f.status === 'completed' || f.status === 'abandoned');
+    if (hasLocked) {
+      const leagueFixtures = fixtures.filter(f => f.match_type === 'league');
+      const allLeagueCompleted = leagueFixtures.length === 0 || leagueFixtures.every(f => f.status === 'completed' || f.status === 'abandoned');
+
+      const playoffTypes = ['qualifier_1', 'eliminator', 'qualifier_2', 'semi_final', 'final'];
+      const hasPlayoffs = fixtures.some(f => playoffTypes.includes(f.match_type));
+
+      if (allLeagueCompleted && hasPlayoffs) {
+        setOverlayState('bracket');
+      } else {
+        setOverlayState('standings');
+      }
+    } else {
+      setOverlayState('none');
+    }
+  }, [tournamentData]);
+
+  useEffect(() => {
+    if (overlayState === 'standings' || overlayState === 'bracket') {
+      const timeoutId = setTimeout(() => {
+        if (hiddenUiRef.current) {
+          html2canvas(hiddenUiRef.current, { backgroundColor: null, scale: 2 }).then(canvas => {
+            setOverlayCanvas(canvas);
+          });
+        }
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    } else {
+      setOverlayCanvas(null);
+    }
+  }, [tournamentData, overlayState]);
 
   useEffect(() => {
     getTournaments().then(setTournaments).catch(err => setError('Failed to load tournaments.'));
@@ -270,9 +334,32 @@ export default function BroadcasterDashboard() {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const scoreboardData = getScoreboardData();
-    if (scoreboardData) {
-      drawScoreboard(ctx, canvas.width, canvas.height, scoreboardData);
+    const currentState = overlayStateRef.current;
+
+    if (currentState === 'scorecard') {
+      const scoreboardData = getScoreboardData();
+      if (scoreboardData) {
+        drawScoreboard(ctx, canvas.width, canvas.height, scoreboardData);
+      }
+    } else if (currentState === 'standings' || currentState === 'bracket') {
+      const oCanvas = overlayCanvasRef.current;
+      if (oCanvas) {
+        const paddingX = canvas.width * 0.1;
+        const paddingY = canvas.height * 0.1;
+        const maxWidth = canvas.width - paddingX * 2;
+        const maxHeight = canvas.height - paddingY * 2;
+
+        const scale = Math.min(maxWidth / oCanvas.width, maxHeight / oCanvas.height);
+        const w = oCanvas.width * scale;
+        const h = oCanvas.height * scale;
+        const x = (canvas.width - w) / 2;
+        const y = (canvas.height - h) / 2;
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // Very subtle dimming to keep court highly visible
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.drawImage(oCanvas, x, y, w, h);
+      }
     }
 
     animationFrameRef.current = requestAnimationFrame(drawFrame);
@@ -313,11 +400,6 @@ export default function BroadcasterDashboard() {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
-      if (recordedBlobUrl) {
-        URL.revokeObjectURL(recordedBlobUrl);
-        setRecordedBlobUrl(null);
-      }
-      recordedChunksRef.current = [];
       setIsRecording(true);
 
       if (selectedTournament) {
@@ -355,17 +437,10 @@ export default function BroadcasterDashboard() {
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          recordedChunksRef.current.push(event.data);
           if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             wsRef.current.send(event.data);
           }
         }
-      };
-
-      mediaRecorder.onstop = () => {
-        const mimeType = options.mimeType || 'video/webm';
-        const blob = new Blob(recordedChunksRef.current, { type: mimeType });
-        setRecordedBlobUrl(URL.createObjectURL(blob));
       };
 
       mediaRecorder.start(1000);
@@ -413,8 +488,55 @@ export default function BroadcasterDashboard() {
 
   const activeFixture = tournamentData?.fixtures?.find(f => f.status === 'in_progress');
 
+  const renderHiddenUI = () => {
+    if (!tournamentData) return null;
+    if (overlayState !== 'standings' && overlayState !== 'bracket') return null;
+
+    const { fixtures, events, scorecards, teams, getTeamName } = details(tournamentData);
+    const standings = getStandings(tournamentData);
+
+    if (overlayState === 'standings') {
+      const groups = [...new Set(teams.map(t => t.group).filter(Boolean))];
+      return (
+        <div style={{ padding: '2rem', width: '1000px', background: 'rgba(20, 20, 24, 0.3)', color: 'white', borderRadius: '16px', fontFamily: 'Inter, sans-serif' }}>
+          <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', color: 'white', textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}>League Standings</h2>
+          {groups.length > 0 ? (
+            groups.map(g => (
+              <div key={g} style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{ color: '#38bdf8', marginBottom: '0.75rem' }}>Group {g}</h4>
+                <StandingsTable standings={standings.filter(s => s.group === g)} />
+              </div>
+            ))
+          ) : (
+            <StandingsTable standings={standings} />
+          )}
+        </div>
+      );
+    } else if (overlayState === 'bracket') {
+      return (
+        <div style={{ padding: '2rem', width: '1000px', background: 'rgba(20, 20, 24, 0.3)', color: 'white', borderRadius: '16px', fontFamily: 'Inter, sans-serif' }}>
+          <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', color: 'white', textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}>Playoffs</h2>
+          <PlayoffBracket
+            fixtures={fixtures}
+            getTeamName={getTeamName}
+            events={events}
+            scorecards={scorecards}
+          />
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="dashboard-layout animate-fade-in">
+      <div
+        ref={hiddenUiRef}
+        style={{ position: 'absolute', top: '-9999px', left: '-9999px', zIndex: -999, pointerEvents: 'none' }}
+      >
+        {renderHiddenUI()}
+      </div>
+
       <div className="glass-card" style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <Tv size={28} color="var(--accent-secondary)" />
@@ -549,17 +671,6 @@ export default function BroadcasterDashboard() {
             <button className="btn btn-danger" onClick={stopStream} style={{ padding: '0.75rem 2rem', background: 'var(--accent-danger)' }}>
               <Square size={18} /> Stop Stream
             </button>
-          )}
-
-          {recordedBlobUrl && !isRecording && (
-            <a
-              href={recordedBlobUrl}
-              download={`stream-recording-${Date.now()}.webm`}
-              className="btn btn-outline"
-              style={{ textDecoration: 'none' }}
-            >
-              <Download size={18} /> Download Video
-            </a>
           )}
         </div>
       </div>

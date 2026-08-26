@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request, Form, File, UploadFile
 from typing import Optional
+from pydantic import BaseModel
 from datetime import datetime
 from models import Tournament, Team, Fixture, Event, TournamentPlayer
 import database
@@ -194,6 +195,94 @@ async def add_player(
         print(f"Global player upsert failed: {e}")
 
     return {"message": "Player added", "player": data}
+
+class ImportGlobalPlayerRequest(BaseModel):
+    global_player_key: str
+
+@router.post("/tournaments/{tid}/players/import-global")
+def import_global_player(tid: str, payload: ImportGlobalPlayerRequest):
+    data_tournament = database.get_tournament_data(tid)
+    if not data_tournament:
+        raise HTTPException(404, "Tournament not found")
+        
+    tournament = data_tournament.get("tournament", {})
+    category = tournament.get("category", "Adults")
+    sport = tournament.get("sport", "")
+
+    import global_players
+    all_players = global_players._read_all()
+    global_player = all_players.get(payload.global_player_key)
+    
+    if not global_player:
+        raise HTTPException(404, "Global player not found")
+
+    mobile = global_player.get("mobile", "")
+    full_name = global_player.get("name", "")
+    age = global_player.get("age", 0)
+    if age is None:
+        age = 0
+    gender = global_player.get("gender", "")
+
+    # Check for duplicate registration by name + mobile
+    if database.check_duplicate_registration(tid, mobile, full_name):
+        raise HTTPException(
+            409,
+            "A player is already registered with this name and mobile number"
+        )
+
+    # For Adults tournaments, gender is required
+    if category == "Adults" and not gender:
+        raise HTTPException(400, "Gender is missing in the global player profile. Please update it first.")
+
+    # For Kids tournaments, derive category from age
+    player_gender = gender
+    if category == "Kids":
+        kids_age_limit = tournament.get("kids_age_limit", 12)
+        player_gender = "Junior" if int(age) <= kids_age_limit else "Senior"
+
+    # Extract sport expertise if available
+    expertise = ""
+    played_state_national = "No"
+    if sport in global_player.get("sports", {}):
+        sport_data = global_player["sports"][sport]
+        expertise = sport_data.get("expertise", "")
+        played_state_national = sport_data.get("played_state_national", "No")
+
+    player = TournamentPlayer(
+        tournament_id=tid,
+        name=full_name,
+        gender=player_gender,
+        first_name=global_player.get("first_name", ""),
+        last_name=global_player.get("last_name", ""),
+        mobile=mobile,
+        wing=global_player.get("wing", ""),
+        flat_no=global_player.get("flat_no", ""),
+        age=age,
+        expertise=expertise,
+        played_state_national=played_state_national,
+        photo_url=global_player.get("photo_url", ""),
+        payment_confirmed=True, # Admin importing directly assumes payment is clear
+        registered_at=datetime.now().isoformat(),
+        consent_accepted=global_player.get("consent_accepted", False),
+    )
+
+    data = player.model_dump()
+    database.add_player(tid, data)
+
+    # Update global player to link this tournament
+    try:
+        global_players.upsert_global_player(
+            name=full_name,
+            mobile=mobile,
+            personal_data={}, # we don't need to overwrite personal data
+            sport=sport,
+            tournament_id=tid,
+            tournament_name=tournament.get("name", ""),
+        )
+    except Exception as e:
+        print(f"Global player upsert failed: {e}")
+
+    return {"message": "Player imported successfully", "player": data}
 
 @router.delete("/tournaments/{tid}/players/{player_id}")
 def delete_player(tid: str, player_id: str):

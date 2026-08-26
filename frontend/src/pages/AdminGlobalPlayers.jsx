@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Edit, Trash2, Camera, Save, AlertTriangle,
   ArrowLeft, Search, User, X, Trophy, Medal,
-  ChevronDown, ChevronRight
+  ChevronDown, ChevronRight, Plus
 } from 'lucide-react';
 import * as api from '../api/client';
 
@@ -304,6 +304,24 @@ export default function AdminGlobalPlayers() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const fileInputRef = useRef(null);
 
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addFormData, setAddFormData] = useState({
+    first_name: '',
+    last_name: '',
+    mobile: '',
+    wing: '',
+    flat_no: '',
+    age: '',
+    gender: '',
+    expertise: '',
+    played_state_national: ''
+  });
+  const [addPhotoFile, setAddPhotoFile] = useState(null);
+  const [addPhotoPreview, setAddPhotoPreview] = useState(null);
+  const addFileInputRef = useRef(null);
+  const [addError, setAddError] = useState('');
+  const [addLoading, setAddLoading] = useState(false);
+
   // Load all players on mount
   useEffect(() => {
     api
@@ -439,6 +457,81 @@ export default function AdminGlobalPlayers() {
     }
   }
 
+  function handleAddPhotoChange(e) {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAddPhotoFile(file);
+      const reader = new FileReader();
+      reader.onload = (ev) => setAddPhotoPreview(ev.target.result);
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function removeAddPhoto() {
+    setAddPhotoFile(null);
+    setAddPhotoPreview(null);
+    if (addFileInputRef.current) addFileInputRef.current.value = '';
+  }
+
+  async function handleAddGlobalPlayerSubmit(e) {
+    e.preventDefault();
+    setAddError('');
+    
+    // Validations
+    if (!addFormData.first_name.trim() || !addFormData.last_name.trim()) {
+      setAddError('First name and last name are required'); return;
+    }
+    if (!addFormData.mobile || addFormData.mobile.length !== 10 || !/^\d{10}$/.test(addFormData.mobile)) {
+      setAddError('Mobile number is required and must be exactly 10 digits'); return;
+    }
+    if (!addFormData.wing) { setAddError('Please select wing'); return; }
+    if (!addFormData.flat_no || addFormData.flat_no.length < 3 || addFormData.flat_no.length > 4) {
+      setAddError('Flat number must be 3 to 4 digits'); return;
+    }
+    if (!addFormData.age || parseInt(addFormData.age) < 1) {
+      setAddError('Please enter a valid age'); return;
+    }
+    if (!addFormData.gender) { setAddError('Please select gender'); return; }
+
+    setAddLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('first_name', addFormData.first_name);
+      formData.append('last_name', addFormData.last_name);
+      formData.append('mobile', addFormData.mobile);
+      formData.append('gender', addFormData.gender);
+      formData.append('age', addFormData.age);
+      formData.append('wing', addFormData.wing);
+      formData.append('flat_no', addFormData.flat_no);
+      
+      if (addPhotoFile) {
+        formData.append('photo', addPhotoFile);
+      }
+
+      const res = await api.addGlobalPlayer(formData);
+      
+      // Update allPlayers list
+      const updatedAll = [...allPlayers, res.player].sort((a, b) => a.name.localeCompare(b.name));
+      setAllPlayers(updatedAll);
+      setFilteredPlayers(updatedAll);
+      
+      // Reset and close form
+      setAddFormData({
+        first_name: '', last_name: '', mobile: '', wing: '', flat_no: '',
+        age: '', gender: '', expertise: '', played_state_national: ''
+      });
+      removeAddPhoto();
+      setShowAddForm(false);
+      
+      // Select the newly added player
+      selectPlayer(res.player);
+      
+    } catch (err) {
+      setAddError("Error adding player: " + err.message);
+    }
+    setAddLoading(false);
+  }
+
   function clearSelection() {
     setSearchText('');
     setSelectedPlayer(null);
@@ -474,25 +567,132 @@ export default function AdminGlobalPlayers() {
       </Link>
 
       {/* Page Header */}
-      <div style={{ marginBottom: '2rem' }}>
-        <p
-          className="eyebrow"
-          style={{
-            color: 'var(--accent-secondary)',
-            fontSize: '0.8rem',
-            fontWeight: 700,
-            letterSpacing: '0.05em',
-            textTransform: 'uppercase',
-            marginBottom: '0.5rem',
-          }}
-        >
-          MANAGE PALLADIO COMMUNITY
-        </p>
-        <h1 style={{ margin: '0 0 0.25rem 0' }}>Global Player Profiles</h1>
-        <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-          Search and explore player stats across all tournaments and sports.
-        </p>
+      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <p
+            className="eyebrow"
+            style={{
+              color: 'var(--accent-secondary)',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              marginBottom: '0.5rem',
+            }}
+          >
+            MANAGE PALLADIO COMMUNITY
+          </p>
+          <h1 style={{ margin: '0 0 0.25rem 0' }}>Global Player Profiles</h1>
+          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+            Search and explore player stats across all tournaments and sports.
+          </p>
+        </div>
+        {!showAddForm && (
+          <button className="btn btn-primary" onClick={() => setShowAddForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Plus size={16} /> Register Player
+          </button>
+        )}
       </div>
+
+      {showAddForm && (
+        <form onSubmit={handleAddGlobalPlayerSubmit} style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--glass-border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <h4 style={{ margin: 0 }}>Register New Player</h4>
+            <button type="button" onClick={() => { setShowAddForm(false); setAddError(''); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem' }}>
+              <X size={20} />
+            </button>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-group">
+              <label className="form-label">First Name <span style={{ color: '#ef4444' }}>*</span></label>
+              <input className="form-input" placeholder="First name" value={addFormData.first_name} onChange={e => setAddFormData({...addFormData, first_name: e.target.value})} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Last Name <span style={{ color: '#ef4444' }}>*</span></label>
+              <input className="form-input" placeholder="Last name" value={addFormData.last_name} onChange={e => setAddFormData({...addFormData, last_name: e.target.value})} required />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+            <div className="form-group">
+              <label className="form-label">Mobile Number <span style={{ color: '#ef4444' }}>*</span></label>
+              <input type="tel" pattern="\d{10}" title="10 digit mobile number" className="form-input" placeholder="e.g. 9876543210" value={addFormData.mobile} onChange={e => setAddFormData({...addFormData, mobile: e.target.value})} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Age <span style={{ color: '#ef4444' }}>*</span></label>
+              <input type="number" min="1" max="100" className="form-input" placeholder="Age" value={addFormData.age} onChange={e => setAddFormData({...addFormData, age: e.target.value})} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Gender <span style={{ color: '#ef4444' }}>*</span></label>
+              <select className="form-input" value={addFormData.gender} onChange={e => setAddFormData({...addFormData, gender: e.target.value})} required>
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-group">
+              <label className="form-label">Wing <span style={{ color: '#ef4444' }}>*</span></label>
+              <select className="form-input" value={addFormData.wing} onChange={e => setAddFormData({...addFormData, wing: e.target.value})} required>
+                <option value="">Select Wing</option>
+                {'ABCDEFGHJKLMNP'.split('').map(w => (
+                  <option key={w} value={w}>Wing {w}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Flat No <span style={{ color: '#ef4444' }}>*</span></label>
+              <input className="form-input" placeholder="e.g. 101" value={addFormData.flat_no} onChange={e => setAddFormData({...addFormData, flat_no: e.target.value})} required />
+            </div>
+          </div>
+
+
+
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Photo (Optional)</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => addFileInputRef.current?.click()}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}
+              >
+                <Camera size={16} /> Choose Photo
+              </button>
+              <input
+                type="file"
+                accept="image/*"
+                ref={addFileInputRef}
+                style={{ display: 'none' }}
+                onChange={handleAddPhotoChange}
+              />
+              {addPhotoPreview && (
+                <div style={{ position: 'relative', width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--accent-primary)' }}>
+                  <img src={addPhotoPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button type="button" onClick={removeAddPhoto} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {addError && (
+            <div style={{ padding: '0.75rem', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-danger)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
+              {addError}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+            <button type="submit" className="btn btn-primary" disabled={addLoading}>
+              {addLoading ? 'Registering...' : 'Register Player'}
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* Search Bar */}
       <div style={{ position: 'relative', marginBottom: '2rem' }}>

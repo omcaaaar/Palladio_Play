@@ -53,6 +53,14 @@ export const deleteTeam = (tid, teamId) =>
   });
 
 // ── Players ──────────────────────────────────────────────────
+
+export const importGlobalPlayer = (tid, globalPlayerKey) =>
+  request(`/api/admin/tournaments/${tid}/players/import-global`, {
+    method: 'POST',
+    body: JSON.stringify({ global_player_key: globalPlayerKey }),
+  });
+
+// ── Events & Fixtures ──────────────────────────────────────────────────
 export const getPlayers = (tid) => request(`/api/admin/tournaments/${tid}/players`);
 export async function addPlayer(tid, formData) {
   const res = await fetch(`${API}/api/admin/tournaments/${tid}/players`, {
@@ -237,12 +245,26 @@ export async function updateGlobalPlayer(key, formData) {
   return res.json();
 }
 
+export async function addGlobalPlayer(formData) {
+  const res = await fetch(`${API}/api/admin/global-players`, {
+    method: 'POST',
+    body: formData,
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || 'Add failed');
+  }
+  return res.json();
+}
+
 export const deleteGlobalPlayer = (key) =>
   request(`/api/admin/global-players/${encodeURIComponent(key)}`, {
     method: 'DELETE',
   });
 
 // ── WebSocket ────────────────────────────────────────────────
+
 export function connectLiveScores(onMessage) {
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsHost = isDev ? `${window.location.hostname}:8000` : window.location.host;
@@ -254,3 +276,4 @@ export function connectLiveScores(onMessage) {
   };
   return ws;
 }
+

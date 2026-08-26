@@ -34,6 +34,12 @@ export default function AdminDashboard() {
 
   const [editingPlayerId, setEditingPlayerId] = useState(null);
 
+  // Global player import state
+  const [globalPlayers, setGlobalPlayers] = useState([]);
+  const [selectedGlobalPlayerKey, setSelectedGlobalPlayerKey] = useState('');
+  const [globalPlayerDetails, setGlobalPlayerDetails] = useState(null);
+  const [isImportLoading, setIsImportLoading] = useState(false);
+
   // Auction state
   const [auction, setAuction] = useState(null);
   const [auctionMaxPlayers, setAuctionMaxPlayers] = useState(8);
@@ -119,6 +125,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadTournaments();
+    loadGlobalPlayers();
   }, []);
 
   useEffect(() => {
@@ -133,6 +140,13 @@ export default function AdminDashboard() {
       const data = await api.getTournaments();
       setTournaments(data);
     } catch (e) { setError(e.message); }
+  }
+
+  async function loadGlobalPlayers() {
+    try {
+      const data = await api.getGlobalPlayers();
+      setGlobalPlayers(data);
+    } catch (e) { console.error('Failed to load global players', e); }
   }
 
   async function loadTournamentData(tid) {
@@ -581,6 +595,25 @@ export default function AdminDashboard() {
       removePhoto();
       setIsRegisterFormOpen(false);
     } catch (err) { setError(err.message); }
+  }
+
+  async function handleImportGlobalPlayer(e) {
+    e.preventDefault();
+    if (!selectedGlobalPlayerKey) {
+      setError('Please select a player to import.');
+      return;
+    }
+    setIsImportLoading(true);
+    try {
+      const res = await api.importGlobalPlayer(selectedTournament.id, selectedGlobalPlayerKey);
+      setTournamentPlayers([...tournamentPlayers, res.player]);
+      setSelectedGlobalPlayerKey('');
+      setGlobalPlayerDetails(null);
+      setIsRegisterFormOpen(false);
+    } catch (err) {
+      setError(err.message);
+    }
+    setIsImportLoading(false);
   }
 
   function handleGlobalDeletePlayer(playerId) {
@@ -1440,14 +1473,15 @@ export default function AdminDashboard() {
               </div>
 
               {isRegisterFormOpen && (
-                <form onSubmit={handleGlobalAddPlayer} style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--glass-border)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <h4 style={{ margin: 0 }}>{editingPlayerId ? 'Edit Player' : 'Register New Player'}</h4>
-                    <button type="button" onClick={() => { setIsRegisterFormOpen(false); setEditingPlayerId(null); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem' }}>
-                      <X size={20} />
-                    </button>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                editingPlayerId ? (
+                  <form onSubmit={handleGlobalAddPlayer} style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--glass-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <h4 style={{ margin: 0 }}>Edit Player</h4>
+                      <button type="button" onClick={() => { setIsRegisterFormOpen(false); setEditingPlayerId(null); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem' }}>
+                        <X size={20} />
+                      </button>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                     <div className="form-group">
                       <label className="form-label">First Name <span style={{ color: '#ef4444' }}>*</span></label>
                       <input className="form-input" placeholder="First name" value={newPlayerFirstName} onChange={e => setNewPlayerFirstName(e.target.value)} required />
@@ -1547,10 +1581,45 @@ export default function AdminDashboard() {
                   </div>
 
                   <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start', marginTop: '1rem' }}>
-                    {editingPlayerId ? <Check size={16} /> : <Plus size={16} />}
-                    {editingPlayerId ? 'Update Player' : 'Submit Registration'}
+                    <Check size={16} /> Update Player
                   </button>
                 </form>
+                ) : (
+                  <form onSubmit={handleImportGlobalPlayer} style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--glass-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <h4 style={{ margin: 0 }}>Import Player from Global Profiles</h4>
+                      <button type="button" onClick={() => { setIsRegisterFormOpen(false); setSelectedGlobalPlayerKey(''); setGlobalPlayerDetails(null); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem' }}>
+                        <X size={20} />
+                      </button>
+                    </div>
+                    
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>
+                      Search for an existing player in the Global Player Profiles. 
+                      <br/>
+                      <span style={{ color: 'var(--accent-primary)' }}>Player not found? Please register them in the <Link to="/admin/global-players" style={{ color: 'var(--accent-primary)', textDecoration: 'underline' }}>Global Player Profiles</Link> first.</span>
+                    </p>
+
+                    <div className="form-group">
+                      <label className="form-label">Select Player <span style={{ color: '#ef4444' }}>*</span></label>
+                      <SearchableDropdown
+                        className="form-input"
+                        placeholder="Search by name..."
+                        options={globalPlayers.map(p => `${p.name} (${p.key.split('|')[1]})`)}
+                        value={selectedGlobalPlayerKey ? `${globalPlayers.find(p => p.key === selectedGlobalPlayerKey)?.name} (${selectedGlobalPlayerKey.split('|')[1]})` : ''}
+                        onChange={(val) => {
+                          const match = globalPlayers.find(p => `${p.name} (${p.key.split('|')[1]})` === val);
+                          if (match) setSelectedGlobalPlayerKey(match.key);
+                          else setSelectedGlobalPlayerKey('');
+                        }}
+                        required
+                      />
+                    </div>
+                    
+                    <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start', marginTop: '1rem' }} disabled={isImportLoading}>
+                      <Plus size={16} /> {isImportLoading ? 'Importing...' : 'Add to Tournament'}
+                    </button>
+                  </form>
+                )
               )}
 
               {tournamentPlayers.length === 0 ? (

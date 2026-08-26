@@ -131,6 +131,21 @@ def get_global_player(key: str) -> Optional[dict]:
     }
 
 
+def get_global_player_admin(key: str) -> Optional[dict]:
+    """Return the full player record including sensitive fields (mobile, wing, flat_no).
+
+    Intended for admin / owner use only — never expose publicly.
+    """
+    data = _read_all()
+    player = data.get(key)
+    if not player:
+        return None
+    return {
+        "key": key,
+        **player,
+    }
+
+
 def upsert_global_player(
     name: str,
     mobile: str,

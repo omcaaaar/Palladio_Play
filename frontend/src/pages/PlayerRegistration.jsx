@@ -49,6 +49,7 @@ export default function PlayerRegistration() {
   const [expertise, setExpertise] = useState('');
   const [playedStateNational, setPlayedStateNational] = useState('');
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const fileInputRef = useRef(null);
@@ -113,6 +114,10 @@ export default function PlayerRegistration() {
       setError('Please confirm your payment');
       return;
     }
+    if (!consentAccepted) {
+      setError('You must accept the data privacy consent to register');
+      return;
+    }
     // Mobile validation
     if (!mobile || mobile.length !== 10 || !/^\d{10}$/.test(mobile)) {
       setError('Mobile number is required and must be exactly 10 digits');
@@ -132,6 +137,7 @@ export default function PlayerRegistration() {
     formData.append('expertise', expertise);
     formData.append('played_state_national', playedStateNational);
     formData.append('payment_confirmed', paymentConfirmed ? 'true' : 'false');
+    formData.append('consent_accepted', consentAccepted ? 'true' : 'false');
     if (photo) {
       formData.append('photo', photo);
     }
@@ -195,7 +201,7 @@ export default function PlayerRegistration() {
               setSuccess(false);
               setFirstName(''); setLastName(''); setMobile(''); setWing(''); setFlatNo('');
               setAge(''); setGender(''); setExpertise(''); setPlayedStateNational('');
-              setPaymentConfirmed(false); setPhoto(null); setPhotoPreview(null);
+              setPaymentConfirmed(false); setConsentAccepted(false); setPhoto(null); setPhotoPreview(null);
               setError('');
             }}>
               Register Another Player
@@ -484,6 +490,21 @@ export default function PlayerRegistration() {
               </label>
             </div>
           )}
+
+          {/* Privacy Consent */}
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', padding: '0.75rem 1rem', background: 'rgba(96, 165, 250, 0.05)', border: '1px solid rgba(96, 165, 250, 0.2)', borderRadius: 'var(--radius-md)' }}>
+              <input
+                type="checkbox"
+                checked={consentAccepted}
+                onChange={e => setConsentAccepted(e.target.checked)}
+                style={{ marginTop: '0.2rem', width: '18px', height: '18px', accentColor: '#60a5fa' }}
+              />
+              <span style={{ fontSize: '0.85rem', lineHeight: 1.5, color: 'var(--text-secondary)' }}>
+                I authorize the use of my personal data and photo exclusively for managing this tournament.
+              </span>
+            </label>
+          </div>
 
           {/* Submit */}
           <button

@@ -54,20 +54,34 @@ export const deleteTeam = (tid, teamId) =>
 
 // ── Players ──────────────────────────────────────────────────
 export const getPlayers = (tid) => request(`/api/admin/tournaments/${tid}/players`);
-export const addPlayer = (tid, data) =>
-  request(`/api/admin/tournaments/${tid}/players`, {
+export async function addPlayer(tid, formData) {
+  const res = await fetch(`${API}/api/admin/tournaments/${tid}/players`, {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: formData,
+    cache: 'no-store',
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || 'Request failed');
+  }
+  return res.json();
+}
 export const deletePlayer = (tid, playerId) =>
   request(`/api/admin/tournaments/${tid}/players/${playerId}`, {
     method: 'DELETE',
   });
-export const updatePlayer = (tid, playerId, data) =>
-  request(`/api/admin/tournaments/${tid}/players/${playerId}`, {
+export async function updatePlayer(tid, playerId, formData) {
+  const res = await fetch(`${API}/api/admin/tournaments/${tid}/players/${playerId}`, {
     method: 'PUT',
-    body: JSON.stringify(data),
+    body: formData,
+    cache: 'no-store',
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || 'Request failed');
+  }
+  return res.json();
+}
 
 
 // ── Events ───────────────────────────────────────────────────
@@ -200,6 +214,33 @@ export async function registerPlayer(tid, formData) {
   }
   return res.json();
 }
+
+// ── Global Player Profiles ───────────────────────────────────
+export const getGlobalPlayers = () => request('/api/public/global-players');
+export const getGlobalPlayerProfile = (key) =>
+  request(`/api/public/global-players/${encodeURIComponent(key)}`);
+export const getAdminGlobalPlayerProfile = (key) =>
+  request(`/api/admin/global-players/${encodeURIComponent(key)}`);
+export const backfillGlobalPlayers = () =>
+  request('/api/admin/global-players/backfill', { method: 'POST' });
+
+export async function updateGlobalPlayer(key, formData) {
+  const res = await fetch(`${API}/api/admin/global-players/${encodeURIComponent(key)}`, {
+    method: 'PUT',
+    body: formData,
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || 'Update failed');
+  }
+  return res.json();
+}
+
+export const deleteGlobalPlayer = (key) =>
+  request(`/api/admin/global-players/${encodeURIComponent(key)}`, {
+    method: 'DELETE',
+  });
 
 // ── WebSocket ────────────────────────────────────────────────
 export function connectLiveScores(onMessage) {

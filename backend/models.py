@@ -44,6 +44,7 @@ class TournamentPlayer(BaseModel):
     photo_url: str = ""
     payment_confirmed: bool = False
     registered_at: str = ""
+    consent_accepted: bool = False
 
 
 class Team(BaseModel):

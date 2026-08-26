@@ -1,5 +1,6 @@
 import json
 import os
+import uuid
 from functools import lru_cache
 from typing import List
 
@@ -30,7 +31,7 @@ def _get_collection():
     client = MongoClient(
         MONGODB_URI,
         serverSelectionTimeoutMS=MONGODB_TIMEOUT,
-        tlsCAFile=certifi.where(),
+        tlsCAFile=certifi.where()
     )
     client.admin.command("ping")
     return client[MONGODB_DATABASE][MONGODB_COLLECTION]
@@ -50,6 +51,13 @@ def _read(tournament_id: str) -> dict | None:
     if DATABASE_BACKEND == "mongo":
         document.pop("_id", None)
     updated = False
+    
+    # Normalize players list (ensure all players have an id)
+    for player in document.get("players", []):
+        if "id" not in player or not player["id"]:
+            player["id"] = str(uuid.uuid4())[:8]
+            updated = True
+
     for scorecard in document.get("scorecards", []):
         is_non_zero = any(
             set_score.get("team1_score", 0) > 0 or set_score.get("team2_score", 0) > 0
@@ -192,14 +200,14 @@ def update_player(tournament_id: str, player_id: str, player_data: dict) -> bool
                 return True
     return False
 
-def check_duplicate_registration(tournament_id: str, mobile: str) -> bool:
-    """Check if a player with the given mobile number is already registered."""
-    if not mobile:
+def check_duplicate_registration(tournament_id: str, mobile: str, name: str) -> bool:
+    """Check if a player with the given name AND mobile number is already registered."""
+    if not mobile or not name:
         return False
     data = _read(tournament_id)
     if data and "players" in data:
         for p in data["players"]:
-            if p.get("mobile") and p["mobile"] == mobile:
+            if p.get("mobile") == mobile and p.get("name", "").strip().lower() == name.strip().lower():
                 return True
     return False
 

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Settings, Plus, Users, Calendar, Trash2, ChevronRight, Trophy, X, ListChecks, Edit, Gavel, Check, ZoomIn, ZoomOut, AlertTriangle, Lock } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Settings, Plus, Users, Calendar, Trash2, ChevronRight, Trophy, X, ListChecks, Edit, Gavel, Check, ZoomIn, ZoomOut, AlertTriangle, Lock, Camera } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import * as api from '../api/client';
 import CustomDatePicker from '../components/CustomDatePicker';
 
@@ -15,10 +16,22 @@ export default function AdminDashboard() {
   const [tournamentPlayers, setTournamentPlayers] = useState([]);
 
   // Player tab states
-  const [newPlayerName, setNewPlayerName] = useState('');
-  const [newPlayerGender, setNewPlayerGender] = useState('Male');
+  const [newPlayerFirstName, setNewPlayerFirstName] = useState('');
+  const [newPlayerLastName, setNewPlayerLastName] = useState('');
+  const [newPlayerMobile, setNewPlayerMobile] = useState('');
+  const [newPlayerWing, setNewPlayerWing] = useState('');
+  const [newPlayerFlatNo, setNewPlayerFlatNo] = useState('');
+  const [newPlayerAge, setNewPlayerAge] = useState('');
+  const [newPlayerGender, setNewPlayerGender] = useState('');
+  const [newPlayerExpertise, setNewPlayerExpertise] = useState('');
+  const [newPlayerPlayedStateNational, setNewPlayerPlayedStateNational] = useState('');
+  const [newPlayerPhoto, setNewPlayerPhoto] = useState(null);
+  const [newPlayerPhotoPreview, setNewPlayerPhotoPreview] = useState(null);
+  const fileInputRef = useRef(null);
+  
+  const [isRegisterFormOpen, setIsRegisterFormOpen] = useState(false);
+
   const [editingPlayerId, setEditingPlayerId] = useState(null);
-  const [editPlayerForm, setEditPlayerForm] = useState({ name: '', gender: '' });
 
   // Auction state
   const [auction, setAuction] = useState(null);
@@ -458,17 +471,99 @@ export default function AdminDashboard() {
     return false;
   }
 
+  function handlePhotoChange(e) {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNewPlayerPhoto(file);
+      const reader = new FileReader();
+      reader.onload = (ev) => setNewPlayerPhotoPreview(ev.target.result);
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function removePhoto() {
+    setNewPlayerPhoto(null);
+    setNewPlayerPhotoPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
   async function handleGlobalAddPlayer(e) {
     e.preventDefault();
-    if (!newPlayerName.trim()) return;
-    if (tournamentPlayers.some(p => p.name.toLowerCase() === newPlayerName.trim().toLowerCase())) {
-      setError('A player with this name already exists.');
+    if (!newPlayerFirstName.trim() || !newPlayerLastName.trim()) {
+      setError('First name and last name are required');
       return;
     }
+    if (!newPlayerWing) {
+      setError('Please select your wing');
+      return;
+    }
+    if (!newPlayerFlatNo || newPlayerFlatNo.length < 3 || newPlayerFlatNo.length > 4) {
+      setError('Flat number must be 3 to 4 digits');
+      return;
+    }
+    if (!newPlayerAge || parseInt(newPlayerAge) < 1) {
+      setError('Please enter a valid age');
+      return;
+    }
+    if (selectedTournament?.category === 'Adults' && !newPlayerGender) {
+      setError('Please select your gender');
+      return;
+    }
+    if (!newPlayerExpertise) {
+      setError('Please select your expertise level');
+      return;
+    }
+    if (!newPlayerPlayedStateNational) {
+      setError('Please indicate if you have played State/National');
+      return;
+    }
+    if (!newPlayerMobile || newPlayerMobile.length !== 10 || !/^\d{10}$/.test(newPlayerMobile)) {
+      setError('Mobile number is required and must be exactly 10 digits');
+      return;
+    }
+
+    const full_name = `${newPlayerFirstName.trim()} ${newPlayerLastName.trim()}`;
+    if (tournamentPlayers.some(p => p.id !== editingPlayerId && p.name.toLowerCase() === full_name.toLowerCase() && p.mobile === newPlayerMobile)) {
+      setError('A player with this name and mobile already exists.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('first_name', newPlayerFirstName.trim());
+    formData.append('last_name', newPlayerLastName.trim());
+    formData.append('mobile', newPlayerMobile);
+    formData.append('wing', newPlayerWing);
+    formData.append('flat_no', newPlayerFlatNo);
+    formData.append('age', newPlayerAge);
+    formData.append('gender', newPlayerGender);
+    formData.append('expertise', newPlayerExpertise);
+    formData.append('played_state_national', newPlayerPlayedStateNational);
+    if (newPlayerPhoto) {
+      formData.append('photo', newPlayerPhoto);
+    }
+
     try {
-      const res = await api.addPlayer(selectedTournament.id, { name: newPlayerName.trim(), gender: newPlayerGender });
-      setTournamentPlayers([...tournamentPlayers, res.player]);
-      setNewPlayerName('');
+      if (editingPlayerId) {
+        const res = await api.updatePlayer(selectedTournament.id, editingPlayerId, formData);
+        setTournamentPlayers(tournamentPlayers.map(p => p.id === editingPlayerId ? res.player : p));
+        setEditingPlayerId(null);
+      } else {
+        const res = await api.addPlayer(selectedTournament.id, formData);
+        setTournamentPlayers([...tournamentPlayers, res.player]);
+      }
+      
+      // Reset form
+      setNewPlayerFirstName('');
+      setNewPlayerLastName('');
+      setNewPlayerMobile('');
+      setNewPlayerWing('');
+      setNewPlayerFlatNo('');
+      setNewPlayerAge('');
+      setNewPlayerGender('');
+      setNewPlayerExpertise('');
+      setNewPlayerPlayedStateNational('');
+      removePhoto();
+      setIsRegisterFormOpen(false);
     } catch (err) { setError(err.message); }
   }
 
@@ -479,19 +574,6 @@ export default function AdminDashboard() {
       return;
     }
     setPendingConfirmation({ type: 'player', id: playerId, name: p?.name || 'this player' });
-  }
-
-  async function handleEditPlayerSave(playerId) {
-    if (!editPlayerForm.name.trim()) return;
-    if (tournamentPlayers.some(p => p.id !== playerId && p.name.toLowerCase() === editPlayerForm.name.trim().toLowerCase())) {
-      setError('A player with this name already exists.');
-      return;
-    }
-    try {
-      const res = await api.updatePlayer(selectedTournament.id, playerId, { name: editPlayerForm.name.trim(), gender: editPlayerForm.gender, expertise: editPlayerForm.expertise || '' });
-      setTournamentPlayers(tournamentPlayers.map(p => p.id === playerId ? res.player : p));
-      setEditingPlayerId(null);
-    } catch (err) { setError(err.message); }
   }
 
   async function executeDeletePlayer(playerId) {
@@ -1311,26 +1393,126 @@ export default function AdminDashboard() {
             <div className="glass-card animate-fade-in">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <h3 style={{ margin: 0 }}>Registered Players</h3>
+                {!isRegisterFormOpen && (
+                  <button className="btn btn-primary" onClick={() => setIsRegisterFormOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Plus size={16} /> Register Player
+                  </button>
+                )}
               </div>
-              <form onSubmit={handleGlobalAddPlayer} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-                <input className="form-input" placeholder="Player name" value={newPlayerName} onChange={e => setNewPlayerName(e.target.value)} required style={{ flex: 1, minWidth: '200px' }} />
-                <select className="form-input" value={newPlayerGender} onChange={e => setNewPlayerGender(e.target.value)} required style={{ width: '120px' }}>
-                  {selectedTournament.category === 'Kids' ? (
-                    <>
-                      <option value="Junior">Junior</option>
-                      <option value="Senior">Senior</option>
-                    </>
-                  ) : (
-                    <>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                    </>
+              
+              {isRegisterFormOpen && (
+                <form onSubmit={handleGlobalAddPlayer} style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--glass-border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <h4 style={{ margin: 0 }}>{editingPlayerId ? 'Edit Player' : 'Register New Player'}</h4>
+                    <button type="button" onClick={() => { setIsRegisterFormOpen(false); setEditingPlayerId(null); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem' }}>
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group">
+                    <label className="form-label">First Name <span style={{ color: '#ef4444' }}>*</span></label>
+                    <input className="form-input" placeholder="First name" value={newPlayerFirstName} onChange={e => setNewPlayerFirstName(e.target.value)} required />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Last Name <span style={{ color: '#ef4444' }}>*</span></label>
+                    <input className="form-input" placeholder="Last name" value={newPlayerLastName} onChange={e => setNewPlayerLastName(e.target.value)} required />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Mobile Number <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input type="tel" className="form-input" placeholder="10-digit mobile number" value={newPlayerMobile} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) setNewPlayerMobile(v); }} maxLength={10} required />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group">
+                    <label className="form-label">Wing <span style={{ color: '#ef4444' }}>*</span></label>
+                    <select className="form-input" value={newPlayerWing} onChange={e => setNewPlayerWing(e.target.value)} required>
+                      <option value="">Select Wing</option>
+                      <option value="A">A</option>
+                      <option value="B">B</option>
+                      <option value="C">C</option>
+                      <option value="D">D</option>
+                      <option value="E">E</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Flat No. <span style={{ color: '#ef4444' }}>*</span></label>
+                    <input type="text" className="form-input" placeholder="e.g. 101" value={newPlayerFlatNo} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 4) setNewPlayerFlatNo(v); }} maxLength={4} required />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: selectedTournament?.category === 'Adults' ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+                  <div className="form-group">
+                    <label className="form-label">Age <span style={{ color: '#ef4444' }}>*</span></label>
+                    <input type="number" className="form-input" placeholder="Age" value={newPlayerAge} onChange={e => setNewPlayerAge(e.target.value)} min="1" max="99" required />
+                  </div>
+                  {selectedTournament?.category === 'Adults' && (
+                    <div className="form-group">
+                      <label className="form-label">Gender <span style={{ color: '#ef4444' }}>*</span></label>
+                      <select className="form-input" value={newPlayerGender} onChange={e => setNewPlayerGender(e.target.value)} required>
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                      </select>
+                    </div>
                   )}
-                </select>
-                <button type="submit" className="btn btn-primary">
-                  <Plus size={16} /> Register Player
+                </div>
+
+                {selectedTournament?.category === 'Kids' && selectedTournament?.kids_age_limit && newPlayerAge && (
+                  <div style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', background: parseInt(newPlayerAge) <= selectedTournament.kids_age_limit ? 'rgba(59, 130, 246, 0.1)' : 'rgba(168, 85, 247, 0.1)', border: parseInt(newPlayerAge) <= selectedTournament.kids_age_limit ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(168, 85, 247, 0.3)', fontSize: '0.85rem', color: parseInt(newPlayerAge) <= selectedTournament.kids_age_limit ? '#60a5fa' : '#a855f7' }}>
+                    Category: <strong>{parseInt(newPlayerAge) <= selectedTournament.kids_age_limit ? 'Junior' : 'Senior'}</strong>
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label className="form-label">Expertise <span style={{ color: '#ef4444' }}>*</span></label>
+                  <select className="form-input" value={newPlayerExpertise} onChange={e => setNewPlayerExpertise(e.target.value)} required>
+                    <option value="">Select Expertise</option>
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Expert">Expert</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Played State / National? <span style={{ color: '#ef4444' }}>*</span></label>
+                  <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.25rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.95rem' }}>
+                      <input type="radio" name="state_national_admin" value="Yes" checked={newPlayerPlayedStateNational === 'Yes'} onChange={e => setNewPlayerPlayedStateNational(e.target.value)} />
+                      Yes
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.95rem' }}>
+                      <input type="radio" name="state_national_admin" value="No" checked={newPlayerPlayedStateNational === 'No'} onChange={e => setNewPlayerPlayedStateNational(e.target.value)} />
+                      No
+                    </label>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Photo (Optional)</label>
+                  <input type="file" ref={fileInputRef} onChange={handlePhotoChange} accept="image/*" style={{ display: 'none' }} />
+                  {!newPlayerPhotoPreview ? (
+                    <div onClick={() => fileInputRef.current?.click()} style={{ border: '2px dashed var(--glass-border)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', textAlign: 'center', cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                      <Camera size={24} color="var(--text-secondary)" style={{ marginBottom: '0.5rem' }} />
+                      <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Click to upload photo</p>
+                    </div>
+                  ) : (
+                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                      <img src={newPlayerPhotoPreview} alt="Preview" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: 'var(--radius-lg)', border: '2px solid var(--glass-border)' }} />
+                      <button type="button" onClick={removePhoto} style={{ position: 'absolute', top: '-8px', right: '-8px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start', marginTop: '1rem' }}>
+                  {editingPlayerId ? <Check size={16} /> : <Plus size={16} />} 
+                  {editingPlayerId ? 'Update Player' : 'Submit Registration'}
                 </button>
               </form>
+              )}
 
               {tournamentPlayers.length === 0 ? (
                 <p style={{ color: 'var(--text-secondary)' }}>No players registered yet. Add players using the form above.</p>
@@ -1348,77 +1530,35 @@ export default function AdminDashboard() {
                     <tbody>
                       {tournamentPlayers.map(p => (
                         <tr key={p.id}>
-                          {editingPlayerId === p.id ? (
-                            <>
-                              <td>
-                                <input
-                                  type="text"
-                                  className="form-input"
-                                  value={editPlayerForm.name}
-                                  onChange={e => setEditPlayerForm({ ...editPlayerForm, name: e.target.value })}
-                                />
-                              </td>
-                              <td>
-                                <select
-                                  className="form-input"
-                                  value={editPlayerForm.gender}
-                                  onChange={e => setEditPlayerForm({ ...editPlayerForm, gender: e.target.value })}
-                                >
-                                  {selectedTournament.category === 'Kids' ? (
-                                    <>
-                                      <option value="Junior">Junior</option>
-                                      <option value="Senior">Senior</option>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <option value="Male">Male</option>
-                                      <option value="Female">Female</option>
-                                    </>
-                                  )}
-                                </select>
-                              </td>
-                              <td>
-                                <select
-                                  className="form-input"
-                                  value={editPlayerForm.expertise || ''}
-                                  onChange={e => setEditPlayerForm({ ...editPlayerForm, expertise: e.target.value })}
-                                >
-                                  <option value="">—</option>
-                                  <option value="Beginner">Beginner</option>
-                                  <option value="Intermediate">Intermediate</option>
-                                  <option value="Expert">Expert</option>
-                                </select>
-                              </td>
-                              <td style={{ textAlign: 'right' }}>
-                                <button onClick={() => handleEditPlayerSave(p.id)} style={{ background: 'none', border: 'none', color: 'var(--success-color, #10b981)', cursor: 'pointer', padding: '0.25rem', marginRight: '0.5rem' }}>
-                                  <Check size={16} />
-                                </button>
-                                <button onClick={() => setEditingPlayerId(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem' }}>
-                                  <X size={16} />
-                                </button>
-                              </td>
-                            </>
-                          ) : (
-                            <>
-                              <td>{p.name}</td>
-                              <td>{p.gender}</td>
-                              <td><span style={{ color: p.expertise ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: '0.85rem' }}>{p.expertise || '—'}</span></td>
-                              <td style={{ textAlign: 'right' }}>
-                                <button
-                                  onClick={() => {
-                                    setEditingPlayerId(p.id);
-                                    setEditPlayerForm({ name: p.name, gender: p.gender, expertise: p.expertise || '' });
-                                  }}
-                                  style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '0.25rem', marginRight: '0.5rem' }}
-                                >
-                                  <Edit size={16} />
-                                </button>
-                                <button onClick={() => handleGlobalDeletePlayer(p.id)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '0.25rem' }}>
-                                  <Trash2 size={16} />
-                                </button>
-                              </td>
-                            </>
-                          )}
+                          <td>{p.name}</td>
+                          <td>{p.gender}</td>
+                          <td><span style={{ color: p.expertise ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: '0.85rem' }}>{p.expertise || '—'}</span></td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button
+                              onClick={() => {
+                                setEditingPlayerId(p.id);
+                                setNewPlayerFirstName(p.first_name || p.name.split(' ')[0] || '');
+                                setNewPlayerLastName(p.last_name || p.name.split(' ').slice(1).join(' ') || '');
+                                setNewPlayerMobile(p.mobile || '');
+                                setNewPlayerWing(p.wing || '');
+                                setNewPlayerFlatNo(p.flat_no || '');
+                                setNewPlayerAge(p.age || '');
+                                setNewPlayerGender(p.gender || '');
+                                setNewPlayerExpertise(p.expertise || '');
+                                setNewPlayerPlayedStateNational(p.played_state_national || '');
+                                setNewPlayerPhoto(null);
+                                setNewPlayerPhotoPreview(p.photo_url || null);
+                                setIsRegisterFormOpen(true);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '0.25rem', marginRight: '0.5rem' }}
+                            >
+                              <Edit size={16} />
+                            </button>
+                            <button onClick={() => handleGlobalDeletePlayer(p.id)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '0.25rem' }}>
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1742,6 +1882,41 @@ export default function AdminDashboard() {
           </button>
         </div>
       )}
+
+      {/* ── Manage Palladio Community Section ── */}
+      <div style={{ marginTop: '2.5rem', marginBottom: '2rem' }}>
+        <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            width: '3px',
+            height: '24px',
+            background: 'linear-gradient(to bottom, #a78bfa, #f472b6)',
+            borderRadius: '2px',
+          }} />
+          <h2 style={{
+            margin: 0,
+            fontSize: '1.3rem',
+            background: 'linear-gradient(to right, #a78bfa, #f472b6)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}>
+            Manage Palladio Community
+          </h2>
+        </div>
+        <div className="dashboard-tiles">
+          <Link to="/admin/global-players" className="dashboard-tile tile-violet" style={{
+            borderColor: 'rgba(167, 139, 250, 0.3)',
+          }}>
+            <span className="tile-icon" aria-hidden="true">
+              <Users size={25} strokeWidth={2.25} />
+            </span>
+            <span className="tile-copy">
+              <strong>Global Player Profiles</strong>
+              <span>Search, view, edit and delete global player profiles</span>
+            </span>
+            <span className="tile-arrow" aria-hidden="true">→</span>
+          </Link>
+        </div>
+      </div>
 
       {validationError && (
         <Modal

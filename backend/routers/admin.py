@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Form, File, UploadFile
+from typing import Optional
+from datetime import datetime
 from models import Tournament, Team, Fixture, Event, TournamentPlayer
 import database
 
@@ -69,15 +71,109 @@ def list_players(tid: str):
     return database.get_players(tid)
 
 @router.post("/tournaments/{tid}/players")
-def add_player(tid: str, player: TournamentPlayer):
-    data = player.model_dump(exclude_unset=True)
-    data["tournament_id"] = tid
-    # Check for uniqueness
-    existing_players = database.get_players(tid)
-    for p in existing_players:
-        if p["name"].lower() == data["name"].lower():
-            raise HTTPException(400, "A player with this name already exists")
+async def add_player(
+    tid: str,
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    mobile: str = Form(...),
+    wing: str = Form(...),
+    flat_no: str = Form(...),
+    age: int = Form(...),
+    gender: str = Form(""),
+    expertise: str = Form(...),
+    played_state_national: str = Form(...),
+    photo: Optional[UploadFile] = File(None),
+):
+    data_tournament = database.get_tournament_data(tid)
+    if not data_tournament:
+        raise HTTPException(404, "Tournament not found")
+        
+    tournament = data_tournament.get("tournament", {})
+    category = tournament.get("category", "Adults")
+
+    # Validate flat_no: must be 3-4 digits
+    if not flat_no.isdigit() or len(flat_no) < 3 or len(flat_no) > 4:
+        raise HTTPException(400, "Flat number must be 3 to 4 digits")
+
+    # Validate mobile
+    if not mobile or not mobile.isdigit() or len(mobile) != 10:
+        raise HTTPException(400, "Mobile number is required and must be exactly 10 digits")
+
+    full_name = f"{first_name.strip()} {last_name.strip()}"
+
+    # Check for duplicate registration by name + mobile
+    if database.check_duplicate_registration(tid, mobile, full_name):
+        raise HTTPException(
+            409,
+            "A player is already registered with this name and mobile number"
+        )
+
+    # For Adults tournaments, gender is required
+    if category == "Adults" and not gender:
+        raise HTTPException(400, "Gender is required for Adults tournaments")
+
+    # For Kids tournaments, derive category from age
+    player_gender = gender
+    if category == "Kids":
+        kids_age_limit = tournament.get("kids_age_limit", 12)
+        player_gender = "Junior" if age <= kids_age_limit else "Senior"
+
+    photo_url = ""
+    if photo and photo.filename:
+        try:
+            from cloudinary_service import upload_photo
+            file_bytes = await photo.read()
+            photo_url = upload_photo(file_bytes, tid, full_name)
+        except Exception as e:
+            print(f"Photo upload failed: {e}")
+            photo_url = ""
+
+    player = TournamentPlayer(
+        tournament_id=tid,
+        name=full_name,
+        gender=player_gender,
+        first_name=first_name.strip(),
+        last_name=last_name.strip(),
+        mobile=mobile,
+        wing=wing,
+        flat_no=flat_no,
+        age=age,
+        expertise=expertise,
+        played_state_national=played_state_national,
+        photo_url=photo_url,
+        payment_confirmed=True, # Admin registering directly assumes payment is clear or irrelevant
+        registered_at=datetime.now().isoformat(),
+        consent_accepted=False,
+    )
+
+    data = player.model_dump()
     database.add_player(tid, data)
+
+    # Upsert into global player directory
+    try:
+        import global_players
+        global_players.upsert_global_player(
+            name=full_name,
+            mobile=mobile,
+            personal_data={
+                "first_name": first_name.strip(),
+                "last_name": last_name.strip(),
+                "gender": player_gender,
+                "age": age,
+                "wing": wing,
+                "flat_no": flat_no,
+                "expertise": expertise,
+                "played_state_national": played_state_national,
+                "photo_url": photo_url,
+                "consent_accepted": False,
+            },
+            sport=tournament.get("sport", ""),
+            tournament_id=tid,
+            tournament_name=tournament.get("name", ""),
+        )
+    except Exception as e:
+        print(f"Global player upsert failed: {e}")
+
     return {"message": "Player added", "player": data}
 
 @router.delete("/tournaments/{tid}/players/{player_id}")
@@ -87,19 +183,103 @@ def delete_player(tid: str, player_id: str):
     return {"message": "Player deleted"}
 
 @router.put("/tournaments/{tid}/players/{player_id}")
-def update_player(tid: str, player_id: str, player: TournamentPlayer):
-    data = player.model_dump(exclude_unset=True)
-    data["tournament_id"] = tid
-    data["id"] = player_id
-    # Check for uniqueness if name is provided
-    if "name" in data:
-        existing_players = database.get_players(tid)
-        for p in existing_players:
-            if p["id"] != player_id and p["name"].lower() == data["name"].lower():
-                raise HTTPException(400, "A player with this name already exists")
-    if not database.update_player(tid, player_id, data):
+async def update_player(
+    tid: str,
+    player_id: str,
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    mobile: str = Form(...),
+    wing: str = Form(...),
+    flat_no: str = Form(...),
+    age: int = Form(...),
+    gender: str = Form(""),
+    expertise: str = Form(...),
+    played_state_national: str = Form(...),
+    photo: Optional[UploadFile] = File(None),
+):
+    data_tournament = database.get_tournament_data(tid)
+    if not data_tournament:
+        raise HTTPException(404, "Tournament not found")
+        
+    tournament = data_tournament.get("tournament", {})
+    category = tournament.get("category", "Adults")
+
+    existing_players = database.get_players(tid)
+    existing_player = next((p for p in existing_players if p["id"] == player_id), None)
+    if not existing_player:
         raise HTTPException(404, "Player not found")
-    return {"message": "Player updated", "player": data}
+
+    if not flat_no.isdigit() or len(flat_no) < 3 or len(flat_no) > 4:
+        raise HTTPException(400, "Flat number must be 3 to 4 digits")
+
+    if not mobile or not mobile.isdigit() or len(mobile) != 10:
+        raise HTTPException(400, "Mobile number is required and must be exactly 10 digits")
+
+    full_name = f"{first_name.strip()} {last_name.strip()}"
+
+    for p in existing_players:
+        if p["id"] != player_id and p["name"].lower() == full_name.lower() and p.get("mobile") == mobile:
+            raise HTTPException(409, "A player is already registered with this name and mobile number")
+
+    if category == "Adults" and not gender:
+        raise HTTPException(400, "Gender is required for Adults tournaments")
+
+    player_gender = gender
+    if category == "Kids":
+        kids_age_limit = tournament.get("kids_age_limit", 12)
+        player_gender = "Junior" if age <= kids_age_limit else "Senior"
+
+    photo_url = existing_player.get("photo_url", "")
+    if photo and photo.filename:
+        try:
+            from cloudinary_service import upload_photo
+            file_bytes = await photo.read()
+            photo_url = upload_photo(file_bytes, tid, full_name)
+        except Exception as e:
+            print(f"Photo upload failed: {e}")
+
+    updated_data = existing_player.copy()
+    updated_data.update({
+        "name": full_name,
+        "gender": player_gender,
+        "first_name": first_name.strip(),
+        "last_name": last_name.strip(),
+        "mobile": mobile,
+        "wing": wing,
+        "flat_no": flat_no,
+        "age": age,
+        "expertise": expertise,
+        "played_state_national": played_state_national,
+        "photo_url": photo_url,
+    })
+
+    if not database.update_player(tid, player_id, updated_data):
+        raise HTTPException(404, "Failed to update player in database")
+
+    try:
+        import global_players
+        global_players.upsert_global_player(
+            name=full_name,
+            mobile=mobile,
+            personal_data={
+                "first_name": first_name.strip(),
+                "last_name": last_name.strip(),
+                "gender": player_gender,
+                "age": age,
+                "wing": wing,
+                "flat_no": flat_no,
+                "expertise": expertise,
+                "played_state_national": played_state_national,
+                "photo_url": photo_url,
+            },
+            sport=tournament.get("sport", ""),
+            tournament_id=tid,
+            tournament_name=tournament.get("name", ""),
+        )
+    except Exception as e:
+        print(f"Global player upsert failed: {e}")
+
+    return {"message": "Player updated", "player": updated_data}
 
 # ── Events ────────────────────────────────────────────────────
 
@@ -145,6 +325,23 @@ def update_fixture(tid: str, fixture_id: str, update: dict):
     result = database.update_fixture(tid, fixture_id, update)
     if not result:
         raise HTTPException(404, "Fixture not found")
+
+    # ── Trigger global player stats rebuild when match is locked ──
+    if update.get("is_frozen") is True:
+        try:
+            import global_players
+            scorecards = database.get_scorecards_for_fixture(tid, fixture_id)
+            player_names = set()
+            for sc in scorecards:
+                for field in ("team1_player1", "team1_player2", "team2_player1", "team2_player2"):
+                    name = sc.get(field, "")
+                    if name:
+                        player_names.add(name)
+            if player_names:
+                global_players.rebuild_stats_for_players(list(player_names), tid)
+        except Exception as e:
+            print(f"Global stats rebuild failed (non-blocking): {e}")
+
     return {"message": "Fixture updated", "fixture": result}
 
 @router.delete("/tournaments/{tid}/fixtures/{fixture_id}")

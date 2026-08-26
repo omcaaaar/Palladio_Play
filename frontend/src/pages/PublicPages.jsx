@@ -83,19 +83,46 @@ function details(data) {
   const teams = data.teams || [];
   const events = data.events || [];
   const scorecards = data.scorecards || [];
+  const allFixtures = [...(data.fixtures || [])].sort((a, b) => new Date(a.date_time || 0) - new Date(b.date_time || 0));
   return {
     teams,
     events,
     scorecards,
     players: data.players || [],
     auction: data.auction,
-    fixtures: [...(data.fixtures || [])].sort((a, b) => new Date(a.date_time || 0) - new Date(b.date_time || 0)),
+    fixtures: allFixtures,
     getTeamName: (id, placeholder) => {
       if (id) return teams.find(team => team.id === id)?.name || id;
-      return placeholder || 'TBD';
+      if (placeholder) {
+        const parts = placeholder.split(':');
+        if (parts.length >= 2) {
+          if (!isNaN(parts[1])) {
+            return parts[0] ? `Group ${parts[0]} #${parts[1]}` : `Position ${parts[1]}`;
+          } else if (parts[1].toLowerCase() === 'winner') {
+            const srcFixture = allFixtures.find(f => f.id === parts[0]);
+            const srcLabel = srcFixture ? (MATCH_TYPE_LABELS[srcFixture.match_type] || srcFixture.match_type) : parts[0];
+            return `Winner of ${srcLabel}`;
+          } else if (parts[1].toLowerCase() === 'loser') {
+            const srcFixture = allFixtures.find(f => f.id === parts[0]);
+            const srcLabel = srcFixture ? (MATCH_TYPE_LABELS[srcFixture.match_type] || srcFixture.match_type) : parts[0];
+            return `Loser of ${srcLabel}`;
+          }
+        }
+        return placeholder;
+      }
+      return 'TBD';
     }
   };
 }
+
+const MATCH_TYPE_LABELS = {
+  qualifier_1: 'Qualifier 1',
+  eliminator: 'Eliminator',
+  qualifier_2: 'Qualifier 2',
+  semi_final: 'Semi Final',
+  final: 'Final',
+  league: 'League'
+};
 
 // -----------------------------------------------------
 // OLD DASHBOARD COMPONENTS
@@ -196,13 +223,249 @@ function FixtureEventsOverview({ fixture, events, scorecards, getTeamName }) {
 }
 
 // -----------------------------------------------------
+// PLAYOFF BRACKET COMPONENT
+// -----------------------------------------------------
+
+function PlayoffMatchCard({ fixture, getTeamName, events, scorecards, isFinal }) {
+  const label = MATCH_TYPE_LABELS[fixture.match_type] || fixture.match_type;
+  const isLive = fixture.status === 'in_progress';
+  const isCompleted = fixture.status === 'completed' || fixture.status === 'abandoned';
+
+  const team1Name = getTeamName(fixture.team1_id, fixture.team1_placeholder);
+  const team2Name = getTeamName(fixture.team2_id, fixture.team2_placeholder);
+  const team1Resolved = !!fixture.team1_id;
+  const team2Resolved = !!fixture.team2_id;
+
+  // Determine winner for completed matches
+  let winnerSide = null;
+  if (isCompleted && fixture.status !== 'abandoned') {
+    const fScorecards = scorecards.filter(sc => sc.fixture_id === fixture.id && (sc.status === 'completed' || sc.status === 'abandoned'));
+    let t1pts = 0, t2pts = 0;
+    fScorecards.forEach(sc => {
+      const ev = events.find(e => e.id === sc.event_id);
+      const pts = sc.event_points !== undefined ? sc.event_points : (ev?.points || 0);
+      if (sc.winner === 'team1') t1pts += pts;
+      else if (sc.winner === 'team2') t2pts += pts;
+    });
+    if (t1pts > t2pts) winnerSide = 'team1';
+    else if (t2pts > t1pts) winnerSide = 'team2';
+  }
+
+  const statusDot = isLive ? 'dot-live' : isCompleted ? 'dot-completed' : 'dot-pending';
+  const statusLabel = isLive ? 'LIVE' : isCompleted ? (fixture.status === 'abandoned' ? 'ABD' : '✓') : '';
+
+  return (
+    <div className={`playoff-match-card${isFinal ? ' playoff-final' : ''}${isLive ? ' playoff-live' : ''}`}>
+      <div className="playoff-match-header">
+        {isFinal && <span style={{ fontSize: '0.8rem' }}>🏆</span>}
+        <span className={`playoff-status-dot ${statusDot}`} />
+        <span>{label}</span>
+        {statusLabel && <span style={{ fontSize: '0.6rem', opacity: 0.7 }}>{statusLabel}</span>}
+      </div>
+      <div className={`playoff-team-row${winnerSide === 'team1' ? ' playoff-winner-row' : ''}`}>
+        <span className={`playoff-team-name${!team1Resolved ? ' playoff-tbd' : ''}`}>
+          {team1Name}
+        </span>
+        {winnerSide === 'team1' && <span className="playoff-winner-icon">✦</span>}
+      </div>
+      <div className={`playoff-team-row${winnerSide === 'team2' ? ' playoff-winner-row' : ''}`}>
+        <span className={`playoff-team-name${!team2Resolved ? ' playoff-tbd' : ''}`}>
+          {team2Name}
+        </span>
+        {winnerSide === 'team2' && <span className="playoff-winner-icon">✦</span>}
+      </div>
+    </div>
+  );
+}
+
+function ConnectorColumn({ topCount, bottomCount }) {
+  // Renders connector lines between rounds
+  if (topCount === 0 && bottomCount === 0) return null;
+
+  if (topCount === 2 && bottomCount === 1) {
+    return (
+      <div className="playoff-connector-col">
+        {/* Top-to-bottom merge line */}
+        <div style={{ position: 'absolute', width: '50%', height: '140px', borderTop: '2px dashed rgba(59,130,246,0.3)', borderBottom: '2px dashed rgba(59,130,246,0.3)', borderRight: '2px dashed rgba(59,130,246,0.3)', right: '50%', top: '50%', transform: 'translateY(-50%)', borderRadius: '0 4px 4px 0' }}></div>
+        {/* Output line */}
+        <div style={{ position: 'absolute', width: '50%', height: '2px', borderTop: '2px dashed rgba(59,130,246,0.3)', left: '50%', top: '50%', transform: 'translateY(-50%)' }}></div>
+      </div>
+    );
+  }
+
+  // 1-to-1 pass-through
+  return (
+    <div className="playoff-connector-col">
+      <div style={{ position: 'absolute', width: '100%', height: '2px', borderTop: '2px dashed rgba(59,130,246,0.3)', left: 0, top: '50%', transform: 'translateY(-50%)' }}></div>
+    </div>
+  );
+}
+
+function PlayoffBracket({ fixtures, getTeamName, events, scorecards }) {
+  const playoffTypes = ['qualifier_1', 'eliminator', 'qualifier_2', 'semi_final', 'final'];
+  const playoffFixtures = fixtures.filter(f => playoffTypes.includes(f.match_type));
+
+  if (playoffFixtures.length === 0) return null;
+
+  // Detect bracket style
+  const hasQ1 = playoffFixtures.some(f => f.match_type === 'qualifier_1');
+  const hasElim = playoffFixtures.some(f => f.match_type === 'eliminator');
+  const hasQ2 = playoffFixtures.some(f => f.match_type === 'qualifier_2');
+  const hasSF = playoffFixtures.some(f => f.match_type === 'semi_final');
+  const hasFinal = playoffFixtures.some(f => f.match_type === 'final');
+
+  const isIPL = hasQ1 || hasElim || hasQ2;
+  const isSemiFinal = hasSF && !isIPL;
+
+  // Get fixture by type (first match of each type)
+  const getFixture = (type) => playoffFixtures.find(f => f.match_type === type);
+  const getFixtures = (type) => playoffFixtures.filter(f => f.match_type === type);
+
+  // Determine champion from final
+  let champion = null;
+  const finalFixture = getFixture('final');
+  if (finalFixture && (finalFixture.status === 'completed')) {
+    const fScorecards = scorecards.filter(sc => sc.fixture_id === finalFixture.id && (sc.status === 'completed' || sc.status === 'abandoned'));
+    let t1pts = 0, t2pts = 0;
+    fScorecards.forEach(sc => {
+      const ev = events.find(e => e.id === sc.event_id);
+      const pts = sc.event_points !== undefined ? sc.event_points : (ev?.points || 0);
+      if (sc.winner === 'team1') t1pts += pts;
+      else if (sc.winner === 'team2') t2pts += pts;
+    });
+    if (t1pts > t2pts) champion = getTeamName(finalFixture.team1_id, finalFixture.team1_placeholder);
+    else if (t2pts > t1pts) champion = getTeamName(finalFixture.team2_id, finalFixture.team2_placeholder);
+  }
+
+  const renderMatchCard = (fixture) => {
+    if (!fixture) return null;
+    return (
+      <PlayoffMatchCard
+        key={fixture.id}
+        fixture={fixture}
+        getTeamName={getTeamName}
+        events={events}
+        scorecards={scorecards}
+        isFinal={fixture.match_type === 'final'}
+      />
+    );
+  };
+
+  // Build the bracket layout
+  let bracketContent;
+
+  if (isIPL) {
+    // IPL Style: [Q1 + Eliminator] → [Q2] → [Final]
+    const q1 = getFixture('qualifier_1');
+    const elim = getFixture('eliminator');
+    const q2 = getFixture('qualifier_2');
+    const final_ = getFixture('final');
+
+    bracketContent = (
+      <div className="playoff-bracket">
+        {/* Round 1: Q1 + Eliminator */}
+        <div className="playoff-round">
+          <div className="playoff-round-label">Round 1</div>
+          {q1 && renderMatchCard(q1)}
+          {elim && renderMatchCard(elim)}
+        </div>
+
+        <ConnectorColumn topCount={2} bottomCount={1} />
+
+        {/* Round 2: Qualifier 2 */}
+        {q2 && (
+          <>
+            <div className="playoff-round">
+              <div className="playoff-round-label">Round 2</div>
+              {renderMatchCard(q2)}
+            </div>
+            <ConnectorColumn topCount={1} bottomCount={1} />
+          </>
+        )}
+
+        {/* Final */}
+        {final_ && (
+          <div className="playoff-round">
+            <div className="playoff-round-label">Final</div>
+            {renderMatchCard(final_)}
+          </div>
+        )}
+      </div>
+    );
+  } else if (isSemiFinal) {
+    // Semi-Final Style: [SF1 + SF2] → [Final]
+    const semis = getFixtures('semi_final');
+    const final_ = getFixture('final');
+
+    bracketContent = (
+      <div className="playoff-bracket">
+        {/* Semi Finals */}
+        <div className="playoff-round">
+          <div className="playoff-round-label">Semi Finals</div>
+          {semis.map(sf => renderMatchCard(sf))}
+        </div>
+
+        <ConnectorColumn topCount={semis.length} bottomCount={1} />
+
+        {/* Final */}
+        {final_ && (
+          <div className="playoff-round">
+            <div className="playoff-round-label">Final</div>
+            {renderMatchCard(final_)}
+          </div>
+        )}
+      </div>
+    );
+  } else {
+    // Only final exists, or unknown combination
+    bracketContent = (
+      <div className="playoff-bracket" style={{ justifyContent: 'center' }}>
+        <div className="playoff-round">
+          {playoffFixtures.map(f => renderMatchCard(f))}
+        </div>
+      </div>
+    );
+  }
+
+  // Path description for the info banner
+  let pathDescription = null;
+  if (isIPL) {
+    pathDescription = (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', justifyContent: 'center', alignItems: 'center', padding: '0.75rem', fontSize: '0.75rem', color: 'var(--text-secondary)', background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--radius-md)', marginBottom: '0.75rem' }}>
+        <span>Q1 Winner → <strong style={{ color: 'var(--accent-secondary)' }}>Final</strong></span>
+        <span style={{ opacity: 0.4 }}>│</span>
+        <span>Q1 Loser + Eliminator Winner → <strong style={{ color: 'var(--accent-primary)' }}>Q2</strong></span>
+        <span style={{ opacity: 0.4 }}>│</span>
+        <span>Q2 Winner → <strong style={{ color: 'var(--accent-secondary)' }}>Final</strong></span>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {pathDescription}
+      {bracketContent}
+      {champion && (
+        <div className="playoff-champion-banner">
+          <span className="champion-trophy">🏆</span>
+          <div className="champion-text">
+            <span className="champion-label">Tournament Champion</span>
+            <span className="champion-name">{champion}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// -----------------------------------------------------
 // PAGES
 // -----------------------------------------------------
 
 export function StandingsPage() {
   const { state, page, context } = usePublicPage('League Standings', 'Track teams, points, and group rankings.');
   if (page) return page;
-  const { teams, fixtures, events, scorecards } = details(state.data);
+  const { teams, fixtures, events, scorecards, getTeamName } = details(state.data);
   
   const teamMap = {};
   teams.forEach(t => {
@@ -262,6 +525,10 @@ export function StandingsPage() {
 
   const groups = [...new Set(teams.map(t => t.group).filter(Boolean))];
 
+  // Check for playoff fixtures
+  const playoffTypes = ['qualifier_1', 'eliminator', 'qualifier_2', 'semi_final', 'final'];
+  const hasPlayoffs = fixtures.some(f => playoffTypes.includes(f.match_type));
+
   return (
     <PageFrame title="League Standings" subtitle="Track teams, points, and group rankings." context={context}>
       <div className="glass-card" style={{ marginBottom: '1.5rem' }}>
@@ -276,6 +543,19 @@ export function StandingsPage() {
           <StandingsTable standings={standings} />
         )}
       </div>
+
+      {hasPlayoffs && (
+        <div className="glass-card" style={{ marginBottom: '1.5rem' }}>
+          <p className="eyebrow" style={{ color: 'var(--accent-secondary)', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>PLAYOFFS</p>
+          <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.3rem' }}>Knockout Stage</h3>
+          <PlayoffBracket
+            fixtures={fixtures}
+            getTeamName={getTeamName}
+            events={events}
+            scorecards={scorecards}
+          />
+        </div>
+      )}
     </PageFrame>
   );
 }

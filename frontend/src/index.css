@@ -439,3 +439,257 @@ input[type=number]::-webkit-outer-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+/* ── Playoff Bracket ──────────────────────────────────── */
+.playoff-bracket {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0;
+  overflow-x: auto;
+  padding: 3rem 0.5rem 1.5rem 0;
+  min-height: 280px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+
+.playoff-bracket::-webkit-scrollbar { height: 6px; }
+.playoff-bracket::-webkit-scrollbar-track { background: transparent; }
+.playoff-bracket::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+.playoff-round {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  min-width: 210px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.playoff-round-label {
+  position: absolute;
+  top: -2rem;
+  width: 100%;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.playoff-match-card {
+  position: relative;
+  width: 200px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.9));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 0;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.playoff-match-card:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+}
+
+.playoff-match-card.playoff-live {
+  border-color: var(--accent-secondary);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.25), 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: playoff-glow 2s ease-in-out infinite;
+}
+
+@keyframes playoff-glow {
+  0%, 100% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.2), 0 4px 20px rgba(0, 0, 0, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.4), 0 4px 20px rgba(0, 0, 0, 0.3); }
+}
+
+.playoff-match-card.playoff-final {
+  width: 220px;
+  border-color: rgba(251, 191, 36, 0.4);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(45, 35, 15, 0.5));
+}
+
+.playoff-match-card.playoff-final:hover {
+  box-shadow: 0 8px 30px rgba(251, 191, 36, 0.15), 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.playoff-match-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.playoff-match-header .playoff-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.playoff-status-dot.dot-pending { background: rgba(245, 158, 11, 0.6); }
+.playoff-status-dot.dot-live { background: var(--accent-secondary); animation: pulse 1.5s ease-in-out infinite; }
+.playoff-status-dot.dot-completed { background: var(--accent-secondary); }
+
+.playoff-team-row {
+  display: flex;
+  align-items: center;
+  padding: 0.55rem 0.75rem;
+  gap: 0.5rem;
+  transition: background 0.2s;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.playoff-team-row:last-child {
+  border-bottom: none;
+}
+
+.playoff-team-row.playoff-winner-row {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.12), transparent);
+}
+
+.playoff-team-name {
+  flex: 1;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playoff-team-row.playoff-winner-row .playoff-team-name {
+  color: var(--accent-secondary);
+}
+
+.playoff-team-name.playoff-tbd {
+  color: var(--text-secondary);
+  font-style: italic;
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+.playoff-winner-icon {
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* ── Connector Lines ── */
+.playoff-connector-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.playoff-connector-line {
+  position: absolute;
+  border-color: rgba(59, 130, 246, 0.35);
+  border-style: solid;
+}
+
+/* Horizontal line from match card to merge point */
+.playoff-connector-h {
+  width: 100%;
+  height: 0;
+  border-top-width: 2px;
+  border-bottom-width: 0;
+  border-left-width: 0;
+  border-right-width: 0;
+}
+
+/* Vertical line connecting two horizontal lines at merge point */
+.playoff-connector-v {
+  width: 0;
+  border-left-width: 2px;
+  border-top-width: 0;
+  border-bottom-width: 0;
+  border-right-width: 0;
+  right: 0;
+}
+
+/* ── Empty / No Playoffs ── */
+.playoff-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* ── Champion Banner ── */
+.playoff-champion-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  margin-top: 1rem;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.08));
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: var(--radius-md);
+  animation: champion-shimmer 3s ease-in-out infinite;
+}
+
+@keyframes champion-shimmer {
+  0%, 100% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.1); }
+  50% { box-shadow: 0 0 30px rgba(251, 191, 36, 0.25); }
+}
+
+.playoff-champion-banner .champion-trophy {
+  font-size: 1.8rem;
+}
+
+.playoff-champion-banner .champion-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.playoff-champion-banner .champion-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(251, 191, 36, 0.8);
+}
+
+.playoff-champion-banner .champion-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  background: linear-gradient(to right, #fbbf24, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .playoff-bracket {
+    padding: 1rem 0;
+  }
+  .playoff-match-card, .playoff-match-card.playoff-final {
+    width: 175px;
+    min-width: 175px;
+  }
+  .playoff-round {
+    min-width: 180px;
+  }
+  .playoff-connector-col {
+    width: 28px;
+  }
+}

@@ -138,10 +138,16 @@ export default function BroadcasterDashboard() {
       team2Scores.push(setInfo.team2_score);
     }
 
+    let matchTypeStr = '';
+    if (activeFixture.match_type) {
+      matchTypeStr = activeFixture.match_type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
+
     return {
       team1: { name: team1?.name || 'Team 1', wins: team1Wins, scores: team1Scores },
       team2: { name: team2?.name || 'Team 2', wins: team2Wins, scores: team2Scores },
       eventName: eventName,
+      matchType: matchTypeStr,
       numSets: numSets
     };
   };
@@ -210,12 +216,19 @@ export default function BroadcasterDashboard() {
 
     // Draw Headers
     ctx.font = headerFont;
-    ctx.textAlign = 'center';
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
     ctx.shadowBlur = 2;
     ctx.shadowOffsetX = 1;
     ctx.shadowOffsetY = 1;
 
+    if (data.matchType) {
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#38bdf8'; // Light blue for match type
+      const maxNameWidth = nameWidth - 16;
+      ctx.fillText(data.matchType, x + 8, headerY, maxNameWidth);
+    }
+
+    ctx.textAlign = 'center';
     ctx.fillStyle = '#4ade80'; // Green for wins header
     ctx.fillText("Wins", x + nameWidth + winsWidth / 2, headerY);
 

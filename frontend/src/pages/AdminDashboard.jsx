@@ -3,6 +3,7 @@ import { Settings, Plus, Users, Calendar, Trash2, ChevronRight, Trophy, X, ListC
 import { Link } from 'react-router-dom';
 import * as api from '../api/client';
 import CustomDatePicker from '../components/CustomDatePicker';
+import SearchableDropdown from '../components/SearchableDropdown';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('tournaments');
@@ -1353,7 +1354,7 @@ export default function AdminDashboard() {
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
                   {teams.map(team => (
-                    <div key={team.id} className="glass-card" style={{ padding: '1rem' }}>
+                    <div key={team.id} className="glass-card" style={{ padding: '1rem', zIndex: showPlayerForm === team.id ? 50 : 1, position: 'relative' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                         <div>
                           <h4 style={{ margin: 0 }}>{team.name}</h4>
@@ -1395,12 +1396,15 @@ export default function AdminDashboard() {
                         )}
                         {showPlayerForm === team.id ? (
                           <form onSubmit={handleAddPlayer} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <input className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem', flex: 2, minWidth: '120px' }} placeholder="Select player..." list={`players-list-${team.id}`} value={playerName} onChange={e => setPlayerName(e.target.value)} required />
-                            <datalist id={`players-list-${team.id}`}>
-                              {tournamentPlayers.filter(p => !isPlayerAssigned(p.name)).map(p => (
-                                <option key={p.id} value={p.name} />
-                              ))}
-                            </datalist>
+                            <SearchableDropdown
+                              className="form-input"
+                              style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem', flex: 2, minWidth: '120px' }}
+                              placeholder="Select player..."
+                              value={playerName}
+                              onChange={setPlayerName}
+                              options={tournamentPlayers.filter(p => !isPlayerAssigned(p.name)).sort((a, b) => a.name.localeCompare(b.name)).map(p => p.name)}
+                              required
+                            />
                             <button type="submit" className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>Add</button>
                             <button type="button" className="btn btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={() => { setShowPlayerForm(null); setPlayerName(''); }}>Cancel</button>
                           </form>
@@ -2018,9 +2022,7 @@ function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, se
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <datalist id="available-players">
-        {[...availablePlayers].sort((a, b) => a.name.localeCompare(b.name)).map(p => <option key={p.id} value={p.name} />)}
-      </datalist>
+
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '-1rem' }}>
         <button onClick={() => setZoomLevel(z => Math.max(0.1, Number((z - 0.1).toFixed(1))))} className="btn btn-outline" style={{ padding: '0.5rem' }} title="Zoom Out"><ZoomOut size={16} /></button>
         <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)', minWidth: '40px', justifyContent: 'center' }}>{Math.round(zoomLevel * 100)}%</span>
@@ -2099,21 +2101,20 @@ function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, se
                       <React.Fragment key={`add-${team.id}`}>
                         <td style={{ padding: '0.4rem 0.25rem', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}></td>
                         <td colSpan={2} style={{ padding: '0.4rem 0.25rem' }}>
-                          <input
-                            list="available-players"
+                          <SearchableDropdown
                             className="form-input"
                             style={{ padding: '0.3rem 0.5rem', fontSize: '0.8rem', width: '100%', minWidth: '80px' }}
                             placeholder={isFull ? 'Team is full' : 'Search player...'}
                             disabled={isFull}
                             value={form.name}
-                            onChange={e => {
-                              const val = e.target.value;
+                            onChange={(val) => {
                               const selected = availablePlayers.find(p => p.name === val);
                               setAuctionPlayerForms(prev => ({
                                 ...prev,
                                 [team.id]: { ...form, name: val, gender: selected?.gender || form.gender },
                               }));
                             }}
+                            options={[...availablePlayers].sort((a, b) => a.name.localeCompare(b.name)).map(p => p.name)}
                           />
                         </td>
                         <td style={{ padding: '0.4rem 0.25rem' }}>

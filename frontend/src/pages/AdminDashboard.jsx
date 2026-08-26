@@ -28,7 +28,7 @@ export default function AdminDashboard() {
   const [newPlayerPhoto, setNewPlayerPhoto] = useState(null);
   const [newPlayerPhotoPreview, setNewPlayerPhotoPreview] = useState(null);
   const fileInputRef = useRef(null);
-  
+
   const [isRegisterFormOpen, setIsRegisterFormOpen] = useState(false);
 
   const [editingPlayerId, setEditingPlayerId] = useState(null);
@@ -551,7 +551,7 @@ export default function AdminDashboard() {
         const res = await api.addPlayer(selectedTournament.id, formData);
         setTournamentPlayers([...tournamentPlayers, res.player]);
       }
-      
+
       // Reset form
       setNewPlayerFirstName('');
       setNewPlayerLastName('');
@@ -977,7 +977,15 @@ export default function AdminDashboard() {
           onClose={() => setPendingConfirmation(null)}
         >
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-            <AlertTriangle size={24} color="var(--accent-danger)" style={{ flexShrink: 0 }} />
+            <AlertTriangle
+              size={24}
+              color={
+                pendingConfirmation.type === 'generateLeague' || pendingConfirmation.type === 'auction'
+                  ? '#f59e0b'
+                  : 'var(--accent-danger)'
+              }
+              style={{ flexShrink: 0 }}
+            />
             <div>
               <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>
                 {pendingConfirmation.type === 'auction'
@@ -1004,11 +1012,21 @@ export default function AdminDashboard() {
               Cancel
             </button>
             <button
-              className="btn"
+              className={pendingConfirmation.type === 'generateLeague' ? 'btn btn-primary' : 'btn'}
               onClick={handleConfirmAction}
-              style={{ background: 'var(--accent-danger)', color: '#fff' }}
+              style={
+                pendingConfirmation.type === 'generateLeague'
+                  ? {}
+                  : { background: 'var(--accent-danger)', color: '#fff' }
+              }
             >
-              <Trash2 size={16} />
+              {pendingConfirmation.type === 'generateLeague' ? (
+                <Calendar size={16} />
+              ) : pendingConfirmation.type === 'auction' ? (
+                <Check size={16} />
+              ) : (
+                <Trash2 size={16} />
+              )}
               {pendingConfirmation.type === 'auction'
                 ? 'End Auction'
                 : pendingConfirmation.type === 'generateLeague'
@@ -1160,10 +1178,10 @@ export default function AdminDashboard() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Time</div>
-                  <input 
-                    type="time" 
-                    className="form-input" 
-                    value={(fixtureDateTime && fixtureDateTime.includes('T')) ? fixtureDateTime.split('T')[1].substring(0, 5) : ''} 
+                  <input
+                    type="time"
+                    className="form-input"
+                    value={(fixtureDateTime && fixtureDateTime.includes('T')) ? fixtureDateTime.split('T')[1].substring(0, 5) : ''}
                     onChange={e => {
                       const newTime = e.target.value;
                       if (newTime && fixtureDateTime) {
@@ -1255,10 +1273,10 @@ export default function AdminDashboard() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Time</div>
-                  <input 
-                    type="time" 
-                    className="form-input" 
-                    value={(editFixtureDateTime && editFixtureDateTime.includes('T')) ? editFixtureDateTime.split('T')[1].substring(0, 5) : ''} 
+                  <input
+                    type="time"
+                    className="form-input"
+                    value={(editFixtureDateTime && editFixtureDateTime.includes('T')) ? editFixtureDateTime.split('T')[1].substring(0, 5) : ''}
                     onChange={e => {
                       const newTime = e.target.value;
                       if (newTime && editFixtureDateTime) {
@@ -1399,7 +1417,7 @@ export default function AdminDashboard() {
                   </button>
                 )}
               </div>
-              
+
               {isRegisterFormOpen && (
                 <form onSubmit={handleGlobalAddPlayer} style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--glass-border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -1409,109 +1427,109 @@ export default function AdminDashboard() {
                     </button>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group">
-                    <label className="form-label">First Name <span style={{ color: '#ef4444' }}>*</span></label>
-                    <input className="form-input" placeholder="First name" value={newPlayerFirstName} onChange={e => setNewPlayerFirstName(e.target.value)} required />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Last Name <span style={{ color: '#ef4444' }}>*</span></label>
-                    <input className="form-input" placeholder="Last name" value={newPlayerLastName} onChange={e => setNewPlayerLastName(e.target.value)} required />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Mobile Number <span style={{ color: '#ef4444' }}>*</span></label>
-                  <input type="tel" className="form-input" placeholder="10-digit mobile number" value={newPlayerMobile} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) setNewPlayerMobile(v); }} maxLength={10} required />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group">
-                    <label className="form-label">Wing <span style={{ color: '#ef4444' }}>*</span></label>
-                    <select className="form-input" value={newPlayerWing} onChange={e => setNewPlayerWing(e.target.value)} required>
-                      <option value="">Select Wing</option>
-                      <option value="A">A</option>
-                      <option value="B">B</option>
-                      <option value="C">C</option>
-                      <option value="D">D</option>
-                      <option value="E">E</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Flat No. <span style={{ color: '#ef4444' }}>*</span></label>
-                    <input type="text" className="form-input" placeholder="e.g. 101" value={newPlayerFlatNo} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 4) setNewPlayerFlatNo(v); }} maxLength={4} required />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: selectedTournament?.category === 'Adults' ? '1fr 1fr' : '1fr', gap: '1rem' }}>
-                  <div className="form-group">
-                    <label className="form-label">Age <span style={{ color: '#ef4444' }}>*</span></label>
-                    <input type="number" className="form-input" placeholder="Age" value={newPlayerAge} onChange={e => setNewPlayerAge(e.target.value)} min="1" max="99" required />
-                  </div>
-                  {selectedTournament?.category === 'Adults' && (
                     <div className="form-group">
-                      <label className="form-label">Gender <span style={{ color: '#ef4444' }}>*</span></label>
-                      <select className="form-input" value={newPlayerGender} onChange={e => setNewPlayerGender(e.target.value)} required>
-                        <option value="">Select Gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
+                      <label className="form-label">First Name <span style={{ color: '#ef4444' }}>*</span></label>
+                      <input className="form-input" placeholder="First name" value={newPlayerFirstName} onChange={e => setNewPlayerFirstName(e.target.value)} required />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Last Name <span style={{ color: '#ef4444' }}>*</span></label>
+                      <input className="form-input" placeholder="Last name" value={newPlayerLastName} onChange={e => setNewPlayerLastName(e.target.value)} required />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Mobile Number <span style={{ color: '#ef4444' }}>*</span></label>
+                    <input type="tel" className="form-input" placeholder="10-digit mobile number" value={newPlayerMobile} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) setNewPlayerMobile(v); }} maxLength={10} required />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="form-group">
+                      <label className="form-label">Wing <span style={{ color: '#ef4444' }}>*</span></label>
+                      <select className="form-input" value={newPlayerWing} onChange={e => setNewPlayerWing(e.target.value)} required>
+                        <option value="">Select Wing</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                        <option value="E">E</option>
                       </select>
                     </div>
-                  )}
-                </div>
-
-                {selectedTournament?.category === 'Kids' && selectedTournament?.kids_age_limit && newPlayerAge && (
-                  <div style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', background: parseInt(newPlayerAge) <= selectedTournament.kids_age_limit ? 'rgba(59, 130, 246, 0.1)' : 'rgba(168, 85, 247, 0.1)', border: parseInt(newPlayerAge) <= selectedTournament.kids_age_limit ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(168, 85, 247, 0.3)', fontSize: '0.85rem', color: parseInt(newPlayerAge) <= selectedTournament.kids_age_limit ? '#60a5fa' : '#a855f7' }}>
-                    Category: <strong>{parseInt(newPlayerAge) <= selectedTournament.kids_age_limit ? 'Junior' : 'Senior'}</strong>
-                  </div>
-                )}
-
-                <div className="form-group">
-                  <label className="form-label">Expertise <span style={{ color: '#ef4444' }}>*</span></label>
-                  <select className="form-input" value={newPlayerExpertise} onChange={e => setNewPlayerExpertise(e.target.value)} required>
-                    <option value="">Select Expertise</option>
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Expert">Expert</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Played State / National? <span style={{ color: '#ef4444' }}>*</span></label>
-                  <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.25rem' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.95rem' }}>
-                      <input type="radio" name="state_national_admin" value="Yes" checked={newPlayerPlayedStateNational === 'Yes'} onChange={e => setNewPlayerPlayedStateNational(e.target.value)} />
-                      Yes
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.95rem' }}>
-                      <input type="radio" name="state_national_admin" value="No" checked={newPlayerPlayedStateNational === 'No'} onChange={e => setNewPlayerPlayedStateNational(e.target.value)} />
-                      No
-                    </label>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Photo (Optional)</label>
-                  <input type="file" ref={fileInputRef} onChange={handlePhotoChange} accept="image/*" style={{ display: 'none' }} />
-                  {!newPlayerPhotoPreview ? (
-                    <div onClick={() => fileInputRef.current?.click()} style={{ border: '2px dashed var(--glass-border)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', textAlign: 'center', cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
-                      <Camera size={24} color="var(--text-secondary)" style={{ marginBottom: '0.5rem' }} />
-                      <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Click to upload photo</p>
+                    <div className="form-group">
+                      <label className="form-label">Flat No. <span style={{ color: '#ef4444' }}>*</span></label>
+                      <input type="text" className="form-input" placeholder="e.g. 101" value={newPlayerFlatNo} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 4) setNewPlayerFlatNo(v); }} maxLength={4} required />
                     </div>
-                  ) : (
-                    <div style={{ position: 'relative', display: 'inline-block' }}>
-                      <img src={newPlayerPhotoPreview} alt="Preview" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: 'var(--radius-lg)', border: '2px solid var(--glass-border)' }} />
-                      <button type="button" onClick={removePhoto} style={{ position: 'absolute', top: '-8px', right: '-8px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
-                        <X size={14} />
-                      </button>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: selectedTournament?.category === 'Adults' ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+                    <div className="form-group">
+                      <label className="form-label">Age <span style={{ color: '#ef4444' }}>*</span></label>
+                      <input type="number" className="form-input" placeholder="Age" value={newPlayerAge} onChange={e => setNewPlayerAge(e.target.value)} min="1" max="99" required />
+                    </div>
+                    {selectedTournament?.category === 'Adults' && (
+                      <div className="form-group">
+                        <label className="form-label">Gender <span style={{ color: '#ef4444' }}>*</span></label>
+                        <select className="form-input" value={newPlayerGender} onChange={e => setNewPlayerGender(e.target.value)} required>
+                          <option value="">Select Gender</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {selectedTournament?.category === 'Kids' && selectedTournament?.kids_age_limit && newPlayerAge && (
+                    <div style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', background: parseInt(newPlayerAge) <= selectedTournament.kids_age_limit ? 'rgba(59, 130, 246, 0.1)' : 'rgba(168, 85, 247, 0.1)', border: parseInt(newPlayerAge) <= selectedTournament.kids_age_limit ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(168, 85, 247, 0.3)', fontSize: '0.85rem', color: parseInt(newPlayerAge) <= selectedTournament.kids_age_limit ? '#60a5fa' : '#a855f7' }}>
+                      Category: <strong>{parseInt(newPlayerAge) <= selectedTournament.kids_age_limit ? 'Junior' : 'Senior'}</strong>
                     </div>
                   )}
-                </div>
 
-                <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start', marginTop: '1rem' }}>
-                  {editingPlayerId ? <Check size={16} /> : <Plus size={16} />} 
-                  {editingPlayerId ? 'Update Player' : 'Submit Registration'}
-                </button>
-              </form>
+                  <div className="form-group">
+                    <label className="form-label">Expertise <span style={{ color: '#ef4444' }}>*</span></label>
+                    <select className="form-input" value={newPlayerExpertise} onChange={e => setNewPlayerExpertise(e.target.value)} required>
+                      <option value="">Select Expertise</option>
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Expert">Expert</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Played State / National? <span style={{ color: '#ef4444' }}>*</span></label>
+                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.25rem' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.95rem' }}>
+                        <input type="radio" name="state_national_admin" value="Yes" checked={newPlayerPlayedStateNational === 'Yes'} onChange={e => setNewPlayerPlayedStateNational(e.target.value)} />
+                        Yes
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.95rem' }}>
+                        <input type="radio" name="state_national_admin" value="No" checked={newPlayerPlayedStateNational === 'No'} onChange={e => setNewPlayerPlayedStateNational(e.target.value)} />
+                        No
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Photo (Optional)</label>
+                    <input type="file" ref={fileInputRef} onChange={handlePhotoChange} accept="image/*" style={{ display: 'none' }} />
+                    {!newPlayerPhotoPreview ? (
+                      <div onClick={() => fileInputRef.current?.click()} style={{ border: '2px dashed var(--glass-border)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', textAlign: 'center', cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                        <Camera size={24} color="var(--text-secondary)" style={{ marginBottom: '0.5rem' }} />
+                        <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Click to upload photo</p>
+                      </div>
+                    ) : (
+                      <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <img src={newPlayerPhotoPreview} alt="Preview" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: 'var(--radius-lg)', border: '2px solid var(--glass-border)' }} />
+                        <button type="button" onClick={removePhoto} style={{ position: 'absolute', top: '-8px', right: '-8px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+                          <X size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start', marginTop: '1rem' }}>
+                    {editingPlayerId ? <Check size={16} /> : <Plus size={16} />}
+                    {editingPlayerId ? 'Update Player' : 'Submit Registration'}
+                  </button>
+                </form>
               )}
 
               {tournamentPlayers.length === 0 ? (

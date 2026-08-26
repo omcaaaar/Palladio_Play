@@ -269,6 +269,13 @@ export default function AdminDashboard() {
   async function handleEditEvent(e) {
     e.preventDefault();
     try {
+      const oldBaseType = currentEventTypes.find(t => editingEvent.name.startsWith(t));
+      if (oldBaseType === editEventName) {
+        setShowEditEventForm(false);
+        setEditingEvent(null);
+        return;
+      }
+
       const existingEvents = events.filter(ev => ev.id !== editingEvent.id && ev.name.startsWith(editEventName));
       let finalName = editEventName;
 
@@ -285,8 +292,7 @@ export default function AdminDashboard() {
         name: finalName,
       });
 
-      const oldBaseType = currentEventTypes.find(t => editingEvent.name.startsWith(t));
-      if (oldBaseType && oldBaseType !== editEventName) {
+      if (oldBaseType) {
         const remainingOld = events.filter(e => e.id !== editingEvent.id && e.name.startsWith(oldBaseType));
         if (remainingOld.length === 1) {
           await api.updateEvent(selectedTournament.id, remainingOld[0].id, { name: oldBaseType });

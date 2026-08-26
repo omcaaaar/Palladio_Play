@@ -215,9 +215,18 @@ export default function AdminDashboard() {
 
   async function handleAddTeam(e) {
     e.preventDefault();
+    const trimmedName = teamName.trim();
+    if (!trimmedName) {
+      setError('Team name cannot be empty');
+      return;
+    }
+    if (teams.some(t => t.name.trim().toLowerCase() === trimmedName.toLowerCase())) {
+      setError('Team name already exists in this tournament');
+      return;
+    }
     try {
       const res = await api.addTeam(selectedTournament.id, {
-        name: teamName,
+        name: trimmedName,
         owners: teamOwners,
         group: teamGroup,
       });
@@ -761,6 +770,8 @@ export default function AdminDashboard() {
     } catch (err) { setError(err.message); }
   }
 
+  const isModalOpen = showTournamentForm || showEditTournamentForm || showTeamForm || showEventForm || showFixtureForm || showEditFixtureForm || showEditEventForm || showPlayerForm !== null || showDeleteTournamentConfirm || teamToDelete !== null || pendingConfirmation !== null || validationError !== null;
+
   return (
     <div>
       {/* Header */}
@@ -776,7 +787,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Error banner */}
-      {error && (
+      {error && !isModalOpen && (
         <div style={{ padding: '0.75rem 1rem', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-danger)', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>{error}</span>
           <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}><X size={16} /></button>
@@ -839,7 +850,7 @@ export default function AdminDashboard() {
 
       {/* New tournament modal */}
       {showTournamentForm && (
-        <Modal title="Create New Tournament" onClose={() => setShowTournamentForm(false)}>
+        <Modal title="Create New Tournament" onClose={() => { setShowTournamentForm(false); setError(''); }} error={error} onClearError={() => setError('')}>
           <form onSubmit={handleCreateTournament}>
             <div className="form-group">
               <label className="form-label">Tournament Name</label>
@@ -1039,7 +1050,7 @@ export default function AdminDashboard() {
 
       {/* Edit tournament modal */}
       {showEditTournamentForm && (
-        <Modal title="Edit Tournament Name" onClose={() => setShowEditTournamentForm(false)}>
+        <Modal title="Edit Tournament Name" onClose={() => { setShowEditTournamentForm(false); setError(''); }} error={error} onClearError={() => setError('')}>
           <form onSubmit={handleEditTournament}>
             <div className="form-group">
               <label className="form-label">Tournament Name</label>
@@ -1052,7 +1063,7 @@ export default function AdminDashboard() {
 
       {/* Team Form Modal */}
       {showTeamForm && (
-        <Modal title="Add New Team" onClose={() => setShowTeamForm(false)}>
+        <Modal title="Add New Team" onClose={() => { setShowTeamForm(false); setError(''); }} error={error} onClearError={() => setError('')}>
           <form onSubmit={handleAddTeam}>
             <div className="form-group">
               <label className="form-label">Team Name</label>
@@ -1077,7 +1088,7 @@ export default function AdminDashboard() {
 
       {/* Event Form Modal */}
       {showEventForm && (
-        <Modal title="Add Event Type" onClose={() => setShowEventForm(false)}>
+        <Modal title="Add Event Type" onClose={() => { setShowEventForm(false); setError(''); }} error={error} onClearError={() => setError('')}>
           <form onSubmit={handleAddEvent}>
             <div className="form-group">
               <label className="form-label">Event Type</label>
@@ -1092,7 +1103,7 @@ export default function AdminDashboard() {
 
       {/* Edit Event Form Modal */}
       {showEditEventForm && editingEvent && (
-        <Modal title="Edit Event Type" onClose={() => { setShowEditEventForm(false); setEditingEvent(null); }}>
+        <Modal title="Edit Event Type" onClose={() => { setShowEditEventForm(false); setEditingEvent(null); setError(''); }} error={error} onClearError={() => setError('')}>
           <form onSubmit={handleEditEvent}>
             <div className="form-group">
               <label className="form-label">Event Name</label>
@@ -1107,7 +1118,7 @@ export default function AdminDashboard() {
 
       {/* Fixture Form Modal */}
       {showFixtureForm && (
-        <Modal title="Add Match Fixture" onClose={() => setShowFixtureForm(false)}>
+        <Modal title="Add Match Fixture" onClose={() => { setShowFixtureForm(false); setError(''); }} error={error} onClearError={() => setError('')}>
           <form onSubmit={handleAddFixture}>
             <div className="form-group" style={{ marginBottom: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -1202,7 +1213,7 @@ export default function AdminDashboard() {
 
       {/* Edit Fixture Form Modal */}
       {showEditFixtureForm && editingFixture && (
-        <Modal title="Edit Match Fixture" onClose={() => { setShowEditFixtureForm(false); setEditingFixture(null); }}>
+        <Modal title="Edit Match Fixture" onClose={() => { setShowEditFixtureForm(false); setEditingFixture(null); setError(''); }} error={error} onClearError={() => setError('')}>
           <form onSubmit={handleEditFixture}>
             <div className="form-group" style={{ marginBottom: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -1963,7 +1974,7 @@ export default function AdminDashboard() {
   );
 }
 
-function Modal({ title, onClose, children }) {
+function Modal({ title, onClose, children, error, onClearError }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem',
@@ -1973,6 +1984,14 @@ function Modal({ title, onClose, children }) {
           <h3 style={{ margin: 0 }}>{title}</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><X size={20} /></button>
         </div>
+        {error && (
+          <div style={{ padding: '0.75rem 1rem', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-danger)', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.875rem' }}>
+            <span>{error}</span>
+            {onClearError && (
+              <button onClick={onClearError} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}><X size={16} /></button>
+            )}
+          </div>
+        )}
         {children}
       </div>
     </div>

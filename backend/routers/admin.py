@@ -46,13 +46,32 @@ def list_teams(tid: str):
 
 @router.post("/tournaments/{tid}/teams")
 def add_team(tid: str, team: Team):
+    team_name = team.name.strip()
+    if not team_name:
+        raise HTTPException(400, "Team name cannot be empty")
+    
+    existing_teams = database.get_teams(tid)
+    if any(t.get("name", "").strip().lower() == team_name.lower() for t in existing_teams):
+        raise HTTPException(400, "Team name already exists in this tournament")
+
     data = team.model_dump()
+    data["name"] = team_name
     data["tournament_id"] = tid
     database.add_team(tid, data)
     return {"message": "Team added", "team": data}
 
 @router.put("/tournaments/{tid}/teams/{team_id}")
 def update_team(tid: str, team_id: str, update: dict):
+    if "name" in update:
+        team_name = update["name"].strip()
+        if not team_name:
+            raise HTTPException(400, "Team name cannot be empty")
+        
+        existing_teams = database.get_teams(tid)
+        if any(t.get("id") != team_id and t.get("name", "").strip().lower() == team_name.lower() for t in existing_teams):
+            raise HTTPException(400, "Team name already exists in this tournament")
+        update["name"] = team_name
+
     result = database.update_team(tid, team_id, update)
     if not result:
         raise HTTPException(404, "Team not found")

@@ -1950,8 +1950,8 @@ function Modal({ title, onClose, children }) {
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem',
     }} onClick={onClose}>
-      <div className="glass-card animate-fade-in" style={{ maxWidth: '480px', width: '100%', background: 'var(--bg-secondary)', backdropFilter: 'none' }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div className="glass-card animate-fade-in" style={{ maxWidth: '480px', width: '100%', maxHeight: '90vh', overflowY: 'auto', background: 'var(--bg-secondary)', backdropFilter: 'none' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1, paddingBottom: '0.5rem', borderBottom: '1px solid var(--glass-border)' }}>
           <h3 style={{ margin: 0 }}>{title}</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><X size={20} /></button>
         </div>

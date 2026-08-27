@@ -32,9 +32,31 @@ export default function Dashboard() {
 
   const [tournaments, setTournaments] = useState([]);
   const [selectedTid, setSelectedTid] = useState('');
+  const [selectedSport, setSelectedSport] = useState('');
+  const [selectedYear, setSelectedYear] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  
   const [tournamentData, setTournamentData] = useState(null);
   const [loading, setLoading] = useState(false);
   const wsRef = useRef(null);
+  
+  const getYear = (t) => {
+    if (t.year) return parseInt(t.year);
+    if (t.name) {
+      const match = t.name.match(/-\s*(\d{4})/);
+      if (match) return parseInt(match[1]);
+    }
+    return new Date().getFullYear();
+  };
+
+  const availableSports = [...new Set(tournaments.map(t => t.sport || 'Badminton'))].filter(Boolean);
+  const currentSport = selectedSport || availableSports[0];
+
+  const availableYears = [...new Set(tournaments.filter(t => (t.sport || 'Badminton') === currentSport).map(t => getYear(t)))].sort((a,b)=>b-a);
+  const currentYear = availableYears.includes(selectedYear) ? selectedYear : availableYears[0];
+
+  const availableCategories = [...new Set(tournaments.filter(t => (t.sport || 'Badminton') === currentSport && getYear(t) === currentYear).map(t => t.category || 'Adults'))].filter(Boolean);
+  const currentCategory = availableCategories.includes(selectedCategory) ? selectedCategory : availableCategories[0];
 
   // Live score state
   const [liveScorecards, setLiveScorecards] = useState([]);
@@ -50,11 +72,35 @@ export default function Dashboard() {
       const savedTid = localStorage.getItem('selectedTournamentId');
       const initialTid = data.some(t => t.id === savedTid) ? savedTid : (data.length > 0 ? data[0].id : '');
       if (initialTid) {
+        const initialT = data.find(t => t.id === initialTid);
+        if (initialT) {
+          setSelectedSport(initialT.sport || 'Badminton');
+          setSelectedYear(getYear(initialT));
+          setSelectedCategory(initialT.category || 'Adults');
+        }
         setSelectedTid(initialTid);
         localStorage.setItem('selectedTournamentId', initialTid);
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (tournaments.length > 0) {
+      if (currentSport && currentSport !== selectedSport) setSelectedSport(currentSport);
+      if (currentYear && currentYear !== selectedYear) setSelectedYear(currentYear);
+      if (currentCategory && currentCategory !== selectedCategory) setSelectedCategory(currentCategory);
+      
+      const matchingTournament = tournaments.find(t => 
+        (t.sport || 'Badminton') === currentSport && 
+        getYear(t) === currentYear && 
+        (t.category || 'Adults') === currentCategory
+      );
+      if (matchingTournament && matchingTournament.id !== selectedTid) {
+        setSelectedTid(matchingTournament.id);
+        localStorage.setItem('selectedTournamentId', matchingTournament.id);
+      }
+    }
+  }, [currentSport, currentYear, currentCategory, tournaments, selectedSport, selectedYear, selectedCategory, selectedTid]);
 
   useEffect(() => {
     if (selectedTid) loadTournament(selectedTid);
@@ -238,12 +284,15 @@ export default function Dashboard() {
       </div>
 
       {/* Tournament selector */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <select className="form-input" style={{ maxWidth: '400px' }} value={selectedTid} onChange={e => {
-          setSelectedTid(e.target.value);
-          localStorage.setItem('selectedTournamentId', e.target.value);
-        }}>
-          {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+      <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+        <select className="form-input" style={{ maxWidth: '200px' }} value={currentSport || ''} onChange={e => setSelectedSport(e.target.value)}>
+          {availableSports.map(sport => <option key={sport} value={sport}>{sport}</option>)}
+        </select>
+        <select className="form-input" style={{ maxWidth: '150px' }} value={currentYear || ''} onChange={e => setSelectedYear(parseInt(e.target.value))}>
+          {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
+        </select>
+        <select className="form-input" style={{ maxWidth: '150px' }} value={currentCategory || ''} onChange={e => setSelectedCategory(e.target.value)}>
+          {availableCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
         </select>
       </div>
 

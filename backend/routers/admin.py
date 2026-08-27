@@ -15,6 +15,10 @@ def list_tournaments():
 
 @router.post("/tournaments")
 def create_tournament(tournament: Tournament):
+    existing = database.get_all_tournaments()
+    if any(t.get("name") == tournament.name for t in existing):
+        raise HTTPException(status_code=400, detail="A tournament with this name already exists")
+    
     data = tournament.model_dump()
     database.add_tournament(data)
     return {"message": "Tournament created", "tournament": data}

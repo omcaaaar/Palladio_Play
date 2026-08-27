@@ -67,13 +67,12 @@ export default function AdminDashboard() {
   const [editEventName, setEditEventName] = useState('');
 
   // Form states
-  const [tournamentName, setTournamentName] = useState('');
+  const [tournamentYear, setTournamentYear] = useState(new Date().getFullYear().toString());
   const [tournamentSport, setTournamentSport] = useState('Badminton');
   const [tournamentCategory, setTournamentCategory] = useState('Adults');
   const [tournamentStartDate, setTournamentStartDate] = useState('');
   const [tournamentEndDate, setTournamentEndDate] = useState('');
   const [tournamentDeadline, setTournamentDeadline] = useState('');
-  const [tournamentDeadlineTime, setTournamentDeadlineTime] = useState('23:59');
   const [tournamentEntryFees, setTournamentEntryFees] = useState('');
   const [tournamentUpiNumber, setTournamentUpiNumber] = useState('');
   const [tournamentKidsAgeLimit, setTournamentKidsAgeLimit] = useState(12);
@@ -175,8 +174,21 @@ export default function AdminDashboard() {
   async function handleCreateTournament(e) {
     e.preventDefault();
     try {
+      const generatedName = `Palladio ${tournamentSport} Tournament - ${tournamentYear} (${tournamentCategory})`;
+      
+      if (tournaments.some(t => t.name === generatedName)) {
+        setError('A tournament with this exact sport, year, and category already exists.');
+        return;
+      }
+
+      if (tournamentStartDate && tournamentEndDate && tournamentEndDate < tournamentStartDate) {
+        setError('Tournament end date cannot be prior to the start date.');
+        return;
+      }
+
       const data = {
-        name: tournamentName,
+        name: generatedName,
+        year: parseInt(tournamentYear),
         sport: tournamentSport,
         category: tournamentCategory,
       };
@@ -184,7 +196,7 @@ export default function AdminDashboard() {
       if (tournamentStartDate) data.start_date = tournamentStartDate;
       if (tournamentEndDate) data.end_date = tournamentEndDate;
       if (tournamentDeadline) {
-        data.registration_deadline = `${tournamentDeadline}T${tournamentDeadlineTime || '23:59'}`;
+        data.registration_deadline = `${tournamentDeadline}T23:59`;
       }
       if (tournamentEntryFees) data.entry_fees = parseInt(tournamentEntryFees) || 0;
       if (tournamentUpiNumber) data.upi_payment_number = tournamentUpiNumber;
@@ -194,13 +206,12 @@ export default function AdminDashboard() {
       setTournaments([...tournaments, res.tournament]);
       setSelectedTournament(res.tournament);
       setActiveTab('teams');
-      setTournamentName('');
+      setTournamentYear(new Date().getFullYear().toString());
       setTournamentSport('Badminton');
       setTournamentCategory('Adults');
       setTournamentStartDate('');
       setTournamentEndDate('');
       setTournamentDeadline('');
-      setTournamentDeadlineTime('23:59');
       setTournamentEntryFees('');
       setTournamentUpiNumber('');
       setTournamentKidsAgeLimit(12);
@@ -893,8 +904,12 @@ export default function AdminDashboard() {
         <Modal title="Create New Tournament" onClose={() => { setShowTournamentForm(false); setError(''); }} error={error} onClearError={() => setError('')}>
           <form onSubmit={handleCreateTournament}>
             <div className="form-group">
-              <label className="form-label">Tournament Name</label>
-              <input className="form-input" placeholder="e.g. Badminton Championship 2026" value={tournamentName} onChange={e => setTournamentName(e.target.value)} required />
+              <label className="form-label">Year</label>
+              <select className="form-input" value={tournamentYear} onChange={e => setTournamentYear(e.target.value)} required>
+                {Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - 15 + i).map(year => (
+                  <option key={year} value={String(year)}>{year}</option>
+                ))}
+              </select>
             </div>
             <div className="form-group">
               <label className="form-label">Sport</label>
@@ -928,15 +943,9 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div className="form-group">
-                <label className="form-label">Registration Deadline</label>
-                <CustomDatePicker value={tournamentDeadline} onChange={setTournamentDeadline} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Deadline Time</label>
-                <input type="time" className="form-input" value={tournamentDeadlineTime} onChange={e => setTournamentDeadlineTime(e.target.value)} disabled={!tournamentDeadline} style={{ opacity: !tournamentDeadline ? 0.5 : 1 }} />
-              </div>
+            <div className="form-group">
+              <label className="form-label">Registration Deadline</label>
+              <CustomDatePicker value={tournamentDeadline} onChange={setTournamentDeadline} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>

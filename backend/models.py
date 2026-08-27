@@ -9,6 +9,7 @@ def generate_id():
 class Tournament(BaseModel):
     id: str = Field(default_factory=generate_id)
     name: str
+    year: int = Field(default_factory=lambda: datetime.now().year)
     sport: str = "Badminton"
     category: str = "Adults"  # "Adults" or "Kids"
     youtube_link: str = ""

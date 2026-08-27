@@ -562,7 +562,7 @@ export default function BroadcasterDashboard() {
               <option value="">-- Choose a Tournament --</option>
               {tournaments.map(t => (
                 <option key={t.id} value={t.id}>
-                  {t.name} {t.sport ? `(${t.sport})` : ''}
+                  {t.name}
                 </option>
               ))}
             </select>

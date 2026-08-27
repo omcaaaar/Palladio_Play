@@ -580,6 +580,11 @@ export default function AdminDashboard() {
     formData.append('expertise', newPlayerExpertise);
     if (newPlayerPhoto) {
       formData.append('photo', newPlayerPhoto);
+    } else if (editingPlayerId && !newPlayerPhotoPreview) {
+      const original = tournamentPlayers.find(p => p.id === editingPlayerId);
+      if (original && original.photo_url) {
+        formData.append('remove_photo', 'true');
+      }
     }
 
     try {

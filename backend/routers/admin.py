@@ -301,6 +301,7 @@ async def update_player(
     gender: str = Form(""),
     expertise: str = Form(...),
     photo: Optional[UploadFile] = File(None),
+    remove_photo: bool = Form(False),
 ):
     data_tournament = database.get_tournament_data(tid)
     if not data_tournament:
@@ -335,7 +336,9 @@ async def update_player(
         player_gender = "Junior" if age <= kids_age_limit else "Senior"
 
     photo_url = existing_player.get("photo_url", "")
-    if photo and photo.filename:
+    if remove_photo:
+        photo_url = ""
+    elif photo and photo.filename:
         try:
             from cloudinary_service import upload_photo
             file_bytes = await photo.read()

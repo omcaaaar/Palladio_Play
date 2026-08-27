@@ -109,7 +109,8 @@ async def update_global_player(
     wing: str = Form(None),
     flat_no: str = Form(None),
     sports_expertise: str = Form(None), # JSON string of dict {sport: expertise}
-    photo: UploadFile = File(None)
+    photo: UploadFile = File(None),
+    remove_photo: bool = Form(False)
 ):
     """Update global player personal details and photo."""
     player = global_players.get_global_player(key)
@@ -117,7 +118,9 @@ async def update_global_player(
         raise HTTPException(404, "Player not found")
 
     photo_url = None
-    if photo and photo.filename:
+    if remove_photo:
+        photo_url = ""
+    elif photo and photo.filename:
         try:
             from cloudinary_service import upload_photo
             file_bytes = await photo.read()

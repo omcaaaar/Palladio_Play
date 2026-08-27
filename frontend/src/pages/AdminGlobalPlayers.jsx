@@ -407,6 +407,8 @@ export default function AdminGlobalPlayers() {
       
       if (editPhotoFile) {
         formData.append('photo', editPhotoFile);
+      } else if (!editPhotoPreview && profileData.photo_url) {
+        formData.append('remove_photo', 'true');
       }
 
       const res = await api.updateGlobalPlayer(selectedPlayer.key, formData);

@@ -25,7 +25,6 @@ export default function AdminDashboard() {
   const [newPlayerAge, setNewPlayerAge] = useState('');
   const [newPlayerGender, setNewPlayerGender] = useState('');
   const [newPlayerExpertise, setNewPlayerExpertise] = useState('');
-  const [newPlayerPlayedStateNational, setNewPlayerPlayedStateNational] = useState('');
   const [newPlayerPhoto, setNewPlayerPhoto] = useState(null);
   const [newPlayerPhotoPreview, setNewPlayerPhotoPreview] = useState(null);
   const fileInputRef = useRef(null);
@@ -183,6 +182,11 @@ export default function AdminDashboard() {
 
       if (tournamentStartDate && tournamentEndDate && tournamentEndDate < tournamentStartDate) {
         setError('Tournament end date cannot be prior to the start date.');
+        return;
+      }
+
+      if (tournamentStartDate && tournamentDeadline && tournamentDeadline > tournamentStartDate) {
+        setError('Registration deadline cannot be after the start date.');
         return;
       }
 
@@ -554,10 +558,6 @@ export default function AdminDashboard() {
       setError('Please select your expertise level');
       return;
     }
-    if (!newPlayerPlayedStateNational) {
-      setError('Please indicate if you have played State/National');
-      return;
-    }
     if (!newPlayerMobile || newPlayerMobile.length !== 10 || !/^\d{10}$/.test(newPlayerMobile)) {
       setError('Mobile number is required and must be exactly 10 digits');
       return;
@@ -578,7 +578,6 @@ export default function AdminDashboard() {
     formData.append('age', newPlayerAge);
     formData.append('gender', newPlayerGender);
     formData.append('expertise', newPlayerExpertise);
-    formData.append('played_state_national', newPlayerPlayedStateNational);
     if (newPlayerPhoto) {
       formData.append('photo', newPlayerPhoto);
     }
@@ -602,7 +601,6 @@ export default function AdminDashboard() {
       setNewPlayerAge('');
       setNewPlayerGender('');
       setNewPlayerExpertise('');
-      setNewPlayerPlayedStateNational('');
       removePhoto();
       setIsRegisterFormOpen(false);
     } catch (err) { setError(err.message); }
@@ -1558,20 +1556,6 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Played State / National? <span style={{ color: '#ef4444' }}>*</span></label>
-                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.25rem' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.95rem' }}>
-                        <input type="radio" name="state_national_admin" value="Yes" checked={newPlayerPlayedStateNational === 'Yes'} onChange={e => setNewPlayerPlayedStateNational(e.target.value)} />
-                        Yes
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.95rem' }}>
-                        <input type="radio" name="state_national_admin" value="No" checked={newPlayerPlayedStateNational === 'No'} onChange={e => setNewPlayerPlayedStateNational(e.target.value)} />
-                        No
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
                     <label className="form-label">Photo (Optional)</label>
                     <input type="file" ref={fileInputRef} onChange={handlePhotoChange} accept="image/*" style={{ display: 'none' }} />
                     {!newPlayerPhotoPreview ? (
@@ -1662,7 +1646,6 @@ export default function AdminDashboard() {
                                 setNewPlayerAge(p.age || '');
                                 setNewPlayerGender(p.gender || '');
                                 setNewPlayerExpertise(p.expertise || '');
-                                setNewPlayerPlayedStateNational(p.played_state_national || '');
                                 setNewPlayerPhoto(null);
                                 setNewPlayerPhotoPreview(p.photo_url || null);
                                 setIsRegisterFormOpen(true);

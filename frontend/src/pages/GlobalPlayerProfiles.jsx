@@ -151,23 +151,6 @@ function SportCard({ sportName, sportData }) {
               <Trophy size={13} /> {sportData.expertise}
             </span>
           )}
-          {sportData.played_state_national === 'Yes' && (
-            <span
-              style={{
-                background: 'rgba(239, 68, 68, 0.2)',
-                color: 'var(--accent-danger)',
-                fontSize: '0.8rem',
-                padding: '0.3rem 0.6rem',
-                borderRadius: 'var(--radius-full)',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.3rem',
-              }}
-            >
-              <Medal size={13} /> State/Nat
-            </span>
-          )}
         </div>
       </div>
 

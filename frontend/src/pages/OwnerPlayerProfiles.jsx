@@ -125,7 +125,6 @@ function PlayerCard({ player }) {
   };
 
   const hasExpertise = player.expertise && player.expertise !== 'None';
-  const hasStateNat = player.played_state_national && player.played_state_national !== 'No' && player.played_state_national !== 'None';
 
   return (
     <div className="glass-card" style={{ 
@@ -174,15 +173,6 @@ function PlayerCard({ player }) {
               fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem'
             }}>
               <Trophy size={14} /> {player.expertise}
-            </span>
-          )}
-          {hasStateNat && (
-            <span style={{ 
-              background: 'rgba(239, 68, 68, 0.2)', color: 'var(--accent-danger)', 
-              fontSize: '0.85rem', padding: '0.35rem 0.65rem', borderRadius: 'var(--radius-full)',
-              fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem'
-            }}>
-              <Medal size={14} /> State/Nat
             </span>
           )}
         </div>

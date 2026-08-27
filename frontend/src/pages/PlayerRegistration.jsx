@@ -47,7 +47,6 @@ export default function PlayerRegistration() {
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('');
   const [expertise, setExpertise] = useState('');
-  const [playedStateNational, setPlayedStateNational] = useState('');
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [photo, setPhoto] = useState(null);
@@ -106,10 +105,7 @@ export default function PlayerRegistration() {
       setError('Please select your expertise level');
       return;
     }
-    if (!playedStateNational) {
-      setError('Please indicate if you have played State/National');
-      return;
-    }
+
     if (!paymentConfirmed && info?.entry_fees > 0) {
       setError('Please confirm your payment');
       return;
@@ -135,7 +131,6 @@ export default function PlayerRegistration() {
     formData.append('age', age);
     formData.append('gender', gender);
     formData.append('expertise', expertise);
-    formData.append('played_state_national', playedStateNational);
     formData.append('payment_confirmed', paymentConfirmed ? 'true' : 'false');
     formData.append('consent_accepted', consentAccepted ? 'true' : 'false');
     if (photo) {
@@ -200,7 +195,7 @@ export default function PlayerRegistration() {
             <button className="btn btn-primary" onClick={() => {
               setSuccess(false);
               setFirstName(''); setLastName(''); setMobile(''); setWing(''); setFlatNo('');
-              setAge(''); setGender(''); setExpertise(''); setPlayedStateNational('');
+              setAge(''); setGender(''); setExpertise('');
               setPaymentConfirmed(false); setConsentAccepted(false); setPhoto(null); setPhotoPreview(null);
               setError('');
             }}>
@@ -408,21 +403,6 @@ export default function PlayerRegistration() {
               <option value="Intermediate">Intermediate</option>
               <option value="Expert">Expert</option>
             </select>
-          </div>
-
-          {/* Played State/National */}
-          <div className="form-group">
-            <label className="form-label">Played State / National? <span style={{ color: '#ef4444' }}>*</span></label>
-            <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.25rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.95rem' }}>
-                <input type="radio" name="state_national" value="Yes" checked={playedStateNational === 'Yes'} onChange={e => setPlayedStateNational(e.target.value)} />
-                Yes
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.95rem' }}>
-                <input type="radio" name="state_national" value="No" checked={playedStateNational === 'No'} onChange={e => setPlayedStateNational(e.target.value)} />
-                No
-              </label>
-            </div>
           </div>
 
           {/* Photo Upload */}

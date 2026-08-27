@@ -105,7 +105,6 @@ async def add_player(
     age: int = Form(...),
     gender: str = Form(""),
     expertise: str = Form(...),
-    played_state_national: str = Form(...),
     photo: Optional[UploadFile] = File(None),
 ):
     data_tournament = database.get_tournament_data(tid)
@@ -163,7 +162,6 @@ async def add_player(
         flat_no=flat_no,
         age=age,
         expertise=expertise,
-        played_state_national=played_state_national,
         photo_url=photo_url,
         payment_confirmed=True, # Admin registering directly assumes payment is clear or irrelevant
         registered_at=datetime.now().isoformat(),
@@ -187,7 +185,6 @@ async def add_player(
                 "wing": wing,
                 "flat_no": flat_no,
                 "expertise": expertise,
-                "played_state_national": played_state_national,
                 "photo_url": photo_url,
                 "consent_accepted": False,
             },
@@ -246,11 +243,9 @@ def import_global_player(tid: str, payload: ImportGlobalPlayerRequest):
 
     # Extract sport expertise if available
     expertise = ""
-    played_state_national = "No"
     if sport in global_player.get("sports", {}):
         sport_data = global_player["sports"][sport]
         expertise = sport_data.get("expertise", "")
-        played_state_national = sport_data.get("played_state_national", "No")
 
     player = TournamentPlayer(
         tournament_id=tid,
@@ -263,7 +258,6 @@ def import_global_player(tid: str, payload: ImportGlobalPlayerRequest):
         flat_no=global_player.get("flat_no", ""),
         age=age,
         expertise=expertise,
-        played_state_national=played_state_national,
         photo_url=global_player.get("photo_url", ""),
         payment_confirmed=True, # Admin importing directly assumes payment is clear
         registered_at=datetime.now().isoformat(),
@@ -306,7 +300,6 @@ async def update_player(
     age: int = Form(...),
     gender: str = Form(""),
     expertise: str = Form(...),
-    played_state_national: str = Form(...),
     photo: Optional[UploadFile] = File(None),
 ):
     data_tournament = database.get_tournament_data(tid)
@@ -361,7 +354,6 @@ async def update_player(
         "flat_no": flat_no,
         "age": age,
         "expertise": expertise,
-        "played_state_national": played_state_national,
         "photo_url": photo_url,
     })
 
@@ -381,7 +373,6 @@ async def update_player(
                 "wing": wing,
                 "flat_no": flat_no,
                 "expertise": expertise,
-                "played_state_national": played_state_national,
                 "photo_url": photo_url,
             },
             sport=tournament.get("sport", ""),

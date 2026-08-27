@@ -78,7 +78,6 @@ def _empty_stat():
 def _empty_sport_block():
     return {
         "expertise": "",
-        "played_state_national": "",
         "tournaments": [],   # list of {tournament_id, tournament_name}
         "stats": {
             "total": _empty_stat(),
@@ -188,8 +187,6 @@ def upsert_global_player(
         # Update sport-level details
         if personal_data.get("expertise"):
             sport_block["expertise"] = personal_data["expertise"]
-        if personal_data.get("played_state_national"):
-            sport_block["played_state_national"] = personal_data["played_state_national"]
 
         # Add tournament reference if not already present
         if tournament_id:
@@ -419,8 +416,6 @@ def backfill_all():
             sport_block = player["sports"][sport]
             if p.get("expertise"):
                 sport_block["expertise"] = p["expertise"]
-            if p.get("played_state_national"):
-                sport_block["played_state_national"] = p["played_state_national"]
 
             # Add tournament ref
             existing_ids = {t["tournament_id"] for t in sport_block["tournaments"]}

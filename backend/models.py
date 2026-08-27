@@ -41,7 +41,6 @@ class TournamentPlayer(BaseModel):
     flat_no: str = ""
     age: Optional[int] = None
     expertise: str = ""           # "Beginner", "Intermediate", "Expert"
-    played_state_national: str = ""  # "Yes" or "No"
     photo_url: str = ""
     payment_confirmed: bool = False
     registered_at: str = ""

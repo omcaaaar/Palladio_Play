@@ -268,7 +268,6 @@ export default function OwnerDashboard() {
                                         <th>Gender</th>
                                         <th>Age</th>
                                         <th>Expertise</th>
-                                        <th>State/National</th>
                                       </tr>
                                     </thead>
                                     <tbody>
@@ -281,13 +280,6 @@ export default function OwnerDashboard() {
                                             {p.expertise && p.expertise !== 'None' ? (
                                               <span style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-secondary)', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: 600 }}>
                                                 {p.expertise}
-                                              </span>
-                                            ) : '-'}
-                                          </td>
-                                          <td>
-                                            {p.played_state_national && p.played_state_national !== 'No' && p.played_state_national !== 'None' ? (
-                                              <span style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-danger)', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: 600 }}>
-                                                Yes
                                               </span>
                                             ) : '-'}
                                           </td>

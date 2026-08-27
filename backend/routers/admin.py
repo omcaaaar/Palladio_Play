@@ -488,9 +488,9 @@ def start_auction(tid: str, config: dict):
     
     auction = {
         "status": "live",
-        "max_players": config.get("max_players", 8),
-        "total_points": config.get("total_points", 100),
-        "starting_bid": config.get("starting_bid", 10),
+        "max_players": config.get("max_players", 7),
+        "total_points": config.get("total_points", 1000),
+        "starting_bid": config.get("starting_bid", 20),
         "team_players": team_players,
     }
     result = database.update_auction(tid, auction)
@@ -512,3 +512,8 @@ def end_auction(tid: str):
     auction["status"] = "ended"
     database.update_auction(tid, auction)
     return {"message": "Auction ended. Players synced to teams.", "auction": auction}
+
+@router.delete("/tournaments/{tid}/auction")
+def delete_auction(tid: str):
+    database.update_auction(tid, None)
+    return {"message": "Auction deleted", "auction": None}

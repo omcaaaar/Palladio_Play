@@ -41,9 +41,9 @@ export default function AdminDashboard() {
 
   // Auction state
   const [auction, setAuction] = useState(null);
-  const [auctionMaxPlayers, setAuctionMaxPlayers] = useState(8);
-  const [auctionTotalPoints, setAuctionTotalPoints] = useState(100);
-  const [auctionStartingBid, setAuctionStartingBid] = useState(10);
+  const [auctionMaxPlayers, setAuctionMaxPlayers] = useState(7);
+  const [auctionTotalPoints, setAuctionTotalPoints] = useState(1000);
+  const [auctionStartingBid, setAuctionStartingBid] = useState(20);
   // Inline add player state per team: { [teamId]: { name, gender, points } }
   const [auctionPlayerForms, setAuctionPlayerForms] = useState({});
   const [isEditingAuctionParams, setIsEditingAuctionParams] = useState(false);
@@ -163,9 +163,9 @@ export default function AdminDashboard() {
       setTournamentPlayers(p);
       // Pre-fill auction config from saved state
       if (a && a.status !== 'idle') {
-        setAuctionMaxPlayers(a.max_players || 8);
-        setAuctionTotalPoints(a.total_points || 100);
-        setAuctionStartingBid(a.starting_bid || 10);
+        setAuctionMaxPlayers(a.max_players || 7);
+        setAuctionTotalPoints(a.total_points || 1000);
+        setAuctionStartingBid(a.starting_bid || 20);
       }
     } catch (e) { setError(e.message); }
   }
@@ -748,6 +748,18 @@ export default function AdminDashboard() {
     } catch (err) { setError(err.message); }
   }
 
+  function handleDeleteAuction() {
+    setPendingConfirmation({ type: 'deleteAuction' });
+  }
+
+  async function executeDeleteAuction() {
+    try {
+      await api.deleteAuction(selectedTournament.id);
+      setAuction(null);
+      setPendingConfirmation(null);
+    } catch (err) { setError(err.message); }
+  }
+
   async function executeGenerateLeagueFixtures() {
     try {
       await api.generateLeagueFixtures(selectedTournament.id);
@@ -766,6 +778,8 @@ export default function AdminDashboard() {
       executeDeletePlayer(pendingConfirmation.id);
     } else if (pendingConfirmation?.type === 'auction') {
       executeEndAuction();
+    } else if (pendingConfirmation?.type === 'deleteAuction') {
+      executeDeleteAuction();
     } else if (pendingConfirmation?.type === 'generateLeague') {
       executeGenerateLeagueFixtures();
     }
@@ -1034,9 +1048,11 @@ export default function AdminDashboard() {
         <Modal
           title={pendingConfirmation.type === 'auction'
             ? 'End Auction?'
-            : pendingConfirmation.type === 'generateLeague'
-              ? 'Generate League Fixtures?'
-              : `Delete ${pendingConfirmation.type === 'event' ? 'Event Type' : pendingConfirmation.type === 'player' ? 'Player' : 'Fixture'}?`}
+            : pendingConfirmation.type === 'deleteAuction'
+              ? 'Delete Auction?'
+              : pendingConfirmation.type === 'generateLeague'
+                ? 'Generate League Fixtures?'
+                : `Delete ${pendingConfirmation.type === 'event' ? 'Event Type' : pendingConfirmation.type === 'player' ? 'Player' : 'Fixture'}?`}
           onClose={() => setPendingConfirmation(null)}
         >
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
@@ -1053,16 +1069,20 @@ export default function AdminDashboard() {
               <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>
                 {pendingConfirmation.type === 'auction'
                   ? 'End the live auction?'
-                  : pendingConfirmation.type === 'generateLeague'
-                    ? 'Generate round robin league fixtures for all groups?'
-                    : `Delete “${pendingConfirmation.name}”?`}
+                  : pendingConfirmation.type === 'deleteAuction'
+                    ? 'Delete the entire auction?'
+                    : pendingConfirmation.type === 'generateLeague'
+                      ? 'Generate round robin league fixtures for all groups?'
+                      : `Delete “${pendingConfirmation.name}”?`}
               </p>
               <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 {pendingConfirmation.type === 'auction'
                   ? 'Players will be synced to their teams and the auction will be marked as ended.'
-                  : pendingConfirmation.type === 'generateLeague'
-                    ? 'This will delete any existing league fixtures and generate new round robin fixtures for all groups.'
-                    : pendingConfirmation.type === 'event'
+                  : pendingConfirmation.type === 'deleteAuction'
+                    ? 'This will completely remove the auction and all its data. Teams and players will remain unaffected, but any live auction progress will be lost.'
+                    : pendingConfirmation.type === 'generateLeague'
+                      ? 'This will delete any existing league fixtures and generate new round robin fixtures for all groups.'
+                      : pendingConfirmation.type === 'event'
                       ? 'This will permanently remove the event type and update the remaining event numbering.'
                       : pendingConfirmation.type === 'player'
                         ? 'This will permanently remove the registered player from this tournament.'
@@ -1092,9 +1112,11 @@ export default function AdminDashboard() {
               )}
               {pendingConfirmation.type === 'auction'
                 ? 'End Auction'
-                : pendingConfirmation.type === 'generateLeague'
-                  ? 'Generate Fixtures'
-                  : pendingConfirmation.type === 'player' ? 'Delete Player' : 'Delete'}
+                : pendingConfirmation.type === 'deleteAuction'
+                  ? 'Delete Auction'
+                  : pendingConfirmation.type === 'generateLeague'
+                    ? 'Generate Fixtures'
+                    : pendingConfirmation.type === 'player' ? 'Delete Player' : 'Delete'}
             </button>
           </div>
         </Modal>
@@ -1926,9 +1948,12 @@ export default function AdminDashboard() {
                     availablePlayers={tournamentPlayers.filter(p => !isPlayerAssigned(p.name))}
                   />
 
-                  <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                  <div style={{ marginTop: '1.5rem', textAlign: 'center', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                     <button className="btn" onClick={handleEndAuction} style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', fontSize: '1rem', padding: '0.75rem 2rem' }}>
                       End Auction
+                    </button>
+                    <button className="btn" onClick={handleDeleteAuction} style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', fontSize: '1rem', padding: '0.75rem 2rem' }}>
+                      Delete Auction
                     </button>
                   </div>
                 </>
@@ -1951,7 +1976,7 @@ export default function AdminDashboard() {
 
                   <AuctionTable auction={auction} teams={teams} editable={false} availablePlayers={tournamentPlayers.filter(p => !isPlayerAssigned(p.name))} />
 
-                  <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                  <div style={{ marginTop: '1.5rem', textAlign: 'center', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                     <button className="btn btn-primary" onClick={async () => {
                       const resumed = { ...auction, status: 'live' };
                       try {
@@ -1960,6 +1985,9 @@ export default function AdminDashboard() {
                       } catch (err) { setError(err.message); }
                     }} style={{ fontSize: '0.9rem', padding: '0.6rem 1.5rem' }}>
                       Resume Auction
+                    </button>
+                    <button className="btn" onClick={handleDeleteAuction} style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', fontSize: '0.9rem', padding: '0.6rem 1.5rem' }}>
+                      Delete Auction
                     </button>
                   </div>
                 </>
@@ -2075,215 +2103,153 @@ function Modal({ title, onClose, children, error, onClearError }) {
 }
 
 function AuctionTable({ auction, teams, editable = false, auctionPlayerForms, setAuctionPlayerForms, onAddPlayer, onRemovePlayer, availablePlayers = [] }) {
-  const [zoomLevel, setZoomLevel] = React.useState(1);
   if (!auction || !auction.team_players) return null;
 
   const { max_players, total_points, starting_bid, team_players } = auction;
-
-  // Filter teams to only those in the auction
   const auctionTeams = teams.filter(t => team_players[t.id] !== undefined);
 
-  const chunkedTeams = [];
-  for (let i = 0; i < auctionTeams.length; i += 5) {
-    chunkedTeams.push(auctionTeams.slice(i, i + 5));
+  if (auctionTeams.length === 0) {
+    return <p style={{ color: 'var(--text-secondary)', margin: 0, textAlign: 'center', padding: '2rem' }}>No teams assigned to auction.</p>;
   }
 
-  const summaryRowStyle = { fontWeight: 700, fontSize: '0.85rem', padding: '0.6rem 0.75rem' };
-  const summaryLabelStyle = { ...summaryRowStyle, color: 'var(--text-secondary)', textAlign: 'left' };
-  const summaryValueStyle = { ...summaryRowStyle, textAlign: 'center' };
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+      {auctionTeams.map((team) => {
+        const players = team_players[team.id] || [];
+        const playersRemaining = Number(max_players || 0) - players.length;
+        const consumed = players.reduce((sum, p) => sum + (Number(p.points) || 0), 0);
+        const pointsLeft = total_points - consumed;
+        const maxBid = playersRemaining > 0 ? pointsLeft - ((playersRemaining - 1) * starting_bid) : 0;
+        const isFull = players.length >= max_players;
+        const form = auctionPlayerForms?.[team.id] || { name: '', gender: 'Male', points: '' };
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '-1rem' }}>
-        <button onClick={() => setZoomLevel(z => Math.max(0.1, Number((z - 0.1).toFixed(1))))} className="btn btn-outline" style={{ padding: '0.5rem' }} title="Zoom Out"><ZoomOut size={16} /></button>
-        <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)', minWidth: '40px', justifyContent: 'center' }}>{Math.round(zoomLevel * 100)}%</span>
-        <button onClick={() => setZoomLevel(z => Math.min(2.0, Number((z + 0.1).toFixed(1))))} className="btn btn-outline" style={{ padding: '0.5rem' }} title="Zoom In"><ZoomIn size={16} /></button>
-      </div>
-      {chunkedTeams.map((chunk, chunkIdx) => (
-        <div key={chunkIdx} style={{ overflowX: 'auto', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-lg)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', zoom: zoomLevel }}>
-            <thead>
-              <tr>
-                {chunk.map((team, idx) => (
-                  <th key={team.id} colSpan={editable ? 5 : 4} style={{
-                    textAlign: 'center', padding: '0.75rem', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)',
-                    borderBottom: '2px solid var(--glass-border)', fontSize: '0.95rem', fontWeight: 700,
-                    borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none'
-                  }}>
-                    {team.name}
-                    {team.owners && <span style={{ fontWeight: 400, fontSize: '0.6rem', fontStyle: 'italic', color: 'var(--text-secondary)', display: 'block' }}>Owner: {team.owners}</span>}
-                  </th>
-                ))}
-              </tr>
-              <tr>
-                {chunk.map((team, idx) => (
-                  <React.Fragment key={`sub-${team.id}`}>
-                    <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', width: '40px', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>No.</th>
-                    <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'left' }}>Player</th>
-                    <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center' }}>Gender</th>
-                    <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center' }}>Pts</th>
-                    {editable && <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--glass-border)', width: '30px' }}></th>}
-                  </React.Fragment>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {/* Player rows */}
-              {Array.from({ length: max_players }).map((_, rowIdx) => (
-                <tr key={rowIdx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  {chunk.map((team, idx) => {
-                    const players = team_players[team.id] || [];
-                    const player = players[rowIdx];
+        return (
+          <div key={team.id} style={{ border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-lg)', background: 'rgba(255,255,255,0.02)', display: 'flex', flexDirection: 'column' }}>
+            {/* Header */}
+            <div style={{ padding: '0.6rem 0.8rem', background: 'rgba(59, 130, 246, 0.08)', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h4 style={{ margin: 0, color: 'var(--accent-primary)', fontSize: '1rem' }}>
+                  {team.name}
+                </h4>
+                {team.owners && <span style={{ fontWeight: 400, fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--text-secondary)', display: 'block', marginTop: '0.1rem' }}>Owner: {team.owners}</span>}
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', marginBottom: '0.1rem' }}>Max Bid</div>
+                <strong style={{ color: maxBid > 0 ? '#f59e0b' : 'var(--accent-danger)', fontSize: '1rem' }}>{maxBid > 0 ? maxBid : 0}</strong>
+              </div>
+            </div>
+
+            {/* Stats Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '0.5rem', borderBottom: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.01)' }}>
+              <div style={{ textAlign: 'center', borderRight: '1px solid var(--glass-border)' }}>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem' }}>Points Left</div>
+                <strong style={{ color: pointsLeft > 0 ? 'var(--accent-secondary)' : 'var(--accent-danger)', fontSize: '0.9rem' }}>{pointsLeft}</strong>
+              </div>
+              <div style={{ textAlign: 'center', borderRight: '1px solid var(--glass-border)' }}>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem' }}>Players Left</div>
+                <strong style={{ color: playersRemaining > 0 ? 'var(--text-primary)' : 'var(--accent-secondary)', fontSize: '0.9rem' }}>{playersRemaining}</strong>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem' }}>Consumed</div>
+                <strong style={{ color: 'var(--accent-primary)', fontSize: '0.9rem' }}>{consumed}</strong>
+              </div>
+            </div>
+
+            {/* Players Table */}
+            <div className="table-container" style={{ border: 0, borderRadius: 0, margin: 0, flex: 1 }}>
+              <table style={{ margin: 0, width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: '36px', textAlign: 'center', padding: '0.5rem', fontSize: '0.75rem' }}>#</th>
+                    <th style={{ padding: '0.5rem', fontSize: '0.75rem', textAlign: 'left' }}>Player</th>
+                    <th style={{ textAlign: 'center', padding: '0.5rem', fontSize: '0.75rem' }}>Pts</th>
+                    {editable && <th style={{ width: '36px', padding: '0.5rem' }}></th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({ length: max_players }).map((_, index) => {
+                    const player = players[index];
                     return (
-                      <React.Fragment key={`${team.id}-${rowIdx}`}>
-                        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>{rowIdx + 1}</td>
-                        <td style={{ padding: '0.5rem 0.75rem', fontWeight: player ? 500 : 400, color: player ? 'var(--text-primary)' : 'rgba(255,255,255,0.15)' }}>
-                          {player ? player.name : '—'}
+                      <tr key={`${team.id}-slot-${index}`} style={{ height: '36px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '0.3rem 0.5rem', fontSize: '0.8rem' }}>{index + 1}</td>
+                        <td style={{ padding: '0.3rem 0.5rem' }}>
+                          {player ? (
+                            <>
+                              <div style={{ fontWeight: 500, fontSize: '0.85rem' }}>{player.name}</div>
+                              <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{player.gender}</div>
+                            </>
+                          ) : (
+                            <div style={{ color: 'rgba(255,255,255,0.15)', fontSize: '0.85rem' }}>—</div>
+                          )}
                         </td>
-                        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: player ? 'var(--text-secondary)' : 'rgba(255,255,255,0.1)', fontSize: '0.8rem' }}>
-                          {player ? (player.gender === 'Male' ? 'M' : player.gender === 'Female' ? 'F' : player.gender) : '—'}
-                        </td>
-                        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: player ? 600 : 400, color: player ? 'var(--accent-primary)' : 'rgba(255,255,255,0.1)' }}>
+                        <td style={{ textAlign: 'center', color: player ? 'var(--accent-primary)' : 'rgba(255,255,255,0.1)', fontWeight: 'bold', padding: '0.3rem 0.5rem', fontSize: '0.85rem' }}>
                           {player ? player.points : '—'}
                         </td>
                         {editable && (
-                          <td style={{ padding: '0.25rem', textAlign: 'center' }}>
+                          <td style={{ textAlign: 'center', padding: '0.3rem 0.5rem' }}>
                             {player && (
-                              <button onClick={() => onRemovePlayer(team.id, rowIdx)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '2px', lineHeight: 1 }}>
+                              <button onClick={() => onRemovePlayer(team.id, index)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: '4px' }}>
                                 <X size={14} />
                               </button>
                             )}
                           </td>
                         )}
-                      </React.Fragment>
+                      </tr>
                     );
                   })}
-                </tr>
-              ))}
+                </tbody>
+              </table>
+            </div>
 
-              {/* Add player row (editable only) */}
-              {editable && (
-                <tr style={{ borderTop: '2px solid var(--glass-border)', background: 'rgba(59, 130, 246, 0.03)' }}>
-                  {chunk.map((team, idx) => {
-                    const players = team_players[team.id] || [];
-                    const isFull = players.length >= max_players;
-                    const form = auctionPlayerForms?.[team.id] || { name: '', gender: 'Male', points: '' };
-                    return (
-                      <React.Fragment key={`add-${team.id}`}>
-                        <td style={{ padding: '0.4rem 0.25rem', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}></td>
-                        <td colSpan={2} style={{ padding: '0.4rem 0.25rem' }}>
-                          <SearchableDropdown
-                            className="form-input"
-                            style={{ padding: '0.3rem 0.5rem', fontSize: '0.8rem', width: '100%', minWidth: '80px' }}
-                            placeholder={isFull ? 'Team is full' : 'Search player...'}
-                            disabled={isFull}
-                            value={form.name}
-                            onChange={(val) => {
-                              const selected = availablePlayers.find(p => p.name === val);
-                              setAuctionPlayerForms(prev => ({
-                                ...prev,
-                                [team.id]: { ...form, name: val, gender: selected?.gender || form.gender },
-                              }));
-                            }}
-                            options={[...availablePlayers].sort((a, b) => a.name.localeCompare(b.name)).map(p => p.name)}
-                          />
-                        </td>
-                        <td style={{ padding: '0.4rem 0.25rem' }}>
-                          <input
-                            type="text"
-                            className="form-input"
-                            style={{ padding: '0.3rem 0.5rem', fontSize: '0.8rem', width: '100%', minWidth: '50px' }}
-                            placeholder="Pts"
-                            disabled={isFull}
-                            value={form.points}
-                            onChange={e => {
-                              const val = e.target.value.replace(/[^0-9]/g, '');
-                              setAuctionPlayerForms(prev => ({ ...prev, [team.id]: { ...form, points: val } }))
-                            }}
-                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onAddPlayer(team.id); } }}
-                          />
-                        </td>
-                        <td style={{ padding: '0.4rem 0.25rem', textAlign: 'center' }}>
-                          <button
-                            className="btn btn-primary"
-                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', minWidth: 'unset' }}
-                            disabled={isFull || !form.name || !form.points}
-                            onClick={() => onAddPlayer(team.id)}
-                          >+</button>
-                        </td>
-                      </React.Fragment>
-                    );
-                  })}
-                </tr>
-              )}
-
-              {/* Separator */}
-              <tr><td colSpan={chunk.length * (editable ? 5 : 4)} style={{ padding: 0, height: '4px', background: 'var(--glass-border)' }}></td></tr>
-
-              {/* Points Consumed */}
-              <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
-                {chunk.map((team, idx) => {
-                  const players = team_players[team.id] || [];
-                  const consumed = players.reduce((sum, p) => sum + (p.points || 0), 0);
-                  return (
-                    <React.Fragment key={`consumed-${team.id}`}>
-                      <td colSpan={editable ? 4 : 3} style={{ ...summaryLabelStyle, borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>Points Consumed</td>
-                      <td style={{ ...summaryValueStyle, color: 'var(--accent-primary)' }}>{consumed}</td>
-                    </React.Fragment>
-                  );
-                })}
-              </tr>
-
-              {/* Points Left */}
-              <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
-                {chunk.map((team, idx) => {
-                  const players = team_players[team.id] || [];
-                  const consumed = players.reduce((sum, p) => sum + (p.points || 0), 0);
-                  const left = total_points - consumed;
-                  return (
-                    <React.Fragment key={`left-${team.id}`}>
-                      <td colSpan={editable ? 4 : 3} style={{ ...summaryLabelStyle, borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>Points Left</td>
-                      <td style={{ ...summaryValueStyle, color: left > 0 ? 'var(--accent-secondary)' : 'var(--accent-danger)' }}>{left}</td>
-                    </React.Fragment>
-                  );
-                })}
-              </tr>
-
-              {/* Players Left */}
-              <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
-                {chunk.map((team, idx) => {
-                  const players = team_players[team.id] || [];
-                  const playersLeft = max_players - players.length;
-                  return (
-                    <React.Fragment key={`pleft-${team.id}`}>
-                      <td colSpan={editable ? 4 : 3} style={{ ...summaryLabelStyle, borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>Players Left</td>
-                      <td style={{ ...summaryValueStyle, color: playersLeft > 0 ? 'var(--text-primary)' : 'var(--accent-secondary)' }}>{playersLeft}</td>
-                    </React.Fragment>
-                  );
-                })}
-              </tr>
-
-              {/* Max Bid */}
-              <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
-                {chunk.map((team, idx) => {
-                  const players = team_players[team.id] || [];
-                  const consumed = players.reduce((sum, p) => sum + (p.points || 0), 0);
-                  const pointsLeft = total_points - consumed;
-                  const playersLeft = max_players - players.length;
-                  const maxBid = playersLeft > 0 ? pointsLeft - ((playersLeft - 1) * starting_bid) : 0;
-                  return (
-                    <React.Fragment key={`maxbid-${team.id}`}>
-                      <td colSpan={editable ? 4 : 3} style={{ ...summaryLabelStyle, color: 'var(--accent-primary)', borderLeft: idx > 0 ? '2px solid rgba(255, 255, 255, 0.15)' : 'none' }}>Max Bid</td>
-                      <td style={{ ...summaryValueStyle, color: maxBid > 0 ? '#f59e0b' : 'var(--accent-danger)', fontSize: '1rem' }}>{maxBid > 0 ? maxBid : 0}</td>
-                    </React.Fragment>
-                  );
-                })}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      ))}
+            {/* Add Player Form */}
+            {editable && (
+              <div style={{ padding: '0.6rem', borderTop: '1px solid var(--glass-border)', background: 'rgba(59, 130, 246, 0.03)', borderBottomLeftRadius: 'var(--radius-lg)', borderBottomRightRadius: 'var(--radius-lg)' }}>
+                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                  <div style={{ flex: 1 }}>
+                    <SearchableDropdown
+                      className="form-input form-input-sm"
+                      placeholder={isFull ? 'Team is full' : 'Search player...'}
+                      disabled={isFull}
+                      value={form.name}
+                      onChange={(val) => {
+                        const selected = availablePlayers.find(p => p.name === val);
+                        setAuctionPlayerForms(prev => ({
+                          ...prev,
+                          [team.id]: { ...form, name: val, gender: selected?.gender || form.gender },
+                        }));
+                      }}
+                      options={[...availablePlayers].sort((a, b) => a.name.localeCompare(b.name)).map(p => p.name)}
+                    />
+                  </div>
+                  <div style={{ width: '60px' }}>
+                    <input
+                      type="text"
+                      className="form-input form-input-sm"
+                      style={{ textAlign: 'center' }}
+                      placeholder="Pts"
+                      disabled={isFull}
+                      value={form.points}
+                      onChange={e => {
+                        const val = e.target.value.replace(/[^0-9]/g, '');
+                        setAuctionPlayerForms(prev => ({ ...prev, [team.id]: { ...form, points: val } }))
+                      }}
+                      onKeyDown={e => { if (e.key === 'Enter' && form.name && form.points && !isFull) { e.preventDefault(); onAddPlayer(team.id); } }}
+                    />
+                  </div>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    style={{ width: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    disabled={isFull || !form.name || !form.points}
+                    onClick={() => onAddPlayer(team.id)}
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

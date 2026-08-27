@@ -200,6 +200,10 @@ export const endAuction = (tid) =>
   request(`/api/admin/tournaments/${tid}/auction/end`, {
     method: 'POST',
   });
+export const deleteAuction = (tid) =>
+  request(`/api/admin/tournaments/${tid}/auction`, {
+    method: 'DELETE',
+  });
 export const getPublicAuction = (tid) => request(`/api/public/tournaments/${tid}/auction`);
 
 // ── Registration ─────────────────────────────────────────────

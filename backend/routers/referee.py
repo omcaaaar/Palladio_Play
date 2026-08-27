@@ -86,9 +86,7 @@ def update_fixture_status_from_scorecards(tid: str, fixture_id: str):
                     database.update_fixture(tid, f["id"], {"status": "on_hold"})
                     
     database.update_fixture(tid, fixture_id, {"status": new_status})
-    
-    if new_status == "completed":
-        database.resolve_placeholders(tid)
+    database.resolve_placeholders(tid)
 
 @router.put("/tournaments/{tid}/scorecards/{scorecard_id}/start")
 async def start_scorecard(tid: str, scorecard_id: str, request: Request):

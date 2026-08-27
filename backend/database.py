@@ -451,7 +451,7 @@ def resolve_placeholders(tournament_id: str):
     for f in fixtures:
         for team_key, ph_key in [("team1_id", "team1_placeholder"), ("team2_id", "team2_placeholder")]:
             ph = f.get(ph_key)
-            if not f.get(team_key) and ph:
+            if ph:
                 parts = ph.split(":")
                 if len(parts) >= 2:
                     if parts[1].isdigit():
@@ -461,8 +461,14 @@ def resolve_placeholders(tournament_id: str):
                         
                         st = get_standings(grp)
                         if st and 0 <= pos < len(st):
-                            f[team_key] = st[pos]["id"]
-                            updated = True
+                            new_team_id = st[pos]["id"]
+                            if f.get(team_key) != new_team_id:
+                                f[team_key] = new_team_id
+                                updated = True
+                        else:
+                            if f.get(team_key) is not None:
+                                f[team_key] = None
+                                updated = True
                     elif parts[1].lower() in ["winner", "loser"]:
                         target_fid = parts[0].strip()
                         is_winner = parts[1].lower() == "winner"
@@ -476,11 +482,14 @@ def resolve_placeholders(tournament_id: str):
                             winning_team_id = target_f.get("team1_id") if t1_wins > t2_wins else target_f.get("team2_id")
                             losing_team_id = target_f.get("team2_id") if t1_wins > t2_wins else target_f.get("team1_id")
                             
-                            if is_winner and winning_team_id:
-                                f[team_key] = winning_team_id
+                            expected_team_id = winning_team_id if is_winner else losing_team_id
+                            
+                            if expected_team_id and f.get(team_key) != expected_team_id:
+                                f[team_key] = expected_team_id
                                 updated = True
-                            elif not is_winner and losing_team_id:
-                                f[team_key] = losing_team_id
+                        else:
+                            if f.get(team_key) is not None:
+                                f[team_key] = None
                                 updated = True
 
     if updated:

@@ -67,16 +67,16 @@ export default function BroadcasterDashboard() {
       return;
     }
 
-    const hasInProgress = fixtures.some(f => f.status === 'in_progress');
+    const hasInProgress = fixtures.some(f => !f.is_frozen && (f.status === 'in_progress' || f.status === 'completed'));
     if (hasInProgress) {
       setOverlayState('scorecard');
       return;
     }
 
-    const hasLocked = fixtures.some(f => f.status === 'completed' || f.status === 'abandoned');
+    const hasLocked = fixtures.some(f => f.is_frozen);
     if (hasLocked) {
       const leagueFixtures = fixtures.filter(f => f.match_type === 'league');
-      const allLeagueCompleted = leagueFixtures.length === 0 || leagueFixtures.every(f => f.status === 'completed' || f.status === 'abandoned');
+      const allLeagueCompleted = leagueFixtures.length === 0 || leagueFixtures.every(f => f.is_frozen);
 
       const playoffTypes = ['qualifier_1', 'eliminator', 'qualifier_2', 'semi_final', 'final'];
       const hasPlayoffs = fixtures.some(f => playoffTypes.includes(f.match_type));
@@ -153,7 +153,7 @@ export default function BroadcasterDashboard() {
     const { fixtures, teams, scorecards, events } = currentData;
     if (!fixtures || fixtures.length === 0) return null;
 
-    const activeFixture = fixtures.find(f => f.status === 'in_progress');
+    const activeFixture = fixtures.find(f => !f.is_frozen && (f.status === 'in_progress' || f.status === 'completed'));
     if (!activeFixture) return null;
 
     const team1 = teams.find(t => t.id === activeFixture.team1_id);
@@ -486,7 +486,7 @@ export default function BroadcasterDashboard() {
     }
   }, [isRecording]);
 
-  const activeFixture = tournamentData?.fixtures?.find(f => f.status === 'in_progress');
+  const activeFixture = tournamentData?.fixtures?.find(f => !f.is_frozen && (f.status === 'in_progress' || f.status === 'completed'));
 
   const renderHiddenUI = () => {
     if (!tournamentData) return null;

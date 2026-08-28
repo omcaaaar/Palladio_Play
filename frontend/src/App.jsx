@@ -1,6 +1,8 @@
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { Trophy, LogIn, LogOut } from 'lucide-react';
+import { LogIn, LogOut } from 'lucide-react';
+import logo from './assets/logo.png';
+
 
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
@@ -21,10 +23,10 @@ function Navbar({ user, logout }) {
   return (
     <nav className="navbar">
       <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <Trophy color="var(--accent-primary)" size={28} />
-        <h2 style={{ margin: 0, fontSize: '1.25rem', background: 'linear-gradient(to right, #60a5fa, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+        <img src={logo} alt="Palladio Logo" style={{ height: '50px', width: 'auto', objectFit: 'contain' }} />
+        <h1 style={{ margin: 0, background: 'none', WebkitTextFillColor: 'white', color: 'white' }}>
           Palladio Play
-        </h2>
+        </h1>
       </Link>
       <div className="nav-links" style={{ alignItems: 'center' }}>
         <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>Dashboard</Link>

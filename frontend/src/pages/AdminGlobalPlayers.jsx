@@ -312,7 +312,7 @@ export default function AdminGlobalPlayers() {
         setAllPlayers(data);
         setFilteredPlayers(data);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -404,7 +404,7 @@ export default function AdminGlobalPlayers() {
       formData.append('wing', editFormData.wing);
       formData.append('flat_no', editFormData.flat_no);
       formData.append('sports_expertise', JSON.stringify(editFormData.sports_expertise));
-      
+
       if (editPhotoFile) {
         formData.append('photo', editPhotoFile);
       } else if (!editPhotoPreview && profileData.photo_url) {
@@ -414,13 +414,13 @@ export default function AdminGlobalPlayers() {
       const res = await api.updateGlobalPlayer(selectedPlayer.key, formData);
       setProfileData(res.player);
       setIsEditing(false);
-      
+
       // Update in allPlayers/filteredPlayers if needed
       const updated = allPlayers.map(p => p.key === selectedPlayer.key ? { ...p, ...res.player } : p);
       setAllPlayers(updated);
       setFilteredPlayers(updated);
       setSelectedPlayer({ ...selectedPlayer, ...res.player });
-      
+
     } catch (err) {
       alert("Error saving profile: " + err.message);
     }
@@ -432,7 +432,7 @@ export default function AdminGlobalPlayers() {
       await api.deleteGlobalPlayer(selectedPlayer.key);
       setShowDeleteConfirm(false);
       clearSelection();
-      
+
       const updated = allPlayers.filter(p => p.key !== selectedPlayer.key);
       setAllPlayers(updated);
       setFilteredPlayers(updated);
@@ -460,7 +460,7 @@ export default function AdminGlobalPlayers() {
   async function handleAddGlobalPlayerSubmit(e) {
     e.preventDefault();
     setAddError('');
-    
+
     // Validations
     if (!addFormData.first_name.trim() || !addFormData.last_name.trim()) {
       setAddError('First name and last name are required'); return;
@@ -487,18 +487,18 @@ export default function AdminGlobalPlayers() {
       formData.append('age', addFormData.age);
       formData.append('wing', addFormData.wing);
       formData.append('flat_no', addFormData.flat_no);
-      
+
       if (addPhotoFile) {
         formData.append('photo', addPhotoFile);
       }
 
       const res = await api.addGlobalPlayer(formData);
-      
+
       // Update allPlayers list
       const updatedAll = [...allPlayers, res.player].sort((a, b) => a.name.localeCompare(b.name));
       setAllPlayers(updatedAll);
       setFilteredPlayers(updatedAll);
-      
+
       // Reset and close form
       setAddFormData({
         first_name: '', last_name: '', mobile: '', wing: '', flat_no: '',
@@ -506,10 +506,10 @@ export default function AdminGlobalPlayers() {
       });
       removeAddPhoto();
       setShowAddForm(false);
-      
+
       // Select the newly added player
       selectPlayer(res.player);
-      
+
     } catch (err) {
       setAddError("Error adding player: " + err.message);
     }
@@ -586,30 +586,30 @@ export default function AdminGlobalPlayers() {
               <X size={20} />
             </button>
           </div>
-          
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">First Name <span style={{ color: '#ef4444' }}>*</span></label>
-              <input className="form-input" placeholder="First name" value={addFormData.first_name} onChange={e => setAddFormData({...addFormData, first_name: e.target.value})} required />
+              <input className="form-input" placeholder="First name" value={addFormData.first_name} onChange={e => setAddFormData({ ...addFormData, first_name: e.target.value })} required />
             </div>
             <div className="form-group">
               <label className="form-label">Last Name <span style={{ color: '#ef4444' }}>*</span></label>
-              <input className="form-input" placeholder="Last name" value={addFormData.last_name} onChange={e => setAddFormData({...addFormData, last_name: e.target.value})} required />
+              <input className="form-input" placeholder="Last name" value={addFormData.last_name} onChange={e => setAddFormData({ ...addFormData, last_name: e.target.value })} required />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">Mobile Number <span style={{ color: '#ef4444' }}>*</span></label>
-              <input type="tel" pattern="\d{10}" title="10 digit mobile number" className="form-input" placeholder="e.g. 9876543210" value={addFormData.mobile} onChange={e => setAddFormData({...addFormData, mobile: e.target.value})} required />
+              <input type="tel" pattern="\d{10}" title="10 digit mobile number" className="form-input" placeholder="e.g. 9876543210" value={addFormData.mobile} onChange={e => setAddFormData({ ...addFormData, mobile: e.target.value })} required />
             </div>
             <div className="form-group">
               <label className="form-label">Age <span style={{ color: '#ef4444' }}>*</span></label>
-              <input type="number" min="1" max="100" className="form-input" placeholder="Age" value={addFormData.age} onChange={e => setAddFormData({...addFormData, age: e.target.value})} required />
+              <input type="number" min="1" max="100" className="form-input" placeholder="Age" value={addFormData.age} onChange={e => setAddFormData({ ...addFormData, age: e.target.value })} required />
             </div>
             <div className="form-group">
               <label className="form-label">Gender <span style={{ color: '#ef4444' }}>*</span></label>
-              <select className="form-input" value={addFormData.gender} onChange={e => setAddFormData({...addFormData, gender: e.target.value})} required>
+              <select className="form-input" value={addFormData.gender} onChange={e => setAddFormData({ ...addFormData, gender: e.target.value })} required>
                 <option value="">Select</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -620,16 +620,16 @@ export default function AdminGlobalPlayers() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">Wing <span style={{ color: '#ef4444' }}>*</span></label>
-              <select className="form-input" value={addFormData.wing} onChange={e => setAddFormData({...addFormData, wing: e.target.value})} required>
+              <select className="form-input" value={addFormData.wing} onChange={e => setAddFormData({ ...addFormData, wing: e.target.value })} required>
                 <option value="">Select Wing</option>
-                {'ABCDEFGHJKLMNP'.split('').map(w => (
-                  <option key={w} value={w}>Wing {w}</option>
+                {'ABCDE'.split('').map(w => (
+                  <option key={w} value={w}>{w}</option>
                 ))}
               </select>
             </div>
             <div className="form-group">
               <label className="form-label">Flat No <span style={{ color: '#ef4444' }}>*</span></label>
-              <input className="form-input" placeholder="e.g. 101" value={addFormData.flat_no} onChange={e => setAddFormData({...addFormData, flat_no: e.target.value})} required />
+              <input className="form-input" placeholder="e.g. 101" value={addFormData.flat_no} onChange={e => setAddFormData({ ...addFormData, flat_no: e.target.value })} required />
             </div>
           </div>
 
@@ -995,7 +995,7 @@ export default function AdminGlobalPlayers() {
               <h3 style={{ margin: 0 }}>Edit Player Profile</h3>
               <button onClick={() => setIsEditing(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><X size={20} /></button>
             </div>
-            
+
             <form onSubmit={handleSaveProfile}>
               <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem', alignItems: 'center' }}>
                 <div style={{
@@ -1025,22 +1025,22 @@ export default function AdminGlobalPlayers() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div className="form-group">
                   <label className="form-label">First Name (Read-only)</label>
-                  <input type="text" className="form-input" value={editFormData.first_name || ''} disabled style={{opacity: 0.7}} />
+                  <input type="text" className="form-input" value={editFormData.first_name || ''} disabled style={{ opacity: 0.7 }} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Last Name (Read-only)</label>
-                  <input type="text" className="form-input" value={editFormData.last_name || ''} disabled style={{opacity: 0.7}} />
+                  <input type="text" className="form-input" value={editFormData.last_name || ''} disabled style={{ opacity: 0.7 }} />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div className="form-group">
                   <label className="form-label">Age</label>
-                  <input type="number" className="form-input" value={editFormData.age || ''} onChange={e => setEditFormData({...editFormData, age: e.target.value})} />
+                  <input type="number" className="form-input" value={editFormData.age || ''} onChange={e => setEditFormData({ ...editFormData, age: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Gender</label>
-                  <select className="form-input" value={editFormData.gender || ''} onChange={e => setEditFormData({...editFormData, gender: e.target.value})}>
+                  <select className="form-input" value={editFormData.gender || ''} onChange={e => setEditFormData({ ...editFormData, gender: e.target.value })}>
                     <option value="">Select</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
@@ -1049,11 +1049,16 @@ export default function AdminGlobalPlayers() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Wing</label>
-                  <input type="text" className="form-input" value={editFormData.wing || ''} onChange={e => setEditFormData({...editFormData, wing: e.target.value})} />
+                  <select className="form-input" value={editFormData.wing || ''} onChange={e => setEditFormData({ ...editFormData, wing: e.target.value })}>
+                    <option value="">Select</option>
+                    {'ABCDE'.split('').map(w => (
+                      <option key={w} value={w}>{w}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Flat No</label>
-                  <input type="text" className="form-input" value={editFormData.flat_no || ''} onChange={e => setEditFormData({...editFormData, flat_no: e.target.value})} />
+                  <input type="text" className="form-input" value={editFormData.flat_no || ''} onChange={e => setEditFormData({ ...editFormData, flat_no: e.target.value })} />
                 </div>
               </div>
 

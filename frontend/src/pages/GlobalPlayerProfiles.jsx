@@ -24,7 +24,28 @@ const SPORT_CONFIG = {
     gradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(251, 191, 36, 0.15))',
     border: 'rgba(245, 158, 11, 0.3)',
     accent: '#fbbf24',
-    icon: '🏓',
+    icon: (
+      <svg width="1.1em" height="1.1em" viewBox="-3 -3 30 30" fill="none" style={{ verticalAlign: 'middle', overflow: 'visible' }}>
+        <defs>
+          <linearGradient id="paddleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ec4899" />
+            <stop offset="50%" stopColor="#8b5cf6" />
+            <stop offset="100%" stopColor="#3b82f6" />
+          </linearGradient>
+        </defs>
+        <g transform="rotate(25, 12, 12)">
+          <path d="M 9 1 H 15 A 3 3 0 0 1 18 4 V 12 C 18 14, 14 14, 14 16 V 22 L 14.5 22.5 Q 12 23.5 9.5 22.5 L 10 22 V 16 C 10 14, 6 14, 6 12 V 4 A 3 3 0 0 1 9 1 Z" fill="url(#paddleGrad)" />
+          <path d="M10 16 V 22 L 14.5 22.5 Q 12 23.5 9.5 22.5 L 10 22 V 16 Z" fill="#1f2937" />
+          <path d="M10 17h4v1h-4z M10 19h4v1h-4z M10 21h4v1h-4z" fill="#374151" />
+        </g>
+        <circle cx="18.5" cy="15" r="4.5" fill="#ccff00" stroke="#a3cc00" strokeWidth="0.5" />
+        <circle cx="18.5" cy="15" r="0.75" fill="#222" fillOpacity="0.4" />
+        <circle cx="18.5" cy="12.5" r="0.75" fill="#222" fillOpacity="0.4" />
+        <circle cx="18.5" cy="17.5" r="0.75" fill="#222" fillOpacity="0.4" />
+        <circle cx="16" cy="15" r="0.75" fill="#222" fillOpacity="0.4" />
+        <circle cx="21" cy="15" r="0.75" fill="#222" fillOpacity="0.4" />
+      </svg>
+    ),
   },
 };
 

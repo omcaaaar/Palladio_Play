@@ -289,6 +289,9 @@ function SportCard({ sportName, sportData }) {
 }
 
 // ── Main Page Component ──────────────────────────────────────
+const currentYear = new Date().getFullYear();
+const birthYearsList = Array.from({ length: currentYear - 1950 + 1 }, (_, i) => currentYear - i);
+
 export default function AdminGlobalPlayers() {
   const [allPlayers, setAllPlayers] = useState([]);
   const [filteredPlayers, setFilteredPlayers] = useState([]);
@@ -315,7 +318,7 @@ export default function AdminGlobalPlayers() {
     mobile: '',
     wing: '',
     flat_no: '',
-    age: '',
+    birth_year: '',
     gender: '',
     expertise: ''
   });
@@ -384,7 +387,7 @@ export default function AdminGlobalPlayers() {
       first_name: profileData.first_name || '',
       last_name: profileData.last_name || '',
       gender: profileData.gender || '',
-      age: profileData.age || '',
+      birth_year: profileData.birth_year || '',
       wing: profileData.wing || '',
       flat_no: profileData.flat_no || '',
       sports_expertise: Object.keys(profileData.sports || {}).reduce((acc, sport) => {
@@ -421,7 +424,7 @@ export default function AdminGlobalPlayers() {
       formData.append('first_name', editFormData.first_name);
       formData.append('last_name', editFormData.last_name);
       formData.append('gender', editFormData.gender);
-      formData.append('age', editFormData.age);
+      formData.append('birth_year', editFormData.birth_year);
       formData.append('wing', editFormData.wing);
       formData.append('flat_no', editFormData.flat_no);
       formData.append('sports_expertise', JSON.stringify(editFormData.sports_expertise));
@@ -493,8 +496,8 @@ export default function AdminGlobalPlayers() {
     if (!addFormData.flat_no || addFormData.flat_no.length < 3 || addFormData.flat_no.length > 4) {
       setAddError('Flat number must be 3 to 4 digits'); return;
     }
-    if (!addFormData.age || parseInt(addFormData.age) < 1) {
-      setAddError('Please enter a valid age'); return;
+    if (!addFormData.birth_year || parseInt(addFormData.birth_year) < 1900 || parseInt(addFormData.birth_year) > new Date().getFullYear()) {
+      setAddError('Please enter a valid birth year'); return;
     }
     if (!addFormData.gender) { setAddError('Please select gender'); return; }
 
@@ -505,7 +508,7 @@ export default function AdminGlobalPlayers() {
       formData.append('last_name', addFormData.last_name);
       formData.append('mobile', addFormData.mobile);
       formData.append('gender', addFormData.gender);
-      formData.append('age', addFormData.age);
+      formData.append('birth_year', addFormData.birth_year);
       formData.append('wing', addFormData.wing);
       formData.append('flat_no', addFormData.flat_no);
 
@@ -523,7 +526,7 @@ export default function AdminGlobalPlayers() {
       // Reset and close form
       setAddFormData({
         first_name: '', last_name: '', mobile: '', wing: '', flat_no: '',
-        age: '', gender: '', expertise: ''
+        birth_year: '', gender: '', expertise: ''
       });
       removeAddPhoto();
       setShowAddForm(false);
@@ -625,8 +628,13 @@ export default function AdminGlobalPlayers() {
               <input type="tel" pattern="\d{10}" title="10 digit mobile number" className="form-input" placeholder="e.g. 9876543210" value={addFormData.mobile} onChange={e => setAddFormData({ ...addFormData, mobile: e.target.value })} required />
             </div>
             <div className="form-group">
-              <label className="form-label">Age <span style={{ color: '#ef4444' }}>*</span></label>
-              <input type="number" min="1" max="100" className="form-input" placeholder="Age" value={addFormData.age} onChange={e => setAddFormData({ ...addFormData, age: e.target.value })} required />
+              <label className="form-label">Birth Year <span style={{ color: '#ef4444' }}>*</span></label>
+              <select className="form-input" value={addFormData.birth_year} onChange={e => setAddFormData({ ...addFormData, birth_year: e.target.value })} required>
+                <option value="" disabled>Select Year</option>
+                {birthYearsList.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
             </div>
             <div className="form-group">
               <label className="form-label">Gender <span style={{ color: '#ef4444' }}>*</span></label>
@@ -1056,8 +1064,13 @@ export default function AdminGlobalPlayers() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div className="form-group">
-                  <label className="form-label">Age</label>
-                  <input type="number" className="form-input" value={editFormData.age || ''} onChange={e => setEditFormData({ ...editFormData, age: e.target.value })} />
+                  <label className="form-label">Birth Year</label>
+                  <select className="form-input" value={editFormData.birth_year || ''} onChange={e => setEditFormData({ ...editFormData, birth_year: e.target.value })}>
+                    <option value="" disabled>Select Year</option>
+                    {birthYearsList.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Gender</label>

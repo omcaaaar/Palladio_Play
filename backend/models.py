@@ -40,6 +40,7 @@ class TournamentPlayer(BaseModel):
     wing: str = ""
     flat_no: str = ""
     age: Optional[int] = None
+    birth_year: Optional[int] = None
     expertise: str = ""           # "Beginner", "Intermediate", "Expert"
     photo_url: str = ""
     payment_confirmed: bool = False

@@ -158,6 +158,7 @@ def upsert_global_player(
             "mobile": mobile,
             "gender": personal_data.get("gender", ""),
             "age": personal_data.get("age"),
+            "birth_year": personal_data.get("birth_year"),
             "wing": personal_data.get("wing", ""),
             "flat_no": personal_data.get("flat_no", ""),
             "photo_url": personal_data.get("photo_url", ""),
@@ -168,7 +169,7 @@ def upsert_global_player(
         # Update personal details (latest registration wins)
         player = data[key]
         player["name"] = name
-        for field in ("first_name", "last_name", "gender", "age", "wing", "flat_no"):
+        for field in ("first_name", "last_name", "gender", "age", "birth_year", "wing", "flat_no"):
             if personal_data.get(field):
                 player[field] = personal_data[field]
         # Preserve consent if it was already True in the database
@@ -209,7 +210,7 @@ def update_global_player(key: str, personal_data: dict, photo_url: str = None) -
     player = data[key]
     
     # Update personal fields
-    for field in ("first_name", "last_name", "gender", "age", "wing", "flat_no"):
+    for field in ("first_name", "last_name", "gender", "age", "birth_year", "wing", "flat_no"):
         if field in personal_data:
             player[field] = personal_data[field]
             
@@ -395,6 +396,7 @@ def backfill_all():
                     "mobile": mobile,
                     "gender": p.get("gender", ""),
                     "age": p.get("age"),
+                    "birth_year": p.get("birth_year"),
                     "wing": p.get("wing", ""),
                     "flat_no": p.get("flat_no", ""),
                     "photo_url": p.get("photo_url", ""),
@@ -403,7 +405,7 @@ def backfill_all():
             else:
                 # Update personal details
                 player = data[key]
-                for field in ("first_name", "last_name", "gender", "age", "wing", "flat_no"):
+                for field in ("first_name", "last_name", "gender", "age", "birth_year", "wing", "flat_no"):
                     if p.get(field):
                         player[field] = p[field]
                 if p.get("photo_url"):

@@ -60,7 +60,7 @@ async def register_player(
     mobile: str = Form(...),
     wing: str = Form(...),
     flat_no: str = Form(...),
-    age: int = Form(...),
+    birth_year: int = Form(...),
     gender: str = Form(""),
     expertise: str = Form(...),
     payment_confirmed: bool = Form(...),
@@ -96,6 +96,10 @@ async def register_player(
     if category == "Adults" and not gender:
         raise HTTPException(400, "Gender is required for Adults tournaments")
 
+    # Compute age from birth_year
+    from datetime import datetime
+    age = datetime.now().year - birth_year
+
     # For Kids tournaments, derive category from age
     player_gender = gender
     if category == "Kids":
@@ -128,6 +132,7 @@ async def register_player(
         wing=wing,
         flat_no=flat_no,
         age=age,
+        birth_year=birth_year,
         expertise=expertise,
         photo_url=photo_url,
         payment_confirmed=payment_confirmed,
@@ -149,6 +154,7 @@ async def register_player(
                 "last_name": last_name.strip(),
                 "gender": player_gender,
                 "age": age,
+                "birth_year": birth_year,
                 "wing": wing,
                 "flat_no": flat_no,
                 "expertise": expertise,

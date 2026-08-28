@@ -48,7 +48,7 @@ async def add_global_player(
     mobile: str = Form(...),
     wing: str = Form(...),
     flat_no: str = Form(...),
-    age: int = Form(...),
+    birth_year: int = Form(...),
     gender: str = Form(...),
     photo: UploadFile = File(None)
 ):
@@ -64,11 +64,15 @@ async def add_global_player(
         except Exception as e:
             print(f"Photo upload failed: {e}")
 
+    from datetime import datetime
+    age = datetime.now().year - birth_year
+
     personal_data = {
         "first_name": first_name.strip(),
         "last_name": last_name.strip(),
         "gender": gender,
         "age": age,
+        "birth_year": birth_year,
         "wing": wing,
         "flat_no": flat_no,
         "photo_url": photo_url
@@ -105,7 +109,7 @@ async def update_global_player(
     first_name: str = Form(None),
     last_name: str = Form(None),
     gender: str = Form(None),
-    age: int = Form(None),
+    birth_year: int = Form(None),
     wing: str = Form(None),
     flat_no: str = Form(None),
     sports_expertise: str = Form(None), # JSON string of dict {sport: expertise}
@@ -143,8 +147,10 @@ async def update_global_player(
         personal_data["last_name"] = last_name
     if gender is not None:
         personal_data["gender"] = gender
-    if age is not None:
-        personal_data["age"] = age
+    if birth_year is not None:
+        from datetime import datetime
+        personal_data["birth_year"] = birth_year
+        personal_data["age"] = datetime.now().year - birth_year
     if wing is not None:
         personal_data["wing"] = wing
     if flat_no is not None:

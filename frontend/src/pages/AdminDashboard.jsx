@@ -5,6 +5,9 @@ import * as api from '../api/client';
 import CustomDatePicker from '../components/CustomDatePicker';
 import SearchableDropdown from '../components/SearchableDropdown';
 
+const currentYear = new Date().getFullYear();
+const birthYearsList = Array.from({ length: currentYear - 1950 + 1 }, (_, i) => currentYear - i);
+
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('tournaments');
   const [tournaments, setTournaments] = useState([]);
@@ -22,7 +25,7 @@ export default function AdminDashboard() {
   const [newPlayerMobile, setNewPlayerMobile] = useState('');
   const [newPlayerWing, setNewPlayerWing] = useState('');
   const [newPlayerFlatNo, setNewPlayerFlatNo] = useState('');
-  const [newPlayerAge, setNewPlayerAge] = useState('');
+  const [newPlayerBirthYear, setNewPlayerBirthYear] = useState('');
   const [newPlayerGender, setNewPlayerGender] = useState('');
   const [newPlayerExpertise, setNewPlayerExpertise] = useState('');
   const [newPlayerPhoto, setNewPlayerPhoto] = useState(null);
@@ -546,8 +549,8 @@ export default function AdminDashboard() {
       setError('Flat number must be 3 to 4 digits');
       return;
     }
-    if (!newPlayerAge || parseInt(newPlayerAge) < 1) {
-      setError('Please enter a valid age');
+    if (!newPlayerBirthYear || parseInt(newPlayerBirthYear) < 1900 || parseInt(newPlayerBirthYear) > new Date().getFullYear()) {
+      setError('Please enter a valid birth year');
       return;
     }
     if (selectedTournament?.category === 'Adults' && !newPlayerGender) {
@@ -575,7 +578,7 @@ export default function AdminDashboard() {
     formData.append('mobile', newPlayerMobile);
     formData.append('wing', newPlayerWing);
     formData.append('flat_no', newPlayerFlatNo);
-    formData.append('age', newPlayerAge);
+    formData.append('birth_year', newPlayerBirthYear);
     formData.append('gender', newPlayerGender);
     formData.append('expertise', newPlayerExpertise);
     if (newPlayerPhoto) {
@@ -603,7 +606,7 @@ export default function AdminDashboard() {
       setNewPlayerMobile('');
       setNewPlayerWing('');
       setNewPlayerFlatNo('');
-      setNewPlayerAge('');
+      setNewPlayerBirthYear('');
       setNewPlayerGender('');
       setNewPlayerExpertise('');
       removePhoto();
@@ -1551,8 +1554,13 @@ export default function AdminDashboard() {
 
                   <div style={{ display: 'grid', gridTemplateColumns: selectedTournament?.category === 'Adults' ? '1fr 1fr' : '1fr', gap: '1rem' }}>
                     <div className="form-group">
-                      <label className="form-label">Age <span style={{ color: '#ef4444' }}>*</span></label>
-                      <input type="number" className="form-input" placeholder="Age" value={newPlayerAge} onChange={e => setNewPlayerAge(e.target.value)} min="1" max="99" required />
+                      <label className="form-label">Birth Year <span style={{ color: '#ef4444' }}>*</span></label>
+                      <select className="form-input" value={newPlayerBirthYear} onChange={e => setNewPlayerBirthYear(e.target.value)} required>
+                        <option value="" disabled>Select Year</option>
+                        {birthYearsList.map(year => (
+                          <option key={year} value={year}>{year}</option>
+                        ))}
+                      </select>
                     </div>
                     {selectedTournament?.category === 'Adults' && (
                       <div className="form-group">
@@ -1566,9 +1574,9 @@ export default function AdminDashboard() {
                     )}
                   </div>
 
-                  {selectedTournament?.category === 'Kids' && selectedTournament?.kids_age_limit && newPlayerAge && (
-                    <div style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', background: parseInt(newPlayerAge) <= selectedTournament.kids_age_limit ? 'rgba(59, 130, 246, 0.1)' : 'rgba(168, 85, 247, 0.1)', border: parseInt(newPlayerAge) <= selectedTournament.kids_age_limit ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(168, 85, 247, 0.3)', fontSize: '0.85rem', color: parseInt(newPlayerAge) <= selectedTournament.kids_age_limit ? '#60a5fa' : '#a855f7' }}>
-                      Category: <strong>{parseInt(newPlayerAge) <= selectedTournament.kids_age_limit ? 'Junior' : 'Senior'}</strong>
+                  {selectedTournament?.category === 'Kids' && selectedTournament?.kids_age_limit && newPlayerBirthYear && (
+                    <div style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', background: (new Date().getFullYear() - parseInt(newPlayerBirthYear)) <= selectedTournament.kids_age_limit ? 'rgba(59, 130, 246, 0.1)' : 'rgba(168, 85, 247, 0.1)', border: (new Date().getFullYear() - parseInt(newPlayerBirthYear)) <= selectedTournament.kids_age_limit ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(168, 85, 247, 0.3)', fontSize: '0.85rem', color: (new Date().getFullYear() - parseInt(newPlayerBirthYear)) <= selectedTournament.kids_age_limit ? '#60a5fa' : '#a855f7' }}>
+                      Category: <strong>{(new Date().getFullYear() - parseInt(newPlayerBirthYear)) <= selectedTournament.kids_age_limit ? 'Junior' : 'Senior'}</strong>
                     </div>
                   )}
 
@@ -1670,7 +1678,7 @@ export default function AdminDashboard() {
                                 setNewPlayerMobile(p.mobile || '');
                                 setNewPlayerWing(p.wing || '');
                                 setNewPlayerFlatNo(p.flat_no || '');
-                                setNewPlayerAge(p.age || '');
+                                setNewPlayerBirthYear(p.birth_year || '');
                                 setNewPlayerGender(p.gender || '');
                                 setNewPlayerExpertise(p.expertise || '');
                                 setNewPlayerPhoto(null);

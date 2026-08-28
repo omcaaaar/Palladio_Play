@@ -27,6 +27,9 @@ function formatDeadline(deadlineStr) {
   }
 }
 
+const currentYear = new Date().getFullYear();
+const birthYearsList = Array.from({ length: currentYear - 1950 + 1 }, (_, i) => currentYear - i);
+
 export default function PlayerRegistration() {
   const [searchParams] = useSearchParams();
   const tid = searchParams.get('tid');
@@ -44,7 +47,7 @@ export default function PlayerRegistration() {
   const [mobile, setMobile] = useState('');
   const [wing, setWing] = useState('');
   const [flatNo, setFlatNo] = useState('');
-  const [age, setAge] = useState('');
+  const [birthYear, setBirthYear] = useState('');
   const [gender, setGender] = useState('');
   const [expertise, setExpertise] = useState('');
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
@@ -93,8 +96,8 @@ export default function PlayerRegistration() {
       setError('Flat number must be 3 to 4 digits');
       return;
     }
-    if (!age || parseInt(age) < 1) {
-      setError('Please enter a valid age');
+    if (!birthYear || parseInt(birthYear) < 1900 || parseInt(birthYear) > new Date().getFullYear()) {
+      setError('Please enter a valid birth year');
       return;
     }
     if (info?.category === 'Adults' && !gender) {
@@ -128,7 +131,7 @@ export default function PlayerRegistration() {
     formData.append('mobile', mobile);
     formData.append('wing', wing);
     formData.append('flat_no', flatNo);
-    formData.append('age', age);
+    formData.append('birth_year', birthYear);
     formData.append('gender', gender);
     formData.append('expertise', expertise);
     formData.append('payment_confirmed', paymentConfirmed ? 'true' : 'false');
@@ -195,7 +198,7 @@ export default function PlayerRegistration() {
             <button className="btn btn-primary" onClick={() => {
               setSuccess(false);
               setFirstName(''); setLastName(''); setMobile(''); setWing(''); setFlatNo('');
-              setAge(''); setGender(''); setExpertise('');
+              setBirthYear(''); setGender(''); setExpertise('');
               setPaymentConfirmed(false); setConsentAccepted(false); setPhoto(null); setPhotoPreview(null);
               setError('');
             }}>
@@ -354,20 +357,21 @@ export default function PlayerRegistration() {
             </div>
           </div>
 
-          {/* Age & Gender */}
-          <div style={{ display: 'grid', gridTemplateColumns: info?.category === 'Adults' ? '1fr 1fr' : '1fr', gap: '1rem' }}>
-            <div className="form-group">
-              <label className="form-label">Age <span style={{ color: '#ef4444' }}>*</span></label>
-              <input
-                type="number"
+          {/* Birth Year & Gender */}
+          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: info?.category === 'Adults' ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Birth Year <span style={{ color: '#ef4444' }}>*</span></label>
+              <select
                 className="form-input"
-                placeholder="Your age"
-                value={age}
-                onChange={e => setAge(e.target.value)}
-                min="1"
-                max="99"
+                value={birthYear}
+                onChange={e => setBirthYear(e.target.value)}
                 required
-              />
+              >
+                <option value="" disabled>Select Year</option>
+                {birthYearsList.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
             </div>
             {info?.category === 'Adults' && (
               <div className="form-group">
@@ -381,15 +385,17 @@ export default function PlayerRegistration() {
             )}
           </div>
 
-          {info?.category === 'Kids' && info?.kids_age_limit && age && (
+          {info?.category === 'Kids' && info?.kids_age_limit && birthYear && (
             <div style={{
-              padding: '0.5rem 0.75rem', marginBottom: '1rem', borderRadius: 'var(--radius-md)',
-              background: parseInt(age) <= info.kids_age_limit ? 'rgba(59, 130, 246, 0.1)' : 'rgba(168, 85, 247, 0.1)',
-              border: parseInt(age) <= info.kids_age_limit ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(168, 85, 247, 0.3)',
-              fontSize: '0.85rem',
-              color: parseInt(age) <= info.kids_age_limit ? '#60a5fa' : '#a855f7',
+              marginTop: '0.5rem',
+              padding: '0.75rem',
+              borderRadius: '0.5rem',
+              background: (new Date().getFullYear() - parseInt(birthYear)) <= info.kids_age_limit ? 'rgba(59, 130, 246, 0.1)' : 'rgba(168, 85, 247, 0.1)',
+              border: (new Date().getFullYear() - parseInt(birthYear)) <= info.kids_age_limit ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(168, 85, 247, 0.3)',
+              fontSize: '0.875rem',
+              color: (new Date().getFullYear() - parseInt(birthYear)) <= info.kids_age_limit ? '#60a5fa' : '#a855f7',
             }}>
-              Category: <strong>{parseInt(age) <= info.kids_age_limit ? 'Junior' : 'Senior'}</strong>
+              Category: <strong>{(new Date().getFullYear() - parseInt(birthYear)) <= info.kids_age_limit ? 'Junior' : 'Senior'}</strong>
               {' '}(Age limit for Junior: ≤{info.kids_age_limit})
             </div>
           )}

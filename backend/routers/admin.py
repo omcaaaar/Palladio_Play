@@ -135,6 +135,10 @@ async def add_player(
     if category == "Adults" and not gender:
         raise HTTPException(400, "Gender is required for Adults tournaments")
 
+    # Compute age from birth_year
+    from datetime import datetime
+    age = datetime.now().year - birth_year
+
     # For Kids tournaments, derive category from age
     player_gender = gender
     if category == "Kids":
@@ -161,6 +165,7 @@ async def add_player(
         wing=wing,
         flat_no=flat_no,
         age=age,
+        birth_year=birth_year,
         expertise=expertise,
         photo_url=photo_url,
         payment_confirmed=True, # Admin registering directly assumes payment is clear or irrelevant
@@ -181,7 +186,7 @@ async def add_player(
                 "first_name": first_name.strip(),
                 "last_name": last_name.strip(),
                 "gender": player_gender,
-                "age": age,
+                "birth_year": birth_year,
                 "wing": wing,
                 "flat_no": flat_no,
                 "expertise": expertise,
@@ -219,9 +224,11 @@ def import_global_player(tid: str, payload: ImportGlobalPlayerRequest):
 
     mobile = global_player.get("mobile", "")
     full_name = global_player.get("name", "")
-    age = global_player.get("age", 0)
-    if age is None:
-        age = 0
+    birth_year = global_player.get("birth_year")
+    if birth_year:
+        age = datetime.now().year - birth_year
+    else:
+        age = global_player.get("age", 0)
     gender = global_player.get("gender", "")
 
     # Check for duplicate registration by name + mobile
@@ -257,6 +264,7 @@ def import_global_player(tid: str, payload: ImportGlobalPlayerRequest):
         wing=global_player.get("wing", ""),
         flat_no=global_player.get("flat_no", ""),
         age=age,
+        birth_year=global_player.get("birth_year", None),
         expertise=expertise,
         photo_url=global_player.get("photo_url", ""),
         payment_confirmed=True, # Admin importing directly assumes payment is clear
@@ -297,7 +305,7 @@ async def update_player(
     mobile: str = Form(...),
     wing: str = Form(...),
     flat_no: str = Form(...),
-    age: int = Form(...),
+    birth_year: int = Form(...),
     gender: str = Form(""),
     expertise: str = Form(...),
     photo: Optional[UploadFile] = File(None),
@@ -330,6 +338,10 @@ async def update_player(
     if category == "Adults" and not gender:
         raise HTTPException(400, "Gender is required for Adults tournaments")
 
+    # Compute age from birth_year
+    from datetime import datetime
+    age = datetime.now().year - birth_year
+
     player_gender = gender
     if category == "Kids":
         kids_age_limit = tournament.get("kids_age_limit", 12)
@@ -356,6 +368,7 @@ async def update_player(
         "wing": wing,
         "flat_no": flat_no,
         "age": age,
+        "birth_year": birth_year,
         "expertise": expertise,
         "photo_url": photo_url,
     })
@@ -373,6 +386,7 @@ async def update_player(
                 "last_name": last_name.strip(),
                 "gender": player_gender,
                 "age": age,
+                "birth_year": birth_year,
                 "wing": wing,
                 "flat_no": flat_no,
                 "expertise": expertise,

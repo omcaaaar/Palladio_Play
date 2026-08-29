@@ -75,23 +75,25 @@ def _empty_stat():
     return {"played": 0, "won": 0, "lost": 0, "points_won": 0, "points_lost": 0}
 
 
+def _create_empty_stats():
+    return {
+        "total": _empty_stat(),
+        "mens_singles": _empty_stat(),
+        "mens_doubles": _empty_stat(),
+        "womens_singles": _empty_stat(),
+        "womens_doubles": _empty_stat(),
+        "mixed_doubles": _empty_stat(),
+        "junior_singles": _empty_stat(),
+        "senior_singles": _empty_stat(),
+        "junior_doubles": _empty_stat(),
+        "senior_doubles": _empty_stat(),
+        "team": _empty_stat(),
+    }
+
+
 def _empty_sport_block():
     return {
         "expertise": "",
-        "tournaments": [],   # list of {tournament_id, tournament_name}
-        "stats": {
-            "total": _empty_stat(),
-            "mens_singles": _empty_stat(),
-            "mens_doubles": _empty_stat(),
-            "womens_singles": _empty_stat(),
-            "womens_doubles": _empty_stat(),
-            "mixed_doubles": _empty_stat(),
-            "junior_singles": _empty_stat(),
-            "senior_singles": _empty_stat(),
-            "junior_doubles": _empty_stat(),
-            "senior_doubles": _empty_stat(),
-            "team": _empty_stat(),
-        },
     }
 
 
@@ -193,15 +195,6 @@ def upsert_global_player(
         if personal_data.get("expertise"):
             sport_block["expertise"] = personal_data["expertise"]
 
-        # Add tournament reference if not already present
-        if tournament_id:
-            existing_ids = {t["tournament_id"] for t in sport_block["tournaments"]}
-            if tournament_id not in existing_ids:
-                sport_block["tournaments"].append({
-                    "tournament_id": tournament_id,
-                    "tournament_name": tournament_name,
-                })
-
     _write_all(data)
 
 
@@ -262,8 +255,7 @@ def populate_dynamic_stats(player: dict, key: str) -> dict:
     # Reset all stats and tournaments before calculating
     for sport, sport_block in player.get("sports", {}).items():
         sport_block["tournaments"] = []
-        for stat_key in sport_block.get("stats", {}):
-            sport_block["stats"][stat_key] = _empty_stat()
+        sport_block["stats"] = _create_empty_stats()
             
     all_tournaments = _get_all_tournament_data()
     

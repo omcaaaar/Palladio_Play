@@ -1,5 +1,11 @@
 const isDev = import.meta.env.DEV;
 const API = isDev ? `http://${window.location.hostname}:8000` : '';
+function formatError(err, defaultMsg) {
+  if (err && Array.isArray(err.detail)) {
+    return err.detail.map(d => d.msg || d.type || 'Validation error').join(', ');
+  }
+  return err?.detail || err?.message || defaultMsg;
+}
 
 async function request(path, options = {}) {
   const res = await fetch(`${API}${path}`, {
@@ -9,7 +15,7 @@ async function request(path, options = {}) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || 'Request failed');
+    throw new Error(formatError(err, 'Request failed'));
   }
   return res.json();
 }
@@ -70,7 +76,7 @@ export async function addPlayer(tid, formData) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || 'Request failed');
+    throw new Error(formatError(err, 'Request failed'));
   }
   return res.json();
 }
@@ -86,7 +92,7 @@ export async function updatePlayer(tid, playerId, formData) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || 'Request failed');
+    throw new Error(formatError(err, 'Request failed'));
   }
   return res.json();
 }
@@ -222,7 +228,7 @@ export async function registerPlayer(tid, formData) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || 'Registration failed');
+    throw new Error(formatError(err, 'Registration failed'));
   }
   return res.json();
 }
@@ -244,7 +250,7 @@ export async function updateGlobalPlayer(key, formData) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || 'Update failed');
+    throw new Error(formatError(err, 'Update failed'));
   }
   return res.json();
 }
@@ -257,7 +263,7 @@ export async function addGlobalPlayer(formData) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || 'Add failed');
+    throw new Error(formatError(err, 'Add failed'));
   }
   return res.json();
 }

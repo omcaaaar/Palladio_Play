@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 from datetime import datetime
 import uuid
@@ -72,6 +72,19 @@ class Fixture(BaseModel):
     status: str = "pending"  # pending, in_progress, completed
     date_time: Optional[str] = None
     is_frozen: bool = False
+
+    @field_validator('team1_placeholder', 'team2_placeholder')
+    @classmethod
+    def validate_placeholder(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return v
+        parts = v.split(':')
+        if len(parts) != 2:
+            raise ValueError("Placeholder must contain exactly one ':' character (e.g., 'A:1', 'match_id:winner')")
+        suffix = parts[1]
+        if suffix not in ("winner", "loser") and not suffix.isdigit():
+            raise ValueError("Placeholder suffix after ':' must be 'winner', 'loser', or a number")
+        return v
 
 
 

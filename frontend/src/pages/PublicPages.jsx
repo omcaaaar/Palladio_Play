@@ -989,11 +989,7 @@ function calculateMvp(teams, events, scorecards) {
       }); 
     }); 
   }); 
-  return Object.values(players).sort((a, b) => { 
-    const mvpDifference = b.mvpPoints - a.mvpPoints; 
-    if (Math.abs(mvpDifference) <= 0.5) return b.wins / (b.events || 1) - a.wins / (a.events || 1) || b.pointDifference - a.pointDifference; 
-    return mvpDifference; 
-  }); 
+  return Object.values(players).sort((a, b) => b.mvpPoints - a.mvpPoints);
 }
 
 export function MvpPage() { 

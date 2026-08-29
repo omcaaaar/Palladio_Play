@@ -152,11 +152,48 @@ export default function Dashboard() {
       <div>
         <h1>Tournament Hub</h1>
         {tournaments.length === 0 ? (
-          <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
-            <Trophy size={48} color="var(--text-secondary)" style={{ marginBottom: '1rem' }} />
-            <h3>No Tournaments Available</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>Ask an admin to create a tournament to get started.</p>
-          </div>
+          <>
+            <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
+              <Trophy size={48} color="var(--text-secondary)" style={{ marginBottom: '1rem' }} />
+              <h3>No Tournaments Available</h3>
+              <p style={{ color: 'var(--text-secondary)' }}>Ask an admin to create a tournament to get started.</p>
+            </div>
+            
+            {/* ── Palladio Community Section ── */}
+            <div style={{ marginTop: '2.5rem' }}>
+              <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '3px',
+                  height: '24px',
+                  background: 'linear-gradient(to bottom, #a78bfa, #f472b6)',
+                  borderRadius: '2px',
+                }} />
+                <h2 style={{
+                  margin: 0,
+                  fontSize: '1.3rem',
+                  background: 'linear-gradient(to right, #a78bfa, #f472b6)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}>
+                  Palladio Community
+                </h2>
+              </div>
+              <div className="dashboard-tiles">
+                <Link to="/global-players" className="dashboard-tile tile-violet" style={{
+                  borderColor: 'rgba(167, 139, 250, 0.3)',
+                }}>
+                  <span className="tile-icon" aria-hidden="true">
+                    <Users size={25} strokeWidth={2.25} />
+                  </span>
+                  <span className="tile-copy">
+                    <strong>Global Player Profiles</strong>
+                    <span>Search and explore player stats across all tournaments</span>
+                  </span>
+                  <span className="tile-arrow" aria-hidden="true">→</span>
+                </Link>
+              </div>
+            </div>
+          </>
         ) : (
           <p style={{ color: 'var(--text-secondary)' }}>Loading...</p>
         )}

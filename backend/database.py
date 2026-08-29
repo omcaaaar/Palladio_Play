@@ -240,7 +240,11 @@ def delete_event(tournament_id: str, event_id: str) -> bool:
     if data:
         original_len = len(data["events"])
         data["events"] = [e for e in data["events"] if e["id"] != event_id]
-        if len(data["events"]) < original_len:
+        
+        original_sc_len = len(data.get("scorecards", []))
+        data["scorecards"] = [sc for sc in data.get("scorecards", []) if sc.get("event_id") != event_id]
+        
+        if len(data["events"]) < original_len or len(data.get("scorecards", [])) < original_sc_len:
             _write(tournament_id, data)
             return True
     return False
@@ -316,7 +320,11 @@ def delete_fixture(tournament_id: str, fixture_id: str) -> bool:
     if data:
         original_len = len(data["fixtures"])
         data["fixtures"] = [f for f in data["fixtures"] if f["id"] != fixture_id]
-        if len(data["fixtures"]) < original_len:
+        
+        original_sc_len = len(data.get("scorecards", []))
+        data["scorecards"] = [sc for sc in data.get("scorecards", []) if sc.get("fixture_id") != fixture_id]
+        
+        if len(data["fixtures"]) < original_len or len(data.get("scorecards", [])) < original_sc_len:
             _write(tournament_id, data)
             return True
     return False

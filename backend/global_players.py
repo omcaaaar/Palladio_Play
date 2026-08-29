@@ -259,8 +259,9 @@ def populate_dynamic_stats(player: dict, key: str) -> dict:
         return player
     name_lower, mobile = parts
     
-    # Reset all stats to zero before calculating
+    # Reset all stats and tournaments before calculating
     for sport, sport_block in player.get("sports", {}).items():
+        sport_block["tournaments"] = []
         for stat_key in sport_block.get("stats", {}):
             sport_block["stats"][stat_key] = _empty_stat()
             
@@ -287,6 +288,12 @@ def populate_dynamic_stats(player: dict, key: str) -> dict:
             continue
             
         sport_block = player["sports"][sport]
+        
+        # Add tournament to the list since player is registered
+        sport_block["tournaments"].append({
+            "tournament_id": tournament.get("id"),
+            "tournament_name": tournament.get("name")
+        })
         
         for sc in scorecards:
             if sc.get("status") not in ("completed",):

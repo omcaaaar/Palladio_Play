@@ -448,19 +448,7 @@ def update_fixture(tid: str, fixture_id: str, update: dict):
 
     # ── Trigger global player stats rebuild when match is locked ──
     if update.get("is_frozen") is True:
-        try:
-            import global_players
-            scorecards = database.get_scorecards_for_fixture(tid, fixture_id)
-            player_names = set()
-            for sc in scorecards:
-                for field in ("team1_player1", "team1_player2", "team2_player1", "team2_player2"):
-                    name = sc.get(field, "")
-                    if name:
-                        player_names.add(name)
-            if player_names:
-                global_players.rebuild_stats_for_players(list(player_names), tid)
-        except Exception as e:
-            print(f"Global stats rebuild failed (non-blocking): {e}")
+        pass # Global stats are calculated dynamically on read, so no action needed on freeze.
 
     return {"message": "Fixture updated", "fixture": result}
 

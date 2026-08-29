@@ -37,6 +37,9 @@ def get_admin_global_player_profile(key: str):
     player = data.get(key)
     if not player:
         raise HTTPException(404, "Player not found")
+        
+    player = global_players.populate_dynamic_stats(player, key)
+    
     player["key"] = key
     return player
 

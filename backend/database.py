@@ -99,6 +99,17 @@ def get_all_tournaments() -> List[dict]:
         return tournaments
     return [document["tournament"] for document in _get_collection().find({}, {"_id": 0, "tournament": 1}) if "tournament" in document]
 
+def get_all_tournament_full_data() -> List[dict]:
+    if DATABASE_BACKEND == "local":
+        tournaments = []
+        for filename in os.listdir(DATA_DIR):
+            if filename.endswith(".json"):
+                with open(os.path.join(DATA_DIR, filename), encoding="utf-8") as file:
+                    document = json.load(file)
+                tournaments.append(document)
+        return tournaments
+    return list(_get_collection().find({}, {"_id": 0}))
+
 def add_tournament(tournament_data: dict):
     tid = tournament_data["id"]
     data = {

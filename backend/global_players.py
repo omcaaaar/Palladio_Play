@@ -46,7 +46,7 @@ def classify_event(event_name: str) -> str:
     for pattern, category in _EVENT_CATEGORY_PATTERNS:
         if pattern.match(event_name):
             return category
-    return "other"
+    return "team"
 
 
 # ── File I/O ──────────────────────────────────────────────────
@@ -90,6 +90,7 @@ def _empty_sport_block():
             "senior_singles": _empty_stat(),
             "junior_doubles": _empty_stat(),
             "senior_doubles": _empty_stat(),
+            "team": _empty_stat(),
         },
     }
 
@@ -119,6 +120,9 @@ def get_global_player(key: str) -> Optional[dict]:
     player = data.get(key)
     if not player:
         return None
+        
+    player = populate_dynamic_stats(player, key)
+    
     # Return public-safe copy (exclude mobile, wing, flat_no)
     return {
         "key": key,
@@ -240,125 +244,103 @@ def delete_global_player(key: str) -> bool:
 # ── Stats Rebuild ─────────────────────────────────────────────
 
 def _get_all_tournament_data() -> List[dict]:
-    """Read every tournament JSON from the data/tournaments directory."""
+    """Read every tournament JSON from the database."""
     import database
-    tournaments_dir = os.path.join(DATA_DIR, "tournaments")
-    results = []
-    if not os.path.exists(tournaments_dir):
-        return results
-    for filename in os.listdir(tournaments_dir):
-        if filename.endswith(".json"):
-            filepath = os.path.join(tournaments_dir, filename)
-            with open(filepath, encoding="utf-8") as f:
-                results.append(json.load(f))
-    return results
+    return database.get_all_tournament_full_data()
 
 
-def rebuild_stats_for_players(player_names: List[str], tournament_id: str):
-    """Rebuild stats for specific players after a match is locked.
-
-    We look up the global player by matching name (from scorecard) to the
-    tournament's registered players list (to get their mobile for the key).
-    """
-    import database
-    tournament_data = database.get_tournament_data(tournament_id)
-    if not tournament_data:
-        return
-
-    tournament = tournament_data.get("tournament", {})
-    sport = tournament.get("sport", "")
-    if sport not in SUPPORTED_SPORTS:
-        return
-
-    registered = tournament_data.get("players", [])
-    # Build name→mobile map from this tournament's registered players
-    name_to_mobile = {}
-    for p in registered:
-        if p.get("mobile"):
-            name_to_mobile[p["name"].strip().lower()] = p["mobile"]
-
-    data = _read_all()
-    all_tournaments = _get_all_tournament_data()
-
-    for player_name in player_names:
-        mobile = name_to_mobile.get(player_name.strip().lower(), "")
-        if not mobile:
-            continue  # Can't link without mobile
-
-        key = _make_key(player_name, mobile)
-        if key not in data:
-            continue  # Player not in global list yet
-
-        player = data[key]
-        if sport not in player.get("sports", {}):
-            player.setdefault("sports", {})[sport] = _empty_sport_block()
-
-        # Reset stats for this sport
-        sport_block = player["sports"][sport]
-        for stat_key in sport_block["stats"]:
+def populate_dynamic_stats(player: dict, key: str) -> dict:
+    """Dynamically calculate and populate stats for a player across all tournaments."""
+    if not player or not key:
+        return player
+        
+    parts = key.split("|", 1)
+    if len(parts) != 2:
+        return player
+    name_lower, mobile = parts
+    
+    # Reset all stats to zero before calculating
+    for sport, sport_block in player.get("sports", {}).items():
+        for stat_key in sport_block.get("stats", {}):
             sport_block["stats"][stat_key] = _empty_stat()
-
-        # Recalculate from ALL tournaments of this sport
-        for t_data in all_tournaments:
-            t_info = t_data.get("tournament", {})
-            if t_info.get("sport") != sport:
+            
+    all_tournaments = _get_all_tournament_data()
+    
+    for t_data in all_tournaments:
+        tournament = t_data.get("tournament", {})
+        sport = tournament.get("sport", "")
+        if sport not in SUPPORTED_SPORTS or sport not in player.get("sports", {}):
+            continue
+            
+        events = t_data.get("events", [])
+        event_map = {e["id"]: e for e in events}
+        scorecards = t_data.get("scorecards", [])
+        registered = t_data.get("players", [])
+        
+        # Build set of names this player used in this tournament
+        player_names_in_tournament = set()
+        for p in registered:
+            if p.get("mobile") == mobile and p.get("name", "").strip().lower() == name_lower:
+                player_names_in_tournament.add(p.get("name", "").strip().lower())
+                
+        if not player_names_in_tournament:
+            continue
+            
+        sport_block = player["sports"][sport]
+        
+        for sc in scorecards:
+            if sc.get("status") not in ("completed",):
                 continue
-
-            events = t_data.get("events", [])
-            event_map = {e["id"]: e for e in events}
-            scorecards = t_data.get("scorecards", [])
-
-            for sc in scorecards:
-                if sc.get("status") not in ("completed",):
-                    continue
-
-                # Check if player is involved
-                side = None
-                if player_name in (sc.get("team1_player1", ""), sc.get("team1_player2", "")):
-                    side = "team1"
-                elif player_name in (sc.get("team2_player1", ""), sc.get("team2_player2", "")):
-                    side = "team2"
-
-                if side is None:
-                    continue
-
-                other_side = "team2" if side == "team1" else "team1"
-                won = sc.get("winner") == side
-                lost = sc.get("winner") == other_side
-
-                # Classify event
-                event = event_map.get(sc.get("event_id"), {})
-                category = classify_event(event.get("name", ""))
-
-                # Calculate points from sets
-                pts_won = 0
-                pts_lost = 0
-                for s in sc.get("sets", []):
-                    pts_won += s.get(f"{side}_score", 0)
-                    pts_lost += s.get(f"{other_side}_score", 0)
-
-                # Update total
-                total = sport_block["stats"]["total"]
-                total["played"] += 1
+                
+            side = None
+            sc_t1_p1 = sc.get("team1_player1", "").strip().lower()
+            sc_t1_p2 = sc.get("team1_player2", "").strip().lower()
+            sc_t2_p1 = sc.get("team2_player1", "").strip().lower()
+            sc_t2_p2 = sc.get("team2_player2", "").strip().lower()
+            
+            if sc_t1_p1 in player_names_in_tournament or sc_t1_p2 in player_names_in_tournament:
+                side = "team1"
+            elif sc_t2_p1 in player_names_in_tournament or sc_t2_p2 in player_names_in_tournament:
+                side = "team2"
+                
+            if side is None:
+                continue
+                
+            other_side = "team2" if side == "team1" else "team1"
+            won = sc.get("winner") == side
+            lost = sc.get("winner") == other_side
+            
+            event = event_map.get(sc.get("event_id"), {})
+            category = classify_event(event.get("name", ""))
+            
+            pts_won = 0
+            pts_lost = 0
+            for s in sc.get("sets", []):
+                pts_won += s.get(f"{side}_score", 0)
+                pts_lost += s.get(f"{other_side}_score", 0)
+                
+            # Update total
+            total = sport_block["stats"]["total"]
+            total["played"] += 1
+            if won:
+                total["won"] += 1
+            if lost:
+                total["lost"] += 1
+            total["points_won"] += pts_won
+            total["points_lost"] += pts_lost
+            
+            # Update category
+            if category in sport_block["stats"]:
+                cat = sport_block["stats"][category]
+                cat["played"] += 1
                 if won:
-                    total["won"] += 1
+                    cat["won"] += 1
                 if lost:
-                    total["lost"] += 1
-                total["points_won"] += pts_won
-                total["points_lost"] += pts_lost
-
-                # Update category
-                if category in sport_block["stats"]:
-                    cat = sport_block["stats"][category]
-                    cat["played"] += 1
-                    if won:
-                        cat["won"] += 1
-                    if lost:
-                        cat["lost"] += 1
-                    cat["points_won"] += pts_won
-                    cat["points_lost"] += pts_lost
-
-    _write_all(data)
+                    cat["lost"] += 1
+                cat["points_won"] += pts_won
+                cat["points_lost"] += pts_lost
+                
+    return player
 
 
 def backfill_all():
@@ -430,81 +412,7 @@ def backfill_all():
     # Save first (personal data), then rebuild all stats
     _write_all(data)
 
-    # Now recalculate stats for every player
-    for key, player in data.items():
-        for sport in list(player.get("sports", {}).keys()):
-            sport_block = player["sports"][sport]
-            # Reset all stats
-            for stat_key in sport_block["stats"]:
-                sport_block["stats"][stat_key] = _empty_stat()
-
-    # Walk through all scorecards
-    for t_data in all_tournaments:
-        tournament = t_data.get("tournament", {})
-        sport = tournament.get("sport", "")
-        if sport not in SUPPORTED_SPORTS:
-            continue
-
-        events = t_data.get("events", [])
-        event_map = {e["id"]: e for e in events}
-        scorecards = t_data.get("scorecards", [])
-        registered = t_data.get("players", [])
-        name_to_mobile = {}
-        for p in registered:
-            if p.get("mobile"):
-                name_to_mobile[p["name"].strip().lower()] = p["mobile"]
-
-        for sc in scorecards:
-            if sc.get("status") != "completed":
-                continue
-
-            event = event_map.get(sc.get("event_id"), {})
-            category = classify_event(event.get("name", ""))
-
-            for side in ("team1", "team2"):
-                other = "team2" if side == "team1" else "team1"
-                players_in_side = [
-                    sc.get(f"{side}_player1", ""),
-                    sc.get(f"{side}_player2", ""),
-                ]
-                won = sc.get("winner") == side
-                lost = sc.get("winner") == other
-
-                pts_won = sum(s.get(f"{side}_score", 0) for s in sc.get("sets", []))
-                pts_lost = sum(s.get(f"{other}_score", 0) for s in sc.get("sets", []))
-
-                for pname in players_in_side:
-                    if not pname:
-                        continue
-                    mobile = name_to_mobile.get(pname.strip().lower(), "")
-                    if not mobile:
-                        continue
-                    key = _make_key(pname, mobile)
-                    if key not in data:
-                        continue
-                    player = data[key]
-                    if sport not in player.get("sports", {}):
-                        continue
-                    sb = player["sports"][sport]
-
-                    total = sb["stats"]["total"]
-                    total["played"] += 1
-                    if won:
-                        total["won"] += 1
-                    if lost:
-                        total["lost"] += 1
-                    total["points_won"] += pts_won
-                    total["points_lost"] += pts_lost
-
-                    if category in sb["stats"]:
-                        cat = sb["stats"][category]
-                        cat["played"] += 1
-                        if won:
-                            cat["won"] += 1
-                        if lost:
-                            cat["lost"] += 1
-                        cat["points_won"] += pts_won
-                        cat["points_lost"] += pts_lost
+    # We no longer calculate stats here since it's dynamically calculated on read.
 
     _write_all(data)
     return len(data)

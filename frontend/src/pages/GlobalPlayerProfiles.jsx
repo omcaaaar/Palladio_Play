@@ -61,6 +61,7 @@ const CATEGORY_LABELS = {
   senior_singles: 'Senior Singles',
   junior_doubles: 'Junior Doubles',
   senior_doubles: 'Senior Doubles',
+  team: 'Team Event',
 };
 
 function winPct(won, played) {

@@ -447,7 +447,6 @@ export function PlayoffBracket({ fixtures, getTeamName, events, scorecards }) {
       <div className="playoff-bracket">
         {/* Quarter Finals */}
         <div className="playoff-round">
-          <div className="playoff-round-label">Quarter Finals</div>
           {quarters.map(qf => renderMatchCard(qf))}
         </div>
 
@@ -465,7 +464,6 @@ export function PlayoffBracket({ fixtures, getTeamName, events, scorecards }) {
         {/* Semi Finals */}
         {semis.length > 0 && (
           <div className="playoff-round">
-            <div className="playoff-round-label">Semi Finals</div>
             {semis.map(sf => renderMatchCard(sf))}
           </div>
         )}
@@ -475,7 +473,6 @@ export function PlayoffBracket({ fixtures, getTeamName, events, scorecards }) {
         {/* Final */}
         {final_ && (
           <div className="playoff-round">
-            <div className="playoff-round-label">Final</div>
             {renderMatchCard(final_)}
           </div>
         )}
@@ -490,7 +487,6 @@ export function PlayoffBracket({ fixtures, getTeamName, events, scorecards }) {
       <div className="playoff-bracket">
         {/* Semi Finals */}
         <div className="playoff-round">
-          <div className="playoff-round-label">Semi Finals</div>
           {semis.map(sf => renderMatchCard(sf))}
         </div>
 
@@ -499,7 +495,6 @@ export function PlayoffBracket({ fixtures, getTeamName, events, scorecards }) {
         {/* Final */}
         {final_ && (
           <div className="playoff-round">
-            <div className="playoff-round-label">Final</div>
             {renderMatchCard(final_)}
           </div>
         )}
@@ -516,23 +511,8 @@ export function PlayoffBracket({ fixtures, getTeamName, events, scorecards }) {
     );
   }
 
-  // Path description for the info banner
-  let pathDescription = null;
-  if (isIPL) {
-    pathDescription = (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', justifyContent: 'center', alignItems: 'center', padding: '0.75rem', fontSize: '0.75rem', color: 'var(--text-secondary)', background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--radius-md)', marginBottom: '0.75rem' }}>
-        <span>Q1 Winner → <strong style={{ color: 'var(--accent-secondary)' }}>Final</strong></span>
-        <span style={{ opacity: 0.4 }}>│</span>
-        <span>Q1 Loser + Eliminator Winner → <strong style={{ color: 'var(--accent-primary)' }}>Q2</strong></span>
-        <span style={{ opacity: 0.4 }}>│</span>
-        <span>Q2 Winner → <strong style={{ color: 'var(--accent-secondary)' }}>Final</strong></span>
-      </div>
-    );
-  }
-
   return (
     <div>
-      {pathDescription}
       {bracketContent}
       {champion && (
         <div className="playoff-champion-banner">

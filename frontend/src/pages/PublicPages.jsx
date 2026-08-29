@@ -904,6 +904,33 @@ export function PlayerStatsPage() {
       }); 
     }); 
   }); 
+  
+  const sortedStats = Object.values(stats).sort((a, b) => {
+    if (b.wins !== a.wins) return b.wins - a.wins;
+    const bSetDiff = b.setsWon - b.setsLost;
+    const aSetDiff = a.setsWon - a.setsLost;
+    if (bSetDiff !== aSetDiff) return bSetDiff - aSetDiff;
+    if (b.pointDifference !== a.pointDifference) return b.pointDifference - a.pointDifference;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+
+  let currentRank = 1;
+  sortedStats.forEach((player, index) => {
+    if (index > 0) {
+      const prev = sortedStats[index - 1];
+      const prevSetDiff = prev.setsWon - prev.setsLost;
+      const currSetDiff = player.setsWon - player.setsLost;
+      if (prev.wins === player.wins && prevSetDiff === currSetDiff && prev.pointDifference === player.pointDifference) {
+        player.rank = prev.rank;
+      } else {
+        player.rank = currentRank;
+      }
+    } else {
+      player.rank = currentRank;
+    }
+    currentRank++;
+  });
+
   return (
     <PageFrame title="Player Stats" subtitle="Compare player performance across events." context={context}>
       <div className="table-container">
@@ -912,9 +939,9 @@ export function PlayerStatsPage() {
             <tr><th>#</th><th>Player</th><th>Team</th><th>Events</th><th>Wins</th><th>Sets Won</th><th>Sets Lost</th><th>Point Difference</th></tr>
           </thead>
           <tbody>
-            {Object.values(stats).sort((a, b) => b.wins - a.wins || b.events - a.events).map((player, index) => 
+            {sortedStats.map((player) => 
               <tr key={`${player.team}-${player.name}`}>
-                <td>{index + 1}</td>
+                <td>{player.rank}</td>
                 <td><strong>{player.name}</strong></td>
                 <td>{player.team}</td>
                 <td>{player.events}</td>

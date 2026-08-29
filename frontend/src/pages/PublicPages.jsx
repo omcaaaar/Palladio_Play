@@ -364,35 +364,77 @@ export function PlayoffBracket({ fixtures, getTeamName, events, scorecards }) {
     const q2 = getFixture('qualifier_2');
     const final_ = getFixture('final');
 
+    const green = 'rgba(16, 185, 129, 0.6)';
+    const blue = 'rgba(59,130,246,0.3)';
+
+    const GapRow = ({ row }) => <div style={{ gridColumn: '1 / -1', gridRow: row, height: '1rem' }} />;
+    const VertLine = ({ color }) => <div style={{ position: 'absolute', top: 0, left: '50%', marginLeft: '-1px', width: '0', height: '100%', borderLeft: `2px dashed ${color}` }} />;
+    const HorizLine = ({ color }) => <div style={{ position: 'absolute', top: '50%', marginTop: '-1px', left: 0, width: '100%', height: '0', borderTop: `2px dashed ${color}` }} />;
+    const TurnDown = ({ color }) => <div style={{ position: 'absolute', top: '50%', marginTop: '-1px', left: 0, width: 'calc(50% + 1px)', height: 'calc(50% + 1px)', borderTop: `2px dashed ${color}`, borderRight: `2px dashed ${color}`, borderTopRightRadius: '4px' }} />;
+    const TurnUp = ({ color }) => <div style={{ position: 'absolute', bottom: '50%', marginBottom: '-1px', left: 0, width: 'calc(50% + 1px)', height: 'calc(50% + 1px)', borderBottom: `2px dashed ${color}`, borderRight: `2px dashed ${color}`, borderBottomRightRadius: '4px' }} />;
+    const MergeRight = ({ color }) => (
+      <>
+        <div style={{ position: 'absolute', bottom: '50%', marginBottom: '-1px', left: '50%', marginLeft: '-1px', width: '10px', height: 'calc(50% + 1px)', borderBottom: `2px dashed ${color}`, borderLeft: `2px dashed ${color}`, borderBottomLeftRadius: '4px' }} />
+        <div style={{ position: 'absolute', top: '50%', marginTop: '-1px', left: '50%', marginLeft: '-1px', width: '10px', height: 'calc(50% + 1px)', borderTop: `2px dashed ${color}`, borderLeft: `2px dashed ${color}`, borderTopLeftRadius: '4px' }} />
+        <div style={{ position: 'absolute', top: '50%', marginTop: '-1px', left: 'calc(50% + 9px)', width: 'calc(50% - 9px)', height: '0', borderTop: `2px dashed ${color}` }} />
+      </>
+    );
+
     bracketContent = (
-      <div className="playoff-bracket">
-        {/* Round 1: Q1 + Eliminator */}
-        <div className="playoff-round">
-          <div className="playoff-round-label">Round 1</div>
+      <div className="playoff-bracket" style={{ display: 'grid', gridTemplateColumns: 'auto 28px auto 28px auto', gap: 0, alignItems: 'stretch' }}>
+        
+        {/* ROW 1: Q1 */}
+        <div style={{ gridColumn: 1, gridRow: 1, alignSelf: 'center', position: 'relative' }}>
           {q1 && renderMatchCard(q1)}
-          {elim && renderMatchCard(elim)}
+        </div>
+        <div style={{ gridColumn: 2, gridRow: 1, position: 'relative' }}>
+           <HorizLine color={green} />
+           <TurnDown color={blue} />
+        </div>
+        <div style={{ gridColumn: 3, gridRow: 1, position: 'relative' }}>
+           <HorizLine color={green} />
+        </div>
+        <div style={{ gridColumn: 4, gridRow: 1, position: 'relative' }}>
+           <TurnDown color={green} />
         </div>
 
-        <ConnectorColumn topCount={2} bottomCount={1} />
+        <GapRow row={2} />
+        
+        {/* ROW 2 GAP */}
+        <div style={{ gridColumn: 2, gridRow: 2, position: 'relative' }}><VertLine color={blue} /></div>
+        <div style={{ gridColumn: 4, gridRow: 2, position: 'relative' }}><VertLine color={green} /></div>
 
-        {/* Round 2: Qualifier 2 */}
-        {q2 && (
-          <>
-            <div className="playoff-round">
-              <div className="playoff-round-label">Round 2</div>
-              {renderMatchCard(q2)}
-            </div>
-            <ConnectorColumn topCount={1} bottomCount={1} />
-          </>
-        )}
+        {/* ROW 3: Q2 */}
+        <div style={{ gridColumn: 2, gridRow: 3, position: 'relative' }}>
+           <MergeRight color={blue} />
+        </div>
+        <div style={{ gridColumn: 3, gridRow: 3, alignSelf: 'center', position: 'relative' }}>
+          {q2 && renderMatchCard(q2)}
+        </div>
+        <div style={{ gridColumn: 4, gridRow: 3, position: 'relative' }}>
+           {/* Final Merge: Green from top, Blue from left (Q2) */}
+           <div style={{ position: 'absolute', bottom: '50%', marginBottom: '-1px', left: '50%', marginLeft: '-1px', width: '10px', height: 'calc(50% + 1px)', borderLeft: `2px dashed ${green}`, borderBottom: `2px dashed ${green}`, borderBottomLeftRadius: '4px' }} />
+           <div style={{ position: 'absolute', top: '50%', marginTop: '-1px', left: 0, width: '50%', height: '0', borderTop: `2px dashed ${blue}` }} />
+           <div style={{ position: 'absolute', top: '50%', marginTop: '-1px', left: 'calc(50% + 9px)', width: 'calc(50% - 9px)', height: '0', borderTop: `2px dashed ${green}` }} />
+        </div>
 
-        {/* Final */}
-        {final_ && (
-          <div className="playoff-round">
-            <div className="playoff-round-label">Final</div>
-            {renderMatchCard(final_)}
-          </div>
-        )}
+        <GapRow row={4} />
+
+        {/* ROW 4 GAP */}
+        <div style={{ gridColumn: 2, gridRow: 4, position: 'relative' }}><VertLine color={blue} /></div>
+
+        {/* ROW 5: ELIM */}
+        <div style={{ gridColumn: 1, gridRow: 5, alignSelf: 'center', position: 'relative' }}>
+          {elim && renderMatchCard(elim)}
+        </div>
+        <div style={{ gridColumn: 2, gridRow: 5, position: 'relative' }}>
+           <TurnUp color={blue} />
+        </div>
+
+        {/* FINAL SPANNING ALL ROWS */}
+        <div style={{ gridColumn: 5, gridRow: '1 / span 5', alignSelf: 'center', position: 'relative' }}>
+          {final_ && renderMatchCard(final_)}
+        </div>
       </div>
     );
   } else if (isQuarterFinal) {

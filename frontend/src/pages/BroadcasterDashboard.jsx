@@ -498,7 +498,7 @@ export default function BroadcasterDashboard() {
     if (overlayState === 'standings') {
       const groups = [...new Set(teams.map(t => t.group).filter(Boolean))];
       return (
-        <div style={{ padding: '2rem', width: '1000px', background: 'rgba(20, 20, 24, 0.3)', color: 'white', borderRadius: '16px', fontFamily: 'Inter, sans-serif' }}>
+        <div className="broadcaster-overlay-container" style={{ padding: '2rem', width: '1200px', background: 'rgba(20, 20, 24, 0.3)', color: 'white', borderRadius: '16px', fontFamily: 'Inter, sans-serif' }}>
           <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', color: 'white', textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}>League Standings</h2>
           {groups.length > 0 ? (
             groups.map(g => (
@@ -514,7 +514,7 @@ export default function BroadcasterDashboard() {
       );
     } else if (overlayState === 'bracket') {
       return (
-        <div style={{ padding: '2rem', width: '1000px', background: 'rgba(20, 20, 24, 0.3)', color: 'white', borderRadius: '16px', fontFamily: 'Inter, sans-serif' }}>
+        <div className="broadcaster-overlay-container" style={{ padding: '2rem', width: '1200px', background: 'rgba(20, 20, 24, 0.3)', color: 'white', borderRadius: '16px', fontFamily: 'Inter, sans-serif' }}>
           <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', color: 'white', textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}>Playoffs</h2>
           <PlayoffBracket
             fixtures={fixtures}

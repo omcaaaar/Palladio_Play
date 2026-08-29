@@ -78,7 +78,7 @@ export default function BroadcasterDashboard() {
       const leagueFixtures = fixtures.filter(f => f.match_type === 'league');
       const allLeagueCompleted = leagueFixtures.length === 0 || leagueFixtures.every(f => f.is_frozen);
 
-      const playoffTypes = ['qualifier_1', 'eliminator', 'qualifier_2', 'semi_final', 'final'];
+      const playoffTypes = ['quarter_final', 'qualifier_1', 'eliminator', 'qualifier_2', 'semi_final', 'final'];
       const hasPlayoffs = fixtures.some(f => playoffTypes.includes(f.match_type));
 
       if (allLeagueCompleted && hasPlayoffs) {

@@ -116,6 +116,7 @@ export function details(data) {
 }
 
 export const MATCH_TYPE_LABELS = {
+  quarter_final: 'Quarter Final',
   qualifier_1: 'Qualifier 1',
   eliminator: 'Eliminator',
   qualifier_2: 'Qualifier 2',
@@ -302,7 +303,7 @@ export function ConnectorColumn({ topCount, bottomCount }) {
 }
 
 export function PlayoffBracket({ fixtures, getTeamName, events, scorecards }) {
-  const playoffTypes = ['qualifier_1', 'eliminator', 'qualifier_2', 'semi_final', 'final'];
+  const playoffTypes = ['quarter_final', 'qualifier_1', 'eliminator', 'qualifier_2', 'semi_final', 'final'];
   const playoffFixtures = fixtures.filter(f => playoffTypes.includes(f.match_type));
 
   if (playoffFixtures.length === 0) return null;
@@ -312,10 +313,12 @@ export function PlayoffBracket({ fixtures, getTeamName, events, scorecards }) {
   const hasElim = playoffFixtures.some(f => f.match_type === 'eliminator');
   const hasQ2 = playoffFixtures.some(f => f.match_type === 'qualifier_2');
   const hasSF = playoffFixtures.some(f => f.match_type === 'semi_final');
+  const hasQF = playoffFixtures.some(f => f.match_type === 'quarter_final');
   const hasFinal = playoffFixtures.some(f => f.match_type === 'final');
 
   const isIPL = hasQ1 || hasElim || hasQ2;
-  const isSemiFinal = hasSF && !isIPL;
+  const isQuarterFinal = hasQF && !isIPL;
+  const isSemiFinal = hasSF && !isIPL && !isQuarterFinal;
 
   // Get fixture by type (first match of each type)
   const getFixture = (type) => playoffFixtures.find(f => f.match_type === type);
@@ -382,6 +385,50 @@ export function PlayoffBracket({ fixtures, getTeamName, events, scorecards }) {
             <ConnectorColumn topCount={1} bottomCount={1} />
           </>
         )}
+
+        {/* Final */}
+        {final_ && (
+          <div className="playoff-round">
+            <div className="playoff-round-label">Final</div>
+            {renderMatchCard(final_)}
+          </div>
+        )}
+      </div>
+    );
+  } else if (isQuarterFinal) {
+    // Quarter-Final Style: [QF1 + QF2 + QF3 + QF4] → [SF1 + SF2] → [Final]
+    const quarters = getFixtures('quarter_final');
+    const semis = getFixtures('semi_final');
+    const final_ = getFixture('final');
+
+    bracketContent = (
+      <div className="playoff-bracket">
+        {/* Quarter Finals */}
+        <div className="playoff-round">
+          <div className="playoff-round-label">Quarter Finals</div>
+          {quarters.map(qf => renderMatchCard(qf))}
+        </div>
+
+        {semis.length > 0 && (
+          (quarters.length === 2 && semis.length === 2) ? (
+            <div className="playoff-connector-col" style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', width: '50%', height: '140px', borderTop: '2px dashed rgba(59,130,246,0.3)', borderRight: '2px dashed rgba(59,130,246,0.3)', left: 0, top: 'calc(50% - 70px)', borderRadius: '0 4px 0 0' }}></div>
+              <div style={{ position: 'absolute', width: '100%', height: '2px', borderTop: '2px dashed rgba(59,130,246,0.3)', left: 0, top: 'calc(50% + 70px)' }}></div>
+            </div>
+          ) : (
+            <ConnectorColumn topCount={quarters.length} bottomCount={semis.length} />
+          )
+        )}
+
+        {/* Semi Finals */}
+        {semis.length > 0 && (
+          <div className="playoff-round">
+            <div className="playoff-round-label">Semi Finals</div>
+            {semis.map(sf => renderMatchCard(sf))}
+          </div>
+        )}
+
+        {(semis.length > 0 && final_) ? <ConnectorColumn topCount={semis.length} bottomCount={1} /> : (final_ && <ConnectorColumn topCount={quarters.length} bottomCount={1} />)}
 
         {/* Final */}
         {final_ && (
@@ -531,7 +578,7 @@ export function StandingsPage() {
   const groups = [...new Set(teams.map(t => t.group).filter(Boolean))];
 
   // Check for playoff fixtures
-  const playoffTypes = ['qualifier_1', 'eliminator', 'qualifier_2', 'semi_final', 'final'];
+  const playoffTypes = ['quarter_final', 'qualifier_1', 'eliminator', 'qualifier_2', 'semi_final', 'final'];
   const hasPlayoffs = fixtures.some(f => playoffTypes.includes(f.match_type));
 
   return (

@@ -1240,6 +1240,7 @@ export default function AdminDashboard() {
               <label className="form-label">Match Type</label>
               <select className="form-input" value={fixtureType} onChange={e => setFixtureType(e.target.value)}>
                 <option value="league">League</option>
+                <option value="quarter_final">Quarter Final</option>
                 <option value="qualifier_1">Qualifier 1</option>
                 <option value="eliminator">Eliminator</option>
                 <option value="qualifier_2">Qualifier 2</option>
@@ -1335,6 +1336,7 @@ export default function AdminDashboard() {
               <label className="form-label">Match Type</label>
               <select className="form-input" value={editFixtureType} onChange={e => setEditFixtureType(e.target.value)}>
                 <option value="league">League</option>
+                <option value="quarter_final">Quarter Final</option>
                 <option value="qualifier_1">Qualifier 1</option>
                 <option value="eliminator">Eliminator</option>
                 <option value="qualifier_2">Qualifier 2</option>

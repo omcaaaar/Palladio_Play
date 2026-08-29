@@ -78,13 +78,18 @@ async def add_global_player(
         "photo_url": photo_url
     }
 
+    key = global_players._make_key(name, mobile)
+    data = global_players._read_all()
+    if key in data:
+        raise HTTPException(status_code=400, detail="Player already exists in the global list with this name and mobile number.")
+
     global_players.upsert_global_player(
         name=name,
         mobile=mobile,
         personal_data=personal_data,
     )
     
-    key = global_players._make_key(name, mobile)
+    
     
     # We return the lightweight dict to match what get_all_global_players provides
     # so the frontend can append it to the allPlayers list seamlessly

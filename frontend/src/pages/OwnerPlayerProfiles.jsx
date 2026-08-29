@@ -149,7 +149,7 @@ function PlayerCard({ player }) {
           height: '110px',
           borderRadius: '50%',
           background: 'var(--bg-secondary)',
-          border: '4px solid var(--bg-card)',
+          border: '4px solid var(--bg-primary)',
           boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
           display: 'flex',
           alignItems: 'center',

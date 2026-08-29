@@ -605,6 +605,8 @@ export default function GlobalPlayerProfiles() {
                 display: 'flex',
                 alignItems: 'flex-end',
                 gap: '1.25rem',
+                position: 'relative',
+                zIndex: 1,
               }}
             >
               <div
@@ -613,7 +615,7 @@ export default function GlobalPlayerProfiles() {
                   height: '110px',
                   borderRadius: '50%',
                   background: 'var(--bg-secondary)',
-                  border: '4px solid var(--bg-card)',
+                  border: '4px solid var(--bg-primary)',
                   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
                   display: 'flex',
                   alignItems: 'center',

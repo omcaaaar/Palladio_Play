@@ -102,7 +102,7 @@ async def add_player(
     mobile: str = Form(...),
     wing: str = Form(...),
     flat_no: str = Form(...),
-    age: int = Form(...),
+    birth_year: int = Form(...),
     gender: str = Form(""),
     expertise: str = Form(...),
     photo: Optional[UploadFile] = File(None),

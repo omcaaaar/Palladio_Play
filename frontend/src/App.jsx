@@ -42,14 +42,14 @@ function Navbar({ user, logout }) {
         {user?.role === 'owner' && (
           <Link to="/owner" className={`nav-link ${location.pathname.startsWith('/owner') ? 'active' : ''}`}>Owner</Link>
         )}
-        
+
         {!user ? (
           <Link to="/login" className="btn btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}>
             <LogIn size={16} /> Login
           </Link>
         ) : (
           <button onClick={logout} className="btn btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}>
-            <LogOut size={16} /> {user.role}
+            <LogOut size={16} /> Logout
           </button>
         )}
       </div>
